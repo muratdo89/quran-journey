@@ -20,17 +20,18 @@
 - Expand Vocabulary Studio with 38-surah filtering, root filtering, pagination, and one-click Surah bulk FSRS card generation (`AR→TR` and `TR→AR`), and upgrade Memorization Studio across all 38 Surahs with random verse continuation tests.
 - Implement full async `SupabaseProgressRepository` + Supabase Auth cookie API (`/api/auth`) with migration `0003_phase2_progress_columns.sql`, idempotent batch seeding (`supabase/seed.sql`), and ephemeral `/tmp` fallback so the app deploys cleanly from mobile browsers to Vercel + Supabase.
 
-## Phase 2B — Full 604-Page Verified Mushaf Expansion (Next)
-- Sync remaining Surahs (2–77) across all 604 Madinah Mushaf pages via Quran Foundation OAuth2 / QUL / Tanzil import pipeline.
-- Add full-Quran Turkish/Arabic search index and offline Service Worker caching for studied pages.
+## Phase 2B — Full 604-Page Verified Mushaf Expansion (Completed)
+- Synced all remaining Surahs (1–114) across all 604 Madinah Mushaf pages (6,236 verses, 77,429 words) via lazy gzipped per-Surah files (`surah-001.json.gz`..`surah-114.json.gz`) and `quran-meta.json`, bundled cleanly with `outputFileTracingIncludes`.
+- Added normalized Arabic & Turkish full-Quran search (`/api/search`), interactive 30-Juz jumper, and offline Service Worker (`public/sw.js`) page/audio caching (`/api/mushaf/offline`).
 
-## Phase 3 — Extended Vocabulary & Mutashabihat Engine
-- Full 77,429-word Quran vocabulary browser with root-family grouping, frequency ranking, and Hifz mutashabihat (similar verse) cross-reference alerts.
+## Phase 3 — Extended Vocabulary & Mutashabihat Engine (Completed)
+- Built server-paginated 77,429-word vocabulary browser (`/api/vocabulary`), 1,651-root Root Family Explorer (`Kök Ailesi Gezgini`), and cross-Quran Mutashabihat (similar verse) alerts integrated into both Mushaf study and Hifz memorization flows.
 
-## Phase 4 — Extensible AI Recitation & Pronunciation Assessment
-- Plug in server-side Quranic ASR (e.g., Whisper fine-tuned on Quranic Arabic or specialized Tarteel/Quran models) behind `RecitationAsrProvider`.
-- Word-sequence alignment diffing with explicit confidence bands and human teacher export bundle.
+## Phase 4 — Extensible AI Recitation & Pronunciation Assessment (Completed)
+- Implemented `ConfigurableHttpAsrProvider` alongside a Levenshtein Arabic sequence aligner (`alignAsrTranscript`, supporting Uthmani dagger-alef variants) and consent-gated `multipart/form-data` audio upload (`/api/audio/assess`).
+- Added persistent client-side IndexedDB audio storage (`local-recordings.ts`) and strictly preserved epistemic honesty (`requiresHumanReview: true`, explicit separation between word-sequence checks and human Tajweed verification).
 
-## Phase 5 — Deep Analytics & Mobile PWA Polish
-- Longitudinal error-pattern categorization (madd errors, harakat confusion, similar-verse mix-ups, forgotten roots).
-- Web Push gentle review reminders and offline audio caching for active memorization pages.
+## Phase 5 — Deep Analytics & Mobile PWA Polish (Completed)
+- Implemented longitudinal error-pattern analytics (`buildErrorPatternInsights` and `buildJuzProgressGrid`) surfaced in `/statistics` with a clickable 30-Juz / 604-page coverage matrix, FSRS lapse alerts, and top missed root recommendations.
+- Added offline connectivity banner, per-page offline bundle download in `/mushaf`, consolidated `supabase/setup_all.sql` single-paste migration, and gentle local browser reminder controls in `/settings`.
+

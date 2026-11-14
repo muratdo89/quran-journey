@@ -5,10 +5,10 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import {
   getAllFatihaWords,
-  getAllVerifiedWords,
   getAvailablePages,
   getFatihaDataset,
   getMushafPageData,
+  getSurahEnrichedWords,
   getSurahEntry,
 } from "@/lib/content/canonical-loader";
 import { ARABIC_READING_MODULES, TAJWEED_LESSONS } from "@/lib/content/arabic-curriculum";
@@ -783,28 +783,75 @@ export class SqliteProgressRepository implements ProgressRepository {
       throw new Error(`Sure ${surahId} bulunamadı.`);
     }
 
-    const words = getAllVerifiedWords().filter((w) => w.surahId === surahId);
-    let addedCount = 0;
+    const words = getSurahEnrichedWords(surahId);
+    const uniqueWords: typeof words = [];
     const seenText = new Set<string>();
-
     for (const w of words) {
       if (seenText.has(w.textUthmani)) continue;
       seenText.add(w.textUthmani);
+      uniqueWords.push(w);
+    }
 
-      const exists = this.db
-        .prepare(
-          `SELECT id FROM learning_cards WHERE user_id = ? AND card_type = 'vocabulary' AND target_key = ? AND direction = ?`
-        )
-        .get(userId, w.location, direction);
+    const existingRows = this.db
+      .prepare(
+        `SELECT target_key FROM learning_cards WHERE user_id = ? AND card_type = 'vocabulary' AND direction = ? AND target_key LIKE ?`
+      )
+      .all(userId, direction, `${surahId}:%`) as Array<{ target_key: string }>;
+    const existingSet = new Set(existingRows.map((r) => r.target_key));
 
-      if (!exists) {
-        await this.ensureVocabularyCard({
-          wordLocation: w.location,
+    const toInsert = uniqueWords.filter((w) => !existingSet.has(w.location));
+    if (toInsert.length === 0) {
+      return { addedCount: 0, totalSurahCards: seenText.size };
+    }
+
+    const insertWordProg = this.db.prepare(
+      `INSERT OR IGNORE INTO user_word_progress (id, user_id, word_location, status)
+       VALUES (?, ?, ?, 'new')`
+    );
+    const insertCard = this.db.prepare(
+      `INSERT OR IGNORE INTO learning_cards
+       (id, user_id, card_type, target_key, direction, fsrs_state, due_at, stability, difficulty, elapsed_days, scheduled_days, reps, lapses, learning_steps, last_review_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+
+    const now = new Date();
+    let addedCount = 0;
+    this.db.exec("BEGIN IMMEDIATE;");
+    try {
+      for (const w of toInsert) {
+        insertWordProg.run(crypto.randomUUID(), userId, w.location);
+        const card = createInitialCardRecord(
+          crypto.randomUUID(),
+          "vocabulary",
+          w.location,
           direction,
+          now
+        );
+        const res = insertCard.run(
+          card.id,
           userId,
-        });
-        addedCount += 1;
+          card.cardType,
+          card.targetKey,
+          card.direction,
+          card.fsrsState,
+          card.dueAt,
+          card.stability,
+          card.difficulty,
+          card.elapsedDays,
+          card.scheduledDays,
+          card.reps,
+          card.lapses,
+          card.learningSteps,
+          card.lastReviewAt
+        );
+        if (Number(res.changes ?? 0) > 0) {
+          addedCount += 1;
+        }
       }
+      this.db.exec("COMMIT;");
+    } catch (err) {
+      this.db.exec("ROLLBACK;");
+      throw err;
     }
 
     return { addedCount, totalSurahCards: seenText.size };

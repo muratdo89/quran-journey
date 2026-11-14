@@ -2,10 +2,10 @@ import crypto from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   getAllFatihaWords,
-  getAllVerifiedWords,
   getAvailablePages,
   getFatihaDataset,
   getMushafPageData,
+  getSurahEnrichedWords,
   getSurahEntry,
 } from "@/lib/content/canonical-loader";
 import { ARABIC_READING_MODULES, TAJWEED_LESSONS } from "@/lib/content/arabic-curriculum";
@@ -186,9 +186,9 @@ export class SupabaseProgressRepository implements ProgressRepository {
       this.client.from("profiles").select("*").eq("id", userId).maybeSingle(),
       this.client.from("user_preferences").select("*").eq("user_id", userId).maybeSingle(),
       this.client.from("learning_goals").select("*").eq("user_id", userId).maybeSingle(),
-      this.client.from("learning_cards").select("*").eq("user_id", userId).order("due_at").limit(5000),
-      this.client.from("user_word_progress").select("*").eq("user_id", userId).limit(5000),
-      this.client.from("user_verse_progress").select("*").eq("user_id", userId).order("verse_key").limit(1000),
+      this.client.from("learning_cards").select("*").eq("user_id", userId).order("due_at").limit(10000),
+      this.client.from("user_word_progress").select("*").eq("user_id", userId).limit(10000),
+      this.client.from("user_verse_progress").select("*").eq("user_id", userId).order("verse_key").limit(7000),
       this.client.from("user_page_progress").select("*").eq("user_id", userId).order("page_number").limit(1000),
       this.client.from("bookmarks").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
       this.client.from("user_notes").select("*").eq("user_id", userId).order("updated_at", { ascending: false }),
@@ -539,8 +539,8 @@ export class SupabaseProgressRepository implements ProgressRepository {
     const entry = getSurahEntry(surahId);
     if (!entry) throw new Error(`Sure ${surahId} bulunamadı.`);
 
-    const words = getAllVerifiedWords().filter((w) => w.surahId === surahId);
-    const uniqueWords = [];
+    const words = getSurahEnrichedWords(surahId);
+    const uniqueWords: typeof words = [];
     const seen = new Set<string>();
     for (const w of words) {
       if (seen.has(w.textUthmani)) continue;
@@ -554,14 +554,18 @@ export class SupabaseProgressRepository implements ProgressRepository {
       .eq("user_id", userId)
       .eq("card_type", "vocabulary")
       .eq("direction", direction)
-      .like("target_key", `${surahId}:%`);
+      .like("target_key", `${surahId}:%`)
+      .limit(10000);
 
     const existingKeys = new Set((existingRows ?? []).map((r) => String(r.target_key)));
     const toInsert = uniqueWords.filter((w) => !existingKeys.has(w.location));
 
-    if (toInsert.length > 0) {
+    const chunkSize = 500;
+    const now = new Date();
+    for (let i = 0; i < toInsert.length; i += chunkSize) {
+      const slice = toInsert.slice(i, i + chunkSize);
       await this.client.from("user_word_progress").upsert(
-        toInsert.map((w) => ({
+        slice.map((w) => ({
           user_id: userId,
           word_location: w.location,
           status: "new",
@@ -569,9 +573,8 @@ export class SupabaseProgressRepository implements ProgressRepository {
         { onConflict: "user_id,word_location", ignoreDuplicates: true }
       );
 
-      const now = new Date();
       await this.client.from("learning_cards").upsert(
-        toInsert.map((w) => {
+        slice.map((w) => {
           const card = createInitialCardRecord(
             crypto.randomUUID(),
             "vocabulary",

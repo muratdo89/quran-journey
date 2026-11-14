@@ -168,7 +168,7 @@ export function DashboardClient({
             <div className="inline-flex flex-wrap items-center gap-2 rounded-full bg-[#f3efe6] px-3 py-1 text-xs font-semibold text-[#1b4332]">
               <span>Medine Mushafı · Sayfa {activePage}</span>
               <span className="text-[#b08d57]">•</span>
-              <span>{totalSurahs} Sure (Fâtiha + Cüz Amme · {totalPages} Sayfa)</span>
+              <span>Tam Kur&apos;an ({totalSurahs} Sure · {totalPages} Sayfa)</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1c241f]">
               Selam, {snapshot.profile.displayName}. Bugünkü yolculuğunuz hazır.
@@ -176,7 +176,7 @@ export function DashboardClient({
             <p className="text-sm sm:text-base text-[#5a655e] leading-relaxed">
               {plan.dueCardsCount > 0
                 ? `${plan.dueCardsCount} tekrar kartı zamanı geldi. Yeni konuya geçmeden önce kısa bir aktif hatırlama ile öğrendiklerinizi koruyalım.`
-                : `Bekleyen tekrarlarınız güncel. Bugün Sayfa ${activePage} üzerinden okumaya, kelime analizine veya Cüz Amme ezberine devam edebilirsiniz.`}
+                : `Bekleyen tekrarlarınız güncel. Bugün Sayfa ${activePage} üzerinden okumaya, kelime/kök analizine veya ezber stüdyosuna devam edebilirsiniz.`}
             </p>
           </div>
 
@@ -386,7 +386,7 @@ export function DashboardClient({
             href="/memorization"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1b4332] hover:underline"
           >
-            <span>Ezber Stüdyosuna Git (38 Sure)</span>
+            <span>Ezber Stüdyosuna Git ({totalSurahs} Sure)</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>

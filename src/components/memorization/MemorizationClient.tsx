@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowDown,
@@ -8,6 +9,7 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  GitCompareArrows,
   ListOrdered,
   Repeat,
   RotateCcw,
@@ -15,7 +17,11 @@ import {
   Sparkles,
   Volume2,
 } from "lucide-react";
-import type { CanonicalSurahMeta, CanonicalVerse } from "@/lib/content/types";
+import type {
+  CanonicalSurahMeta,
+  CanonicalVerse,
+  MutashabihatMatch,
+} from "@/lib/content/types";
 import type { VerseProgressRecord } from "@/lib/db/types";
 import { MEMORIZATION_STATE_LABELS_TR } from "@/lib/learning-engine";
 import { cn } from "@/lib/utils";
@@ -24,11 +30,14 @@ interface MemorizationClientProps {
   surah: CanonicalSurahMeta;
   verses: CanonicalVerse[];
   availableSurahs: CanonicalSurahMeta[];
+  mutashabihatMap: Record<string, MutashabihatMatch[]>;
   initialVerseProgress: VerseProgressRecord[];
   initialVerseKey?: string;
 }
 
 type PracticeMode = "hide_all" | "cloze" | "next_verse" | "order_test";
+
+const CHUNK_SIZE = 10;
 
 function buildDeterministicShuffledWindow(
   verses: CanonicalVerse[],
@@ -39,8 +48,10 @@ function buildDeterministicShuffledWindow(
   const slice = verses.slice(start, start + windowSize);
   if (slice.length <= 1) return slice;
   if (slice.length === 2) return [slice[1]!, slice[0]!];
-  // Deterministic non-sorted permutation
-  const rotated = [...slice.slice(Math.floor(slice.length / 2)), ...slice.slice(0, Math.floor(slice.length / 2))];
+  const rotated = [
+    ...slice.slice(Math.floor(slice.length / 2)),
+    ...slice.slice(0, Math.floor(slice.length / 2)),
+  ];
   return rotated.reverse();
 }
 
@@ -48,6 +59,7 @@ export function MemorizationClient({
   surah,
   verses,
   availableSurahs,
+  mutashabihatMap,
   initialVerseProgress,
   initialVerseKey,
 }: MemorizationClientProps) {
@@ -63,22 +75,29 @@ export function MemorizationClient({
       ? initialVerseKey
       : verses[0]!.verseKey;
 
+  const initialIdx = Math.max(
+    0,
+    verses.findIndex((v) => v.verseKey === initialKey)
+  );
+
   const [selectedVerseKey, setSelectedVerseKey] = useState<string>(initialKey);
+  const [chunkIndex, setChunkIndex] = useState<number>(() => Math.floor(initialIdx / CHUNK_SIZE));
   const [mode, setMode] = useState<PracticeMode>("hide_all");
   const [revealedCount, setRevealedCount] = useState<number>(0);
   const [hiddenWordPositions, setHiddenWordPositions] = useState<Set<number>>(() => {
-    const first = verses.find((v) => v.verseKey === initialKey) ?? verses[0]!;
+    const first = verses[initialIdx] ?? verses[0]!;
     return new Set(first.words.filter((_, idx) => idx % 2 === 1).map((w) => w.position));
   });
   const [revealedCloze, setRevealedCloze] = useState<Set<number>>(() => new Set());
   const [nextVerseRevealed, setNextVerseRevealed] = useState(false);
+  const [showMutashabihat, setShowMutashabihat] = useState(false);
   const [loopAudio, setLoopAudio] = useState(false);
   const [savingOutcome, setSavingOutcome] = useState(false);
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [orderedVerses, setOrderedVerses] = useState<CanonicalVerse[]>(() =>
-    buildDeterministicShuffledWindow(verses, 0)
+    buildDeterministicShuffledWindow(verses, initialIdx)
   );
   const [orderChecked, setOrderChecked] = useState<boolean | null>(null);
 
@@ -109,19 +128,33 @@ export function MemorizationClient({
     [verses, verseProgress]
   );
 
+  const totalChunks = Math.max(1, Math.ceil(verses.length / CHUNK_SIZE));
+  const visibleVerses = useMemo(() => {
+    if (verses.length <= 20) return verses;
+    const start = chunkIndex * CHUNK_SIZE;
+    return verses.slice(start, start + CHUNK_SIZE);
+  }, [verses, chunkIndex]);
+
+  const currentMutashabihat = useMemo(
+    () => mutashabihatMap[selectedVerse.verseKey] ?? [],
+    [mutashabihatMap, selectedVerse.verseKey]
+  );
+
   function selectVerse(key: string) {
     setSelectedVerseKey(key);
     setRevealedCount(0);
     setRevealedCloze(new Set());
     setNextVerseRevealed(false);
+    setShowMutashabihat(false);
     setFeedbackBanner(null);
     const idx = verses.findIndex((item) => item.verseKey === key);
-    const v = verses[idx];
-    if (v) {
+    if (idx >= 0) {
+      setChunkIndex(Math.floor(idx / CHUNK_SIZE));
+      const v = verses[idx]!;
       setHiddenWordPositions(
         new Set(v.words.filter((_, i) => i % 2 === 1).map((w) => w.position))
       );
-      setOrderedVerses(buildDeterministicShuffledWindow(verses, Math.max(0, idx)));
+      setOrderedVerses(buildDeterministicShuffledWindow(verses, idx));
       setOrderChecked(null);
     }
   }
@@ -205,7 +238,7 @@ export function MemorizationClient({
             Kur&apos;an Ezber Motoru (Hıfz Stüdyosu)
           </h1>
           <p className="text-sm text-[#5a655e]">
-            Fâtiha ve Cüz Amme ({availableSurahs.length} Sure) için kelime gizleme, boşluk tamamlama, rastgele yerden devam ve sıralama testleri.
+            Tüm Kur&apos;an ({availableSurahs.length} Sure) için kelime gizleme, boşluk tamamlama, rastgele devam, sıralama ve Müteşâbihât kontrolü.
           </p>
         </div>
 
@@ -263,12 +296,67 @@ export function MemorizationClient({
         </div>
       </div>
 
+      {/* Long-Surah 10-Verse Range Selector when > 20 verses */}
+      {verses.length > 20 && (
+        <div className="rounded-2xl border border-[#e5dec9] bg-white p-3.5 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold text-[#1c241f]">
+              Ayet Aralığı Seç ({verses.length} ayet · 10&apos;lu bloklar)
+            </span>
+            <select
+              aria-label="Ayet bloğu seç"
+              value={String(chunkIndex)}
+              onChange={(e) => {
+                const nextIdx = Number(e.target.value);
+                setChunkIndex(nextIdx);
+                const firstInBlock = verses[nextIdx * CHUNK_SIZE];
+                if (firstInBlock) selectVerse(firstInBlock.verseKey);
+              }}
+              className="rounded-lg border border-[#e5dec9] bg-[#faf8f3] px-2.5 py-1 text-xs font-semibold text-[#1b4332]"
+            >
+              {Array.from({ length: totalChunks }, (_, idx) => {
+                const startAyah = idx * CHUNK_SIZE + 1;
+                const endAyah = Math.min(verses.length, (idx + 1) * CHUNK_SIZE);
+                return (
+                  <option key={idx} value={String(idx)}>
+                    {startAyah}–{endAyah}. Ayetler
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+            {Array.from({ length: totalChunks }, (_, idx) => {
+              const startAyah = idx * CHUNK_SIZE + 1;
+              const endAyah = Math.min(verses.length, (idx + 1) * CHUNK_SIZE);
+              const active = idx === chunkIndex;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setChunkIndex(idx)}
+                  className={cn(
+                    "rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                    active
+                      ? "bg-[#1b4332] text-white"
+                      : "bg-[#faf8f3] border border-[#e5dec9] text-[#3f4a43] hover:bg-[#f3efe6]"
+                  )}
+                >
+                  {startAyah}–{endAyah}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Verse Progress Selector Strip */}
       <section className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-10 gap-2">
-        {verses.map((v) => {
+        {visibleVerses.map((v) => {
           const vp = verseProgress[v.verseKey];
           const state = vp?.memorizationState ?? "not_started";
           const active = v.verseKey === selectedVerseKey;
+          const hasMut = (mutashabihatMap[v.verseKey]?.length ?? 0) > 0;
           return (
             <button
               key={v.verseKey}
@@ -281,13 +369,20 @@ export function MemorizationClient({
                   : "border-[#e5dec9] bg-white hover:bg-[#f3efe6]"
               )}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-1">
                 <span className="font-mono text-xs font-bold">{v.verseKey}</span>
-                {(state === "provisional_mastery" || state === "stable_memorization") && (
-                  <CheckCircle2
-                    className={cn("h-3.5 w-3.5", active ? "text-[#f7f1e3]" : "text-[#2d6a4f]")}
-                  />
-                )}
+                <div className="flex items-center gap-0.5">
+                  {hasMut && (
+                    <GitCompareArrows
+                      className={cn("h-3 w-3", active ? "text-[#f7f1e3]" : "text-[#b08d57]")}
+                    />
+                  )}
+                  {(state === "provisional_mastery" || state === "stable_memorization") && (
+                    <CheckCircle2
+                      className={cn("h-3.5 w-3.5", active ? "text-[#f7f1e3]" : "text-[#2d6a4f]")}
+                    />
+                  )}
+                </div>
               </div>
               <p
                 className={cn(
@@ -337,7 +432,7 @@ export function MemorizationClient({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e5dec9] pb-4">
             <div>
               <span className="font-mono text-xs font-bold text-[#b08d57]">
-                Ayet {selectedVerse.verseKey} · Mevcut Durum:{" "}
+                Ayet {selectedVerse.verseKey} (Sayfa {selectedVerse.pageNumber}) · Mevcut Durum:{" "}
                 {MEMORIZATION_STATE_LABELS_TR[currentProgress?.memorizationState ?? "not_started"]}
               </span>
               <p className="mt-1 text-xs text-[#5a655e]">
@@ -522,6 +617,53 @@ export function MemorizationClient({
                 <p className="text-center text-xs text-[#5a655e]">
                   {selectedVerse.verseKey} bu surenin son ayetidir.
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Phase 3: Expandable Mutashabihat Warning (Non-spoiling!) */}
+          {currentMutashabihat.length > 0 && (
+            <div className="rounded-xl border border-[#e3d2ae] bg-[#f7f1e3]/70 p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#6e511e]">
+                  <GitCompareArrows className="h-4 w-4 text-[#9a7639]" />
+                  <span>
+                    Müteşâbihât Uyarısı: Bu ayet Kur&apos;an&apos;da {currentMutashabihat.length} diğer ayetle lafız benzerliği taşır.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMutashabihat((v) => !v)}
+                  className="rounded-lg border border-[#b08d57] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#6e511e] hover:bg-[#faf8f3] shrink-0"
+                >
+                  {showMutashabihat ? "Farkları Gizle" : "Benzer Ayetleri Karşılaştır"}
+                </button>
+              </div>
+
+              {showMutashabihat && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {currentMutashabihat.map((m) => (
+                    <div
+                      key={m.targetKey}
+                      className="rounded-xl border border-[#e3d2ae] bg-white p-3 space-y-1.5 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <Link
+                          href={`/memorization?verse=${m.targetKey}`}
+                          className="font-mono font-bold text-[#1b4332] hover:underline"
+                        >
+                          {m.targetKey} (Sayfa {m.targetPage})
+                        </Link>
+                        <span className="rounded-md bg-[#f7f1e3] px-2 py-0.5 text-[10px] font-semibold text-[#6e511e]">
+                          %{m.similarity} benzer
+                        </span>
+                      </div>
+                      <p lang="ar" dir="rtl" translate="no" className="font-arabic text-xl text-right text-[#1c241f]">
+                        {m.textUthmani}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}

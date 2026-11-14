@@ -2,12 +2,15 @@
 
 Türkçe konuşan yetişkin öğreniciler için geliştirilmiş; Arapça okuma (Elif-Bâ ve harf formları), kelime kelime anlam ve kök incelemesi, tecvid farkındalığı, FSRS aralıklı tekrar ve Kur'an ezberi (Hıfz) odaklı kişisel öğrenme platformu.
 
-## Kapsam (Faz 1 + Faz 2)
+## Kapsam (Faz 1 – Faz 5 Tamamlandı)
 
-- **Doğrulanmış Kanonik Mushaf Verisi:** **Fâtiha Suresi (Sayfa 1) + Amme Cüzü'nün tamamı** (38 Sure: 1 ve 78–114; 24 Medine Mushaf sayfası: Sayfa 1 ve 582–604; 571 ayet; 2.337 kelime; Tanzil Uthmani v1.1 + Quran.com API v4 + Quranic Arabic Corpus v0.4).
+- **Tam Kur'an Doğrulanmış Kanonik Mushaf Verisi:** **114 Sure**, **604 Medine Mushaf Sayfası** (30 Cüz), **6.236 Ayet** ve **77.429 Kelime** (Tanzil Uthmani v1.1 + Quran.com API v4 + Quranic Arabic Corpus v0.4). Tembel yüklemeli (`surah-001.json.gz` … `surah-114.json.gz` + `lexicon-index.json.gz`) mimariyle düşük bellek tüketir ve tüm veriler SHA-256 ile doğrulanır.
 - **5 Bağımsız Öğrenme Boyutu:** Arapça Okuma, Telaffuz & Tecvid, Kelime Hazinesi, Ayet Anlama ve Ezber (Hıfz).
-- **28 Harflik Elif-Bâ & Okuma Müfredatı:** Seviye tespit değerlendirmesi, 28 harfin 4 konumlu tablosu + ses örnekleri, 8 aşamalı okuma modülü ve 8 aşamalı Tecvid dersi.
+- **28 Harflik Elif-Bâ & Okuma ve Tecvid Müfredatı:** Seviye tespit değerlendirmesi, 28 harfin 4 konumlu tablosu + Kur'an ses örnekleri, 8 aşamalı okuma modülü ve 8 aşamalı Tecvid dersi.
+- **Kelime Hazinesi, 1.651 Kök Ailesi ve Müteşâbihât:** Tüm 77.429 kelime için sunucu taraflı sayfalanmış arama, **Kök Ailesi Gezgini** (`1.651` kök) ve Mushaf / Hıfz modlarında **Müteşâbihât** (benzer ayet) uyarıları.
 - **Bilimsel Aralıklı Tekrar ve Toparlanma Modu:** `ts-fsrs` tabanlı aktif hatırlama kuyruğu, suçluluk yüklemeyen 3–5 dakikalık toparlanma modu ve çift yönlü (`AR→TR`, `TR→AR`) sure bazlı toplu kelime kartı üretimi.
+- **Genişletilebilir Kur'an ASR Kelime Sırası Analizi:** `ConfigurableHttpAsrProvider` + Arapça Levenshtein DP hizalama motoru. Mikrofon kayıtları IndexedDB'de yerel saklanır; harici ASR yalnızca açık kullanıcı onayı (`consentGranted`) olduğunda çalışır ve tecvid teyidi için her zaman uzman incelemesi gerektirir (`requiresHumanReview: true`).
+- **Derin Analitik ve Çevrimdışı PWA Desteği:** 30 Cüz / 604 sayfalık ilerleme matrisi, unutulan kök ve FSRS hata örüntüsü analitiği, Service Worker sayfa/ses önbellekleme (`public/sw.js`) ve nazik tarayıcı hatırlatıcısı.
 
 ## Kurulum ve Yerel Çalıştırma
 
@@ -18,31 +21,28 @@ pnpm dev
 
 Varsayılan olarak herhangi bir harici veritabanı veya API anahtarı gerekmeden yerel `node:sqlite` veritabanı (`.data/quran-journey.db`, salt okunur ortamlarda `/tmp/quran-journey-data`) ile hemen çalışır.
 
-## Bilgisayarsız (Telefon Tarayıcısından) Bulut Kurulumu: Supabase + Vercel
+## Bilgisayarsız (Telefon Tarayıcısından) 2 Adımlı Bulut Kurulumu
 
-Proje bulutta tek elden telefon tarayıcısı üzerinden canlıya alınabilecek şekilde yapılandırılmıştır:
+Uygulama bilgisayara ihtiyaç duymadan doğrudan telefon tarayıcısı üzerinden canlıya alınabilecek şekilde hazırlanmıştır:
 
-1. **Supabase Veritabanı ve Kimlik Doğrulama:**
-   - Supabase SQL Editor'de sırasıyla şu dosyaları çalıştırın:
-     - `supabase/migrations/0001_initial_schema.sql`
-     - `supabase/migrations/0002_rls_policies.sql`
-     - `supabase/migrations/0003_phase2_progress_columns.sql`
-   - *(İsteğe bağlı kanonik referans tohumlaması için)* `supabase/seed.sql` dosyasını da çalıştırabilirsiniz (uygulama kanonik metinleri yerel paketlenmiş doğrulanmış JSON'dan okuduğu için temel kullanıcı senkronizasyonu `0001`–`0003` ile hemen çalışır).
-   - Supabase proje ayarlarından (`Project Settings -> API`) **`Project URL`** ve **`anon public` key** değerlerini kopyalayın.
-2. **Vercel Yayını:**
-   - Vercel üzerinde bu GitHub deposunu içe aktarın (`Import Git Repository`).
-   - **Environment Variables** alanına `NEXT_PUBLIC_SUPABASE_URL` ve `NEXT_PUBLIC_SUPABASE_ANON_KEY` değerlerini ekleyin ve **Deploy** butonuna basın.
-   - Uygulama açıldığında **Ayarlar** sayfasındaki bulut oturumu bölümünden e-posta/şifre ile hesap oluşturup giriş yapabilirsiniz; tüm FSRS kartlarınız, ezber durumunuz, notlarınız ve yer imleriniz cihazlar arası eşitlenir.
+1. **Supabase Veritabanı (Tek Dosya Yapıştır & Çalıştır):**
+   - Supabase projenizde **SQL Editor** ekranını açın.
+   - [`supabase/setup_all.sql`](supabase/setup_all.sql) dosyasının içeriğini kopyalayıp yapıştırın ve **Run** butonuna basın (tüm şema, RLS güvenlik kuralları ve Faz 2–5 kolonları tek seferde idempotent şekilde kurulur).
+   - *Project Settings → API* bölümünden **`Project URL`** ve **`anon public` key** değerlerini kopyalayın.
+2. **Vercel Yayını (Tek Tıkla İçe Aktar):**
+   - Aşağıdaki bağlantıyı telefonunuzdan açıp yukarıdaki iki Supabase değişkenini (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) yapıştırarak **Deploy** edin:
+   - [Vercel ile Tek Tıkla Yayınla](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmuratdo89%2Fquran-journey&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY)
+   - *(İsteğe bağlı — Faz 4 Harici Kur'an ASR)*: Kelime sırası kontrolü için Vercel Environment Variables alanına `QURAN_ASR_API_URL` (ör. Whisper uyumlu endpoint) ve `QURAN_ASR_API_KEY` ekleyebilirsiniz; tanımlanmazsa uygulama dürüst biçimde yerel kayıt + hoca karşılaştırma modunda çalışır.
 
 ## Doğrulama ve Testler
 
 ```bash
-pnpm test            # İçerik bütünlüğü, müfredat, FSRS/öğrenme motoru ve SQLite entegrasyon testleri
+pnpm verify:content  # Tüm 114 sure, 604 sayfa, 6.236 ayet, 77.429 kelime ve lexicon-index SHA-256 denetimi
+pnpm test            # İçerik bütünlüğü, müfredat, FSRS/öğrenme motoru, ASR hizalama ve SQLite entegrasyon testleri
 npx tsc --noEmit     # Katı TypeScript denetimi
 pnpm lint            # ESLint denetimi
 pnpm build           # Next.js üretim derlemesi
-pnpm verify:content  # Canonical JSON dosyalarının SHA-256 ve yapı bütünlüğünü doğrular
-pnpm seed:supabase   # Canonical veriden supabase/seed.sql dosyasını yeniden üretir
+pnpm seed:supabase   # Canonical veriden supabase/seed.sql dosyasını yeniden üretir (--all ile 114 sure)
 ```
 
 ## Dokümantasyon
@@ -53,3 +53,4 @@ pnpm seed:supabase   # Canonical veriden supabase/seed.sql dosyasını yeniden �
 - [İçerik Kaynakları ve Lisanslar](docs/CONTENT_SOURCES.md)
 - [Yol Haritası](docs/ROADMAP.md)
 - [Test ve Kabul Kriterleri](docs/TESTING.md)
+

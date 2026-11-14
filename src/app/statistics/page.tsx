@@ -1,7 +1,23 @@
-import { Award, BarChart3, BookOpenCheck, Brain, Calendar, Languages } from "lucide-react";
-import { getAvailablePages } from "@/lib/content/canonical-loader";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  Award,
+  BarChart3,
+  BookOpenCheck,
+  Brain,
+  Calendar,
+  Compass,
+  Info,
+  Languages,
+} from "lucide-react";
+import { ARABIC_READING_MODULES, TAJWEED_LESSONS } from "@/lib/content/arabic-curriculum";
+import { getAvailablePages, getWordByLocation } from "@/lib/content/canonical-loader";
 import { getRepository } from "@/lib/db";
-import { MEMORIZATION_STATE_LABELS_TR } from "@/lib/learning-engine";
+import {
+  buildErrorPatternInsights,
+  buildJuzProgressGrid,
+  MEMORIZATION_STATE_LABELS_TR,
+} from "@/lib/learning-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +57,38 @@ export default async function StatisticsPage() {
     0
   );
 
+  // Enrich missed words cleanly from canonical gzipped Surahs
+  const wordMistakes = snapshot.wordProgress
+    .filter((wp) => wp.timesMissed > 0)
+    .map((wp) => {
+      const canonical = getWordByLocation(wp.wordLocation);
+      return {
+        wordLocation: wp.wordLocation,
+        arabic: canonical?.textUthmani ?? wp.wordLocation,
+        meaningTr: canonical?.translationTr ?? "",
+        rootArabic: canonical?.morphology.rootArabic ?? null,
+        partOfSpeech: canonical?.morphology.segments[0]?.partOfSpeech ?? null,
+        timesMissed: wp.timesMissed,
+      };
+    });
+
+  const errorReport = buildErrorPatternInsights({
+    cards: snapshot.cards,
+    wordMistakes,
+    verseStates: snapshot.verseProgress.map((v) => ({
+      verseKey: v.verseKey,
+      memorizationState: v.memorizationState,
+    })),
+    completedReadingModuleIds: snapshot.completedReadingModuleIds,
+    totalReadingModules: ARABIC_READING_MODULES.length,
+    practicedTajweedSlugs: snapshot.practicedTajweedSlugs,
+    totalTajweedLessons: TAJWEED_LESSONS.length,
+  });
+
+  const juzGrid = buildJuzProgressGrid(
+    snapshot.pageProgress.map((p) => ({ pageNumber: p.pageNumber, status: p.status }))
+  );
+
   const metrics = [
     {
       label: "Pekiştirilen Kelimeler",
@@ -67,9 +115,9 @@ export default async function StatisticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#1c241f]">İstatistikler ve İlerleme</h1>
+        <h1 className="text-2xl font-bold text-[#1c241f]">İstatistikler, Hata Analizi ve Cüz Haritası</h1>
         <p className="text-sm text-[#5a655e]">
-          Yalnızca doğrulanmış aktif hatırlama, okuma tamamlama ve ezber testlerinden üretilen dürüst ölçümler ({totalReviews} tekrar).
+          Yalnızca doğrulanmış aktif hatırlama, FSRS unutma (lapse) örüntüleri, okuma tamamlama ve ezber testlerinden üretilen dürüst ölçümler ({totalReviews} tekrar).
         </p>
       </div>
 
@@ -90,6 +138,143 @@ export default async function StatisticsPage() {
             </div>
           );
         })}
+      </section>
+
+      {/* Phase 5: Longitudinal Error-Pattern Analytics */}
+      <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-[#b08d57]" />
+              <span>Hata Örüntüsü Analizi ve Öncelikli Öneriler</span>
+            </h2>
+            <p className="text-xs text-[#5a655e]">
+              FSRS kart düşüşleri, kaçırılan kökler, okuma boşlukları ve zayıflayan ezberler taranarak oluşturulur.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="rounded-lg bg-[#faf8f3] border border-[#e5dec9] px-2.5 py-1 font-semibold">
+              Lapse Kart: {errorReport.lapsedCardsCount}
+            </span>
+            <span className="rounded-lg bg-[#faf8f3] border border-[#e5dec9] px-2.5 py-1 font-semibold">
+              Tekrar Bekleyen Ayet: {errorReport.revisionVersesCount}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {errorReport.insights.map((ins) => (
+            <article
+              key={ins.id}
+              className={
+                ins.severity === "high"
+                  ? "rounded-xl border border-amber-300 bg-amber-50/70 p-4 space-y-2"
+                  : ins.severity === "medium"
+                    ? "rounded-xl border border-[#e3d2ae] bg-[#f7f1e3]/70 p-4 space-y-2"
+                    : "rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 space-y-2"
+              }
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8d682c]">
+                  {ins.categoryTr}
+                </span>
+                {ins.severity === "high" ? (
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-700" />
+                ) : (
+                  <Info className="h-3.5 w-3.5 text-[#1b4332]" />
+                )}
+              </div>
+              <h3 className="text-sm font-bold text-[#1c241f]">{ins.titleTr}</h3>
+              <p className="text-xs text-[#3f4a43] leading-relaxed">{ins.detailTr}</p>
+              <div className="pt-1">
+                <Link
+                  href={ins.actionHref}
+                  className="inline-flex items-center rounded-lg bg-[#1b4332] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#143326]"
+                >
+                  {ins.actionLabelTr}
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        {errorReport.topMissedRoots.length > 0 && (
+          <div className="pt-3 border-t border-[#e5dec9] space-y-2">
+            <p className="text-xs font-semibold text-[#1c241f]">
+              En Sık Hata Yapılan Kelime Kökleri:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {errorReport.topMissedRoots.map((bucket) => (
+                <Link
+                  key={bucket.rootArabic}
+                  href={`/vocabulary?root=${encodeURIComponent(bucket.rootArabic)}`}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3 py-1.5 text-xs hover:border-[#1b4332]"
+                >
+                  <span lang="ar" dir="rtl" translate="no" className="font-arabic text-base font-bold text-[#1b4332]">
+                    {bucket.rootArabic}
+                  </span>
+                  <span className="text-[#5a655e]">{bucket.missedCount} hata</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* 30-Juz / 604-Page Madinah Mushaf Coverage Map */}
+      <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
+              <Compass className="h-4 w-4 text-[#1b4332]" />
+              <span>30 Cüz / 604 Sayfa Medine Mushafı Haritası</span>
+            </h2>
+            <p className="text-xs text-[#5a655e]">
+              Her cüz kartına tıklayarak doğrudan o cüzün başlangıç Mushaf sayfasına gidebilirsiniz.
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-[#1b4332]">
+            {snapshot.pageProgress.length} / 604 sayfa çalışıldı
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2.5">
+          {juzGrid.map((juz) => {
+            const hasStudy = juz.studiedPages > 0;
+            const isComplete = juz.completedPages === juz.totalPages;
+            return (
+              <Link
+                key={juz.juzNumber}
+                href={`/mushaf?page=${juz.startPage}`}
+                className={
+                  isComplete
+                    ? "rounded-xl border border-[#2d6a4f] bg-[#edf5f0] p-3 text-xs transition-colors"
+                    : hasStudy
+                      ? "rounded-xl border border-[#b08d57] bg-[#f7f1e3]/70 p-3 text-xs transition-colors hover:bg-[#f7f1e3]"
+                      : "rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3 text-xs transition-colors hover:border-[#1b4332]"
+                }
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#1c241f]">{juz.juzNumber}. Cüz</span>
+                  <span className="font-mono text-[10px] text-[#5a655e]">
+                    {juz.startPage}–{juz.endPage}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-[11px] text-[#5a655e]">
+                  {juz.studiedPages}/{juz.totalPages} sayfa
+                </p>
+                <div className="mt-1.5 h-1.5 rounded-full bg-[#e5dec9] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[#1b4332]"
+                    style={{
+                      width: `${Math.round((juz.studiedPages / juz.totalPages) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </section>
 
       {/* 5 Independent Dimensions + Verse Breakdown */}
@@ -149,12 +334,13 @@ export default async function StatisticsPage() {
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {snapshot.pageProgress.map((pp) => (
-                  <span
+                  <Link
                     key={pp.pageNumber}
-                    className="rounded-lg bg-[#edf5f0] border border-[#2d6a4f]/25 px-2.5 py-1 text-[11px] font-semibold text-[#1b4332]"
+                    href={`/mushaf?page=${pp.pageNumber}`}
+                    className="rounded-lg bg-[#edf5f0] border border-[#2d6a4f]/25 px-2.5 py-1 text-[11px] font-semibold text-[#1b4332] hover:border-[#1b4332]"
                   >
                     Sayfa {pp.pageNumber} ({pp.memorizedVersesCount}/{pp.studiedVersesCount} ezber)
-                  </span>
+                  </Link>
                 ))}
               </div>
             </div>

@@ -52,8 +52,9 @@
 ## 3. Runtime Persistence, Migration & Seed Strategy
 
 - `getRepository()` (`src/lib/db/index.ts`) resolves `SupabaseProgressRepository` whenever Supabase env vars are configured and the user has a valid auth session cookie (refreshed via `qj_sb_refresh_token` if needed), falling back cleanly to `SqliteProgressRepository` (`.data/quran-journey.db`, or `/tmp/quran-journey-data` in read-only serverless environments).
-- Migrations live in `supabase/migrations/`:
+- Migrations live in `supabase/migrations/` and are combined into a single-paste idempotent script at `supabase/setup_all.sql` for zero-laptop mobile SQL Editor setup:
   - `0001_initial_schema.sql`
   - `0002_rls_policies.sql`
   - `0003_phase2_progress_columns.sql`
-- Canonical datasets are verified CLI-side via `scripts/fetch-verified-juz-amma.mjs` and `scripts/verify-content.mjs`, producing checksummed JSON in `src/data/canonical/` and batched SQL in `supabase/seed.sql` via `scripts/generate-supabase-seed.mjs`.
+- Canonical datasets are verified CLI-side via `scripts/fetch-full-quran.mjs` and `scripts/verify-content.mjs`, producing checksummed `quran-meta.json`, `lexicon-index.json.gz`, and 114 `surah-XXX.json.gz` bundles in `src/data/canonical/` plus batched SQL in `supabase/seed.sql` via `scripts/generate-supabase-seed.mjs` (or `seed-full.sql` with `--all`).
+

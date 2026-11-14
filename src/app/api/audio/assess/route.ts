@@ -17,9 +17,45 @@ const DeleteSchema = z.object({
   id: z.string().min(1),
 });
 
+const MAX_AUDIO_BYTES = 15 * 1024 * 1024; // 15 MB safety guard
+
 export async function POST(req: Request) {
   try {
-    const parsed = AssessSchema.parse(await req.json());
+    const contentType = req.headers.get("content-type") ?? "";
+    let parsed: z.infer<typeof AssessSchema>;
+    let audioBytes: Uint8Array | undefined;
+
+    if (contentType.includes("multipart/form-data")) {
+      const form = await req.formData();
+      const rawId = form.get("id");
+      const rawVerseKey = form.get("verseKey");
+      const rawMime = form.get("audioMimeType");
+      const rawDuration = form.get("durationMs");
+      const rawConsent = form.get("consentGranted");
+      const rawAudio = form.get("audio");
+
+      parsed = AssessSchema.parse({
+        id: typeof rawId === "string" && rawId ? rawId : undefined,
+        verseKey: typeof rawVerseKey === "string" ? rawVerseKey : "",
+        audioMimeType: typeof rawMime === "string" && rawMime ? rawMime : "audio/webm",
+        durationMs: Number(rawDuration),
+        consentGranted: rawConsent === "true",
+      });
+
+      // Enforce explicit user consent on server side before reading/forwarding any audio bytes
+      if (parsed.consentGranted && rawAudio instanceof File) {
+        if (rawAudio.size > MAX_AUDIO_BYTES) {
+          return NextResponse.json(
+            { error: "Ses dosyası 15 MB sınırını aşıyor." },
+            { status: 413 }
+          );
+        }
+        audioBytes = new Uint8Array(await rawAudio.arrayBuffer());
+      }
+    } else {
+      parsed = AssessSchema.parse(await req.json());
+    }
+
     const verse = getVerseByKey(parsed.verseKey);
     if (!verse) {
       return NextResponse.json({ error: "Ayet bulunamadı." }, { status: 404 });
@@ -41,6 +77,7 @@ export async function POST(req: Request) {
       audioMimeType: parsed.audioMimeType,
       durationMs: parsed.durationMs,
       consentGranted: parsed.consentGranted,
+      audioBytes: parsed.consentGranted ? audioBytes : undefined,
     });
 
     return NextResponse.json({ record, assessment });

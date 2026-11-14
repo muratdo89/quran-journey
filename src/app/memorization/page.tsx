@@ -1,4 +1,8 @@
-import { getAvailableSurahs, getSurahEntry } from "@/lib/content/canonical-loader";
+import {
+  getAvailableSurahs,
+  getMutashabihatMapForVerses,
+  getSurahEntry,
+} from "@/lib/content/canonical-loader";
 import { getRepository } from "@/lib/db";
 import { MemorizationClient } from "@/components/memorization/MemorizationClient";
 
@@ -26,6 +30,9 @@ export default async function MemorizationPage({
 
   const entry = getSurahEntry(targetSurahId) ?? getSurahEntry(1)!;
   const availableSurahs = getAvailableSurahs();
+  const mutashabihatMap = getMutashabihatMapForVerses(
+    entry.verses.map((v) => v.verseKey)
+  );
 
   return (
     <MemorizationClient
@@ -33,6 +40,7 @@ export default async function MemorizationPage({
       surah={entry.surah}
       verses={entry.verses}
       availableSurahs={availableSurahs}
+      mutashabihatMap={mutashabihatMap}
       initialVerseProgress={snapshot.verseProgress}
       initialVerseKey={params.verse}
     />

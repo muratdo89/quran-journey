@@ -93,17 +93,26 @@ describe("SqliteProgressRepository Integration", () => {
     expect(secondBatch.addedCount).toBe(0);
     expect(secondBatch.totalSurahCards).toBe(firstBatch.totalSurahCards);
 
-    // Track studying Mushaf page 604
+    // Track studying Mushaf page 604 & page 2 (Al-Baqarah)
     await repo.markPageStudied({ pageNumber: 604 });
+    const baqarahBatch = await repo.ensureSurahVocabularyCards({
+      surahId: 2,
+      direction: "ar_to_tr",
+    });
+    expect(baqarahBatch.addedCount).toBeGreaterThan(1000);
+    await repo.markPageStudied({ pageNumber: 2 });
     repo.close();
 
     const reopened = new SqliteProgressRepository(dbPath);
     const snap = await reopened.getDashboardSnapshot();
-    expect(snap.profile.currentPageNumber).toBe(604);
+    expect(snap.profile.currentPageNumber).toBe(2);
     const page604Prog = snap.pageProgress.find((p) => p.pageNumber === 604);
+    const page2Prog = snap.pageProgress.find((p) => p.pageNumber === 2);
     expect(page604Prog).toBeDefined();
     expect(page604Prog?.status).toBe("in_progress");
+    expect(page2Prog?.status).toBe("in_progress");
     expect(snap.cards.some((c) => c.targetKey.startsWith("112:"))).toBe(true);
+    expect(snap.cards.some((c) => c.targetKey.startsWith("2:"))).toBe(true);
     reopened.close();
   });
 });

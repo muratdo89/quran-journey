@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,6 +14,7 @@ import {
   Menu,
   RotateCcw,
   Settings,
+  WifiOff,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,9 +36,31 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/settings", label: "Profil ve Ayarlar", icon: Settings },
 ];
 
+function subscribeOnlineStatus(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("online", callback);
+  window.addEventListener("offline", callback);
+  return () => {
+    window.removeEventListener("online", callback);
+    window.removeEventListener("offline", callback);
+  };
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isOffline = useSyncExternalStore(
+    subscribeOnlineStatus,
+    () => (typeof navigator !== "undefined" ? !navigator.onLine : false),
+    () => false
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-[#faf8f3] text-[#1c241f]">
@@ -77,9 +100,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="p-4 m-3 rounded-xl bg-[#faf8f3] border border-[#e5dec9]">
-          <p className="text-xs font-semibold text-[#1b4332]">Medine Mushafı · Sayfa 1</p>
+          <p className="text-xs font-semibold text-[#1b4332]">Medine Mushafı · 604 Sayfa</p>
           <p className="mt-1 text-xs text-[#5a655e] leading-relaxed">
-            Fâtiha Suresi · Doğrulanmış metin ve kelime anlamlarıyla aktif çalışma.
+            114 Sure · 6.236 Ayet · 77.429 doğrulanmış kelime ile aktif çalışma.
           </p>
         </div>
       </aside>
@@ -146,6 +169,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 lg:pl-64 pb-20 lg:pb-10">
+        {isOffline && (
+          <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-950 flex items-center justify-center gap-2">
+            <WifiOff className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              Çevrimdışı moddasınız. İndirdiğiniz Mushaf sayfalarını ve yerel ses kayıtlarınızı görüntüleyebilirsiniz.
+            </span>
+          </div>
+        )}
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           {children}
         </div>

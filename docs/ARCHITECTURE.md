@@ -57,9 +57,9 @@ Quran Journey uses a modular, layered Next.js App Router architecture written in
      - `session-planner.ts`: Builds `normal` (20 dk), `intensive` (35 dk), and `recovery` (3–5 dk) plans prioritizing overdue reviews (~60/40 review-to-new split, shifting toward 100% review during recovery).
      - `placement.ts`: Evaluates initial Arabic reading diagnostic responses and recommends starting modules without forcing redundant beginner drills.
 4. **Extensible Audio & AI Assessment Abstraction (`src/lib/audio/`):**
-   - `RecitationAsrProvider` and `TajweedEvaluationProvider` interfaces live behind server-side API boundaries.
-   - Phase 1/2 ships with **local MediaRecorder recording**, **side-by-side reference comparison**, **explicit consent flags**, and **honest capability reporting** (`"Ses kaydınız yerel olarak saklanır; yapay zekâ telaffuz değerlendirmesi henüz bağlı değil"`).
-   - Never presents simple text matching as Tajweed verification.
+   - `RecitationAssessmentProvider` interface and `ConfigurableHttpAsrProvider` live behind server-side API boundaries (`/api/audio/assess`).
+   - Supports local browser IndexedDB recording persistence (`local-recordings.ts`), side-by-side reference playback, explicit upload consent gates (`consentGranted`), and Levenshtein Arabic sequence alignment (`sequence-aligner.ts`) when `QURAN_ASR_API_URL` is configured.
+   - Always returns `requiresHumanReview: true` and never presents speech-to-text sequence matching as phonetic or Tajweed mastery.
 5. **Arabic Typography & RTL Isolation:**
    - Quranic Arabic containers explicitly specify `lang="ar" dir="rtl" translate="no"` and `<meta name="google" content="notranslate" />`.
    - Uses SIL Open Font License fonts (`Amiri` and `Scheherazade New`) verified for full Uthmani diacritic positioning (`fatha`, `kasra`, `damma`, `shadda`, `sukun`, `dagger alif`, `maddah`, `stop marks`).
@@ -70,30 +70,36 @@ Quran Journey uses a modular, layered Next.js App Router architecture written in
 
 ```text
 ├── docs/                         # PRD, Architecture, Database, Sources, Roadmap, Testing
+├── public/
+│   └── sw.js                     # Offline Service Worker for Mushaf pages & verse audio
 ├── supabase/
-│   └── migrations/               # PostgreSQL DDL, indexes, and RLS policies
+│   ├── setup_all.sql             # Consolidated idempotent schema & RLS setup script
+│   ├── seed.sql                  # Batched canonical SQL seed script
+│   └── migrations/               # PostgreSQL DDL, indexes, and RLS policies (0001..0003)
 ├── scripts/
-│   ├── fetch-verified-fatiha.mjs # Downloads & cross-validates Fatiha content + checksums
-│   └── verify-content.mjs        # Automated Quran text integrity verifier
+│   ├── fetch-full-quran.mjs      # Syncs & validates 114 Surahs, 604 pages, roots & mutashabihat
+│   ├── generate-supabase-seed.mjs# Generates supabase/seed.sql from canonical surah files
+│   └── verify-content.mjs        # Automated full-Quran SHA-256 & schema integrity verifier
 ├── src/
 │   ├── app/                      # Next.js App Router pages & API routes
 │   │   ├── page.tsx              # Dashboard (Panel)
-│   │   ├── learn-arabic/         # Arabic reading placement & lessons
-│   │   ├── mushaf/               # Page-by-page Mushaf reader & study studio
-│   │   ├── vocabulary/           # Personal Quran vocabulary library
-│   │   ├── memorization/         # Dedicated Hifz practice & page test
+│   │   ├── learn-arabic/         # Elif-Bâ, Arabic reading modules & Tajweed lessons
+│   │   ├── mushaf/               # 604-page Mushaf reader, search & offline download
+│   │   ├── vocabulary/           # 77,429-word browser & 1,651-root family explorer
+│   │   ├── memorization/         # Dedicated Hifz studio, mutashabihat & page tests
 │   │   ├── review/               # FSRS spaced repetition active recall queue
-│   │   ├── statistics/           # 5-pillar analytics & error patterns
-│   │   ├── settings/             # Preferences, audio consent, Supabase/AI setup
-│   │   └── api/                  # Typed REST route handlers
+│   │   ├── statistics/           # 5-pillar analytics, error patterns & 30-Juz coverage grid
+│   │   ├── settings/             # Preferences, reminder, audio consent, Supabase/ASR status
+│   │   └── api/                  # Typed REST route handlers (/search, /vocabulary, /mushaf/offline, /audio/assess, ...)
 │   ├── components/               # Reusable, accessible UI & domain components
 │   ├── data/
 │   │   ├── manifest.json         # Verified source manifest & SHA-256 checksums
-│   │   └── canonical/            # Immutable verified Quran datasets
+│   │   └── canonical/            # quran-meta.json, lexicon-index.json.gz, surahs/surah-001..114.json.gz
 │   └── lib/
-│       ├── content/              # Canonical content loader & integrity checks
-│       ├── learning-engine/      # FSRS scheduler, mastery states, session planner
+│       ├── content/              # Lazy gzipped canonical loader, LRU cache & search
+│       ├── learning-engine/      # FSRS scheduler, mastery states, session planner, analytics
 │       ├── db/                   # Repository interfaces, SQLite & Supabase adapters
-│       └── audio/                # Audio player state & extensible assessment interfaces
-└── tests/                        # Unit & integration tests
+│       └── audio/                # Assessment providers, sequence aligner & IndexedDB store
+└── tests/                        # Unit & integration tests (content, curriculum, engine, ASR, repo)
 ```
+

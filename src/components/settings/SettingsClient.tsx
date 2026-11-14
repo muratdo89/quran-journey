@@ -1,8 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Cloud, Database, LogIn, LogOut, ShieldCheck, UserPlus } from "lucide-react";
+import {
+  Bell,
+  Check,
+  Cloud,
+  Database,
+  LogIn,
+  LogOut,
+  ShieldCheck,
+  UserPlus,
+} from "lucide-react";
 import type { ContentManifest } from "@/lib/content/types";
 import type {
   BackendConfigurationStatus,
@@ -19,6 +28,18 @@ interface SettingsClientProps {
   manifest: ContentManifest;
 }
 
+const REMINDER_EVENT = "qj-reminder-change";
+
+function subscribeReminderStore(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("storage", callback);
+  window.addEventListener(REMINDER_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(REMINDER_EVENT, callback);
+  };
+}
+
 export function SettingsClient({
   profile,
   preferences,
@@ -33,6 +54,19 @@ export function SettingsClient({
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
 
+  // Gentle local notification reminder state (SSR-safe via useSyncExternalStore)
+  const reminderEnabled = useSyncExternalStore(
+    subscribeReminderStore,
+    () => (typeof window !== "undefined" ? localStorage.getItem("qj_reminder_enabled") === "1" : false),
+    () => false
+  );
+  const reminderTime = useSyncExternalStore(
+    subscribeReminderStore,
+    () => (typeof window !== "undefined" ? localStorage.getItem("qj_reminder_time") ?? "21:00" : "21:00"),
+    () => "21:00"
+  );
+  const [reminderStatusTr, setReminderStatusTr] = useState<string | null>(null);
+
   // Supabase Auth states
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -41,6 +75,36 @@ export function SettingsClient({
   const [authMessage, setAuthMessage] = useState<{ type: "ok" | "err"; text: string } | null>(
     null
   );
+
+  async function toggleReminder(nextEnabled: boolean) {
+    setReminderStatusTr(null);
+    if (nextEnabled) {
+      if (typeof Notification === "undefined") {
+        setReminderStatusTr("Bu tarayıcı bildirim API'sini desteklemiyor.");
+        return;
+      }
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") {
+        setReminderStatusTr(
+          "Bildirim izni verilmedi. Tarayıcı ayarlarından bildirimlere izin verebilirsiniz."
+        );
+        return;
+      }
+      localStorage.setItem("qj_reminder_enabled", "1");
+      localStorage.setItem("qj_reminder_time", reminderTime);
+      window.dispatchEvent(new Event(REMINDER_EVENT));
+      setReminderStatusTr(
+        `Nazik hatırlatıcı ${reminderTime} için etkinleştirildi (uygulama açıkken tarayıcı bildirimi gösterir).`
+      );
+      new Notification("Quran Journey", {
+        body: `Günlük Kur'an hatırlatıcısı (${reminderTime}) hazır. Başarı istikrarla gelir.`,
+      });
+    } else {
+      localStorage.setItem("qj_reminder_enabled", "0");
+      window.dispatchEvent(new Event(REMINDER_EVENT));
+      setReminderStatusTr("Tarayıcı hatırlatıcısı kapatıldı.");
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -126,7 +190,7 @@ export function SettingsClient({
           Profil, Ayarlar ve Kaynak Doğrulama
         </h1>
         <p className="text-sm text-[#5a655e]">
-          Kişisel öğrenme hedefleri, Supabase bulut oturumu, gizlilik tercihleri ve doğrulanmış kaynak lisansları.
+          Kişisel öğrenme hedefleri, Supabase bulut oturumu, nazik hatırlatıcı ve doğrulanmış kaynak lisansları.
         </p>
       </div>
 
@@ -171,9 +235,45 @@ export function SettingsClient({
               className="mt-0.5 accent-[#1b4332]"
             />
             <span className="text-[#3f4a43] leading-relaxed">
-              Gelecekteki sunucu tarafı Kur&apos;an ASR telaffuz analizi için ses kayıtlarımın açık onayımla işlenmesine izin veriyorum (kapalıyken hiçbir ses kaydı harici servise gönderilmez).
+              Yapılandırılmış sunucu tarafı Kur&apos;an ASR kelime sırası kontrolü için ses kayıtlarımın açık onayımla gönderilmesine izin veriyorum (kapalıyken hiçbir ses dosyası harici servise aktarılmaz).
             </span>
           </label>
+
+          {/* Gentle Browser Reminder */}
+          <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3.5 space-y-2.5 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold text-[#1c241f] flex items-center gap-1.5">
+                <Bell className="h-3.5 w-3.5 text-[#1b4332]" />
+                <span>Nazik Çalışma Hatırlatıcısı</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="time"
+                  aria-label="Hatırlatma saati"
+                  value={reminderTime}
+                  onChange={(e) => {
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem("qj_reminder_time", e.target.value);
+                      window.dispatchEvent(new Event(REMINDER_EVENT));
+                    }
+                  }}
+                  className="rounded-lg border border-[#e5dec9] bg-white px-2 py-1 text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleReminder(!reminderEnabled)}
+                  className={
+                    reminderEnabled
+                      ? "rounded-lg bg-[#1b4332] px-3 py-1 font-semibold text-white"
+                      : "rounded-lg border border-[#1b4332] bg-white px-3 py-1 font-semibold text-[#1b4332]"
+                  }
+                >
+                  {reminderEnabled ? "Açık" : "Etkinleştir"}
+                </button>
+              </div>
+            </div>
+            {reminderStatusTr && <p className="text-[11px] text-[#2d6a4f]">{reminderStatusTr}</p>}
+          </div>
 
           <div className="flex items-center gap-3">
             <button
@@ -233,15 +333,21 @@ export function SettingsClient({
             <div className="flex items-center justify-between rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3">
               <span className="font-semibold">Doğrulanmış Mushaf Kapsamı</span>
               <span className="rounded-full bg-[#edf5f0] px-2.5 py-0.5 font-semibold text-[#1b4332]">
-                Fâtiha + Cüz Amme (38 Sure · 24 Sayfa)
+                Tam Kur&apos;an (114 Sure · 604 Sayfa · 6.236 Ayet)
               </span>
             </div>
 
             <div className="flex items-center justify-between rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3">
-              <span className="font-semibold">Kur&apos;an ASR / Telaffuz Sağlayıcısı</span>
-              <span className="rounded-full bg-[#f7f1e3] px-2.5 py-0.5 font-semibold text-[#8d682c]">
+              <span className="font-semibold">Kur&apos;an ASR / Kelime Sırası Kontrolü</span>
+              <span
+                className={
+                  backendStatus.asrProviderConfigured
+                    ? "rounded-full bg-[#edf5f0] px-2.5 py-0.5 font-semibold text-[#1b4332]"
+                    : "rounded-full bg-[#f7f1e3] px-2.5 py-0.5 font-semibold text-[#8d682c]"
+                }
+              >
                 {backendStatus.asrProviderConfigured
-                  ? "Bağlı"
+                  ? "Harici ASR Bağlı (İnsan teyidi gerekir)"
                   : "Yalnızca Yerel Karşılaştırma"}
               </span>
             </div>
@@ -249,7 +355,7 @@ export function SettingsClient({
 
           {backendStatus.activePersistence === "sqlite_ephemeral_tmp" && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-950 leading-relaxed">
-              <strong>Önemli:</strong> Sunucusuz (ör. Vercel) ortamda yerel dosya sistemi salt okunur olduğu için geçici <code className="font-mono">/tmp</code> veritabanı çalışır; sunucu yeniden başladığında sıfırlanabilir. Telefon ve masaüstü kalıcılığı için aşağıdaki Supabase hesabıyla giriş yapın.
+              <strong>Önemli:</strong> Sunucusuz (ör. Vercel) ortamda yerel dosya sistemi salt okunur olduğu için geçici <code className="font-mono">/tmp</code> veritabanı çalışır. Telefon ve masaüstü kalıcılığı için aşağıdaki Supabase hesabıyla giriş yapın.
             </div>
           )}
         </section>
@@ -272,22 +378,21 @@ export function SettingsClient({
         {!backendStatus.supabaseConfigured ? (
           <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 text-xs text-[#3f4a43] space-y-2 leading-relaxed">
             <p className="font-semibold text-[#1c241f]">
-              Bilgisayarsız (Telefon Tarayıcısından) Bulut Kurulumu:
+              Bilgisayarsız (Telefon Tarayıcısından) 2 Adımlı Bulut Kurulumu:
             </p>
             <ol className="list-decimal list-inside space-y-1">
               <li>
-                <strong>Supabase</strong> üzerinde ücretsiz proje açıp SQL Editor bölümünde şu sırayla dosyaları çalıştırın:{" "}
-                <code className="font-mono">0001_initial_schema.sql</code>,{" "}
-                <code className="font-mono">0002_rls_policies.sql</code> ve{" "}
-                <code className="font-mono">0003_phase2_progress_columns.sql</code>.
+                <strong>Supabase</strong> SQL Editor içinde tek dosya olan{" "}
+                <code className="font-mono font-bold">supabase/setup_all.sql</code> içeriğini yapıştırıp{" "}
+                <strong>Run</strong> tuşuna basın (tüm tablolar ve güvenlik kuralları tek seferde kurulur).
               </li>
               <li>
                 Supabase <em>Settings → API</em> kısmından <strong>Project URL</strong> ve{" "}
                 <strong>anon public key</strong> değerlerini kopyalayın.
               </li>
               <li>
-                <strong>Vercel</strong> proje ayarlarında <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> ve{" "}
-                <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> değişkenlerini ekleyip yeniden yayınlayın.
+                <strong>Vercel</strong>&apos;de projeyi açıp <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> ve{" "}
+                <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> değişkenlerini ekleyerek yayınlayın.
               </li>
             </ol>
           </div>
@@ -398,8 +503,8 @@ export function SettingsClient({
             <span>Doğrulanmış İçerik Kaynakları ve Lisans Bildirimi</span>
           </h2>
           <span className="font-mono text-[11px] text-[#5a655e]">
-            38 Sure Paketi SHA-256:{" "}
-            {manifest.datasets["fatiha-and-juz-amma"]?.sha256.slice(0, 16) ??
+            Tam Kur&apos;an Meta SHA-256:{" "}
+            {manifest.datasets["quran-meta"]?.sha256.slice(0, 16) ??
               manifest.datasets["surah-1-fatiha"]?.sha256.slice(0, 16)}
             ...
           </span>

@@ -11,25 +11,31 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Download,
   Eye,
   EyeOff,
   FileText,
+  GitCompareArrows,
   Info,
   Mic,
   Moon,
   Pause,
   Play,
   Plus,
+  Search,
   Square,
   Sun,
   Trash2,
   Volume2,
+  X,
 } from "lucide-react";
 import type {
   CanonicalSurahMeta,
   CanonicalVerse,
   CanonicalWord,
   MushafPageData,
+  MutashabihatMatch,
+  RootFrequencyEntry,
 } from "@/lib/content/types";
 import type {
   BookmarkRecord,
@@ -39,6 +45,12 @@ import type {
   UserPreferencesRecord,
 } from "@/lib/db/types";
 import type { RecitationEvaluationResult } from "@/lib/audio/assessment-provider";
+import {
+  deleteLocalRecordingBlob,
+  getLocalRecordingBlob,
+  saveLocalRecordingBlob,
+} from "@/lib/audio/local-recordings";
+import { MADINAH_JUZ_RANGES } from "@/lib/learning-engine/analytics";
 import { cn } from "@/lib/utils";
 
 interface RootOccurrencePreview {
@@ -49,10 +61,22 @@ interface RootOccurrencePreview {
   pageNumber: number;
 }
 
+interface SearchVerseItem {
+  verseKey: string;
+  surahId: number;
+  surahNameTr: string;
+  pageNumber: number;
+  textUthmani: string;
+  translationDiyanet: string;
+  translationElmalili: string;
+}
+
 interface MushafStudyClientProps {
   pageData: MushafPageData;
   availableSurahs: CanonicalSurahMeta[];
   rootOccurrencesMap: Record<string, RootOccurrencePreview[]>;
+  mutashabihatMap: Record<string, MutashabihatMatch[]>;
+  initialVerseKey?: string;
   initialPreferences: UserPreferencesRecord;
   initialBookmarks: BookmarkRecord[];
   initialNotes: UserNoteRecord[];
@@ -88,10 +112,14 @@ function isEnglishFallbackGloss(text: string): boolean {
   );
 }
 
+const OFFLINE_CACHE_NAME = "quran-journey-offline-data-v1";
+
 export function MushafStudyClient({
   pageData,
   availableSurahs,
   rootOccurrencesMap,
+  mutashabihatMap,
+  initialVerseKey,
   initialPreferences,
   initialBookmarks,
   initialNotes,
@@ -103,8 +131,16 @@ export function MushafStudyClient({
     () => pageData.sections.flatMap((s) => s.verses),
     [pageData.sections]
   );
-  const firstVerse = allVersesOnPage[0];
-  const firstWord = firstVerse?.words[0] ?? null;
+
+  const initialSelectedVerse = useMemo(() => {
+    if (initialVerseKey) {
+      const found = allVersesOnPage.find((v) => v.verseKey === initialVerseKey);
+      if (found) return found;
+    }
+    return allVersesOnPage[0];
+  }, [allVersesOnPage, initialVerseKey]);
+
+  const firstWord = initialSelectedVerse?.words[0] ?? null;
 
   // Reader preferences
   const [fontSize, setFontSize] = useState(initialPreferences.arabicFontSize);
@@ -123,15 +159,27 @@ export function MushafStudyClient({
   const [playbackSpeed, setPlaybackSpeed] = useState(initialPreferences.playbackSpeed);
   const [cloudConsent, setCloudConsent] = useState(initialPreferences.cloudAiAudioConsent);
 
-  // Page navigation & studied status
+  // Page navigation, search & offline state
+  const [pageJumpInput, setPageJumpInput] = useState(String(pageData.pageNumber));
   const [pageStudied, setPageStudied] = useState(() =>
     initialPageProgress.some((p) => p.pageNumber === pageData.pageNumber)
   );
   const [markingPage, setMarkingPage] = useState(false);
 
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchVerseItem[]>([]);
+  const [searchRoots, setSearchRoots] = useState<RootFrequencyEntry[]>([]);
+  const [searchTotal, setSearchTotal] = useState(0);
+
+  const [offlineSaved, setOfflineSaved] = useState(false);
+  const [savingOffline, setSavingOffline] = useState(false);
+  const [offlineMsg, setOfflineMsg] = useState<string | null>(null);
+
   // Selection & study states
   const [selectedVerseKey, setSelectedVerseKey] = useState<string>(
-    firstVerse?.verseKey ?? "1:1"
+    initialSelectedVerse?.verseKey ?? "1:1"
   );
   const [selectedWord, setSelectedWord] = useState<CanonicalWord | null>(firstWord);
   const [bookmarks, setBookmarks] = useState<Set<string>>(
@@ -143,10 +191,13 @@ export function MushafStudyClient({
     return map;
   });
   const [noteDraft, setNoteDraft] = useState<string>(
-    (firstVerse && initialNotes.find((n) => n.verseKey === firstVerse.verseKey)?.noteText) ?? ""
+    (initialSelectedVerse &&
+      initialNotes.find((n) => n.verseKey === initialSelectedVerse.verseKey)?.noteText) ??
+      ""
   );
   const [isDifficultDraft, setIsDifficultDraft] = useState<boolean>(
-    (firstVerse && initialNotes.find((n) => n.verseKey === firstVerse.verseKey)?.isDifficult) ??
+    (initialSelectedVerse &&
+      initialNotes.find((n) => n.verseKey === initialSelectedVerse.verseKey)?.isDifficult) ??
       false
   );
   const [savingNote, setSavingNote] = useState(false);
@@ -160,10 +211,11 @@ export function MushafStudyClient({
   const [activeAudioWordPos, setActiveAudioWordPos] = useState<number | null>(null);
   const [audioError, setAudioError] = useState<string | null>(null);
 
-  // Local microphone recording state
+  // Local microphone recording state (backed by IndexedDB)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const recordStartRef = useRef<number>(0);
+  const createdUrlsRef = useRef<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingError, setRecordingError] = useState<string | null>(null);
   const [localRecordings, setLocalRecordings] = useState<LocalAudioBlobEntry[]>([]);
@@ -192,6 +244,11 @@ export function MushafStudyClient({
     return rootOccurrencesMap[root] ?? [];
   }, [rootOccurrencesMap, selectedWord]);
 
+  const selectedMutashabihat = useMemo(
+    () => mutashabihatMap[selectedVerse.verseKey] ?? [],
+    [mutashabihatMap, selectedVerse.verseKey]
+  );
+
   function selectVerse(verseKey: string) {
     setSelectedVerseKey(verseKey);
     const existing = notesByVerse[verseKey];
@@ -205,14 +262,64 @@ export function MushafStudyClient({
     }
   }, [playbackSpeed]);
 
+  // Check if this page is already cached for offline use
   useEffect(() => {
+    if (typeof window === "undefined" || !("caches" in window)) return;
+    caches
+      .open(OFFLINE_CACHE_NAME)
+      .then((cache) => cache.match(`/api/mushaf/offline?page=${pageData.pageNumber}`))
+      .then((match) => {
+        if (match) setOfflineSaved(true);
+      })
+      .catch(() => {});
+  }, [pageData.pageNumber]);
+
+  // Hydrate persisted IndexedDB audio blobs for recordings belonging to verses on this page
+  useEffect(() => {
+    let active = true;
+    const verseKeysOnPage = new Set(allVersesOnPage.map((v) => v.verseKey));
+    const relevantRecs = initialRecordings.filter((r) => verseKeysOnPage.has(r.verseKey));
+    if (relevantRecs.length === 0) return;
+
+    Promise.all(
+      relevantRecs.map(async (r) => {
+        const blob = await getLocalRecordingBlob(r.id);
+        if (!blob) return null;
+        const objectUrl = URL.createObjectURL(blob);
+        createdUrlsRef.current.push(objectUrl);
+        return {
+          id: r.id,
+          verseKey: r.verseKey,
+          objectUrl,
+          durationMs: r.durationMs,
+          createdAt: r.createdAt,
+        } satisfies LocalAudioBlobEntry;
+      })
+    ).then((hydrated) => {
+      if (!active) return;
+      const valid = hydrated.filter((item): item is LocalAudioBlobEntry => item !== null);
+      if (valid.length > 0) {
+        setLocalRecordings((prev) => {
+          const seen = new Set(prev.map((x) => x.id));
+          return [...prev, ...valid.filter((x) => !seen.has(x.id))];
+        });
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [allVersesOnPage, initialRecordings]);
+
+  useEffect(() => {
+    const urlsRef = createdUrlsRef;
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
       }
-      localRecordings.forEach((r) => URL.revokeObjectURL(r.objectUrl));
+      urlsRef.current.forEach((u) => URL.revokeObjectURL(u));
     };
-  }, [localRecordings]);
+  }, []);
 
   async function persistPreferences(patch: Partial<UserPreferencesRecord>) {
     await fetch("/api/preferences", {
@@ -235,6 +342,68 @@ export function MushafStudyClient({
       }
     } finally {
       setMarkingPage(false);
+    }
+  }
+
+  async function handleDownloadOffline() {
+    if (typeof window === "undefined" || !("caches" in window)) {
+      setOfflineMsg("Bu tarayıcı çevrimdışı önbellek (Cache API) desteklemiyor.");
+      return;
+    }
+    setSavingOffline(true);
+    setOfflineMsg(null);
+    try {
+      const offlineUrl = `/api/mushaf/offline?page=${pageData.pageNumber}`;
+      const res = await fetch(offlineUrl);
+      if (!res.ok) throw new Error("fetch failed");
+      const payload = (await res.clone().json()) as { audioUrls?: string[] };
+      const cache = await caches.open(OFFLINE_CACHE_NAME);
+      await cache.put(offlineUrl, res);
+      // Also cache current navigation URL HTML if possible
+      await cache.add(`/mushaf?page=${pageData.pageNumber}`).catch(() => {});
+
+      const audioList = (payload.audioUrls ?? []).slice(0, 20);
+      await Promise.all(
+        audioList.map((aUrl) =>
+          fetch(aUrl, { mode: "no-cors" })
+            .then((audioRes) => cache.put(aUrl, audioRes))
+            .catch(() => {})
+        )
+      );
+      setOfflineSaved(true);
+      setOfflineMsg(
+        `Sayfa ${pageData.pageNumber} ve ${audioList.length} ses dosyası çevrimdışı kullanım için kaydedildi.`
+      );
+    } catch {
+      setOfflineMsg("Çevrimdışı indirme sırasında hata oluştu.");
+    } finally {
+      setSavingOffline(false);
+    }
+  }
+
+  async function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data.results ?? []);
+        setSearchRoots(data.matchingRoots ?? []);
+        setSearchTotal(data.totalMatches ?? 0);
+      }
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function handlePageJump(e: React.FormEvent) {
+    e.preventDefault();
+    const num = Number(pageJumpInput);
+    if (Number.isInteger(num) && num >= 1 && num <= pageData.edition.totalPages) {
+      router.push(`/mushaf?page=${num}`);
     }
   }
 
@@ -430,10 +599,10 @@ export function MushafStudyClient({
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         const durationMs = Math.max(500, Date.now() - recordStartRef.current);
-        const blob = new Blob(chunksRef.current, {
-          type: recorder.mimeType || "audio/webm",
-        });
+        const mime = recorder.mimeType || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type: mime });
         const objectUrl = URL.createObjectURL(blob);
+        createdUrlsRef.current.push(objectUrl);
         const id = crypto.randomUUID();
         const entry: LocalAudioBlobEntry = {
           id,
@@ -444,16 +613,23 @@ export function MushafStudyClient({
         };
         setLocalRecordings((prev) => [entry, ...prev]);
 
+        // Save recording permanently in browser IndexedDB so it survives page reloads
+        await saveLocalRecordingBlob(id, blob);
+
+        const form = new FormData();
+        form.append("id", id);
+        form.append("verseKey", selectedVerse.verseKey);
+        form.append("audioMimeType", mime);
+        form.append("durationMs", String(durationMs));
+        form.append("consentGranted", String(cloudConsent));
+        if (cloudConsent) {
+          const ext = mime.includes("mp4") ? "m4a" : "webm";
+          form.append("audio", blob, `recitation.${ext}`);
+        }
+
         const res = await fetch("/api/audio/assess", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id,
-            verseKey: selectedVerse.verseKey,
-            audioMimeType: blob.type || "audio/webm",
-            durationMs,
-            consentGranted: cloudConsent,
-          }),
+          body: form,
         });
         if (res.ok) {
           const data = await res.json();
@@ -486,6 +662,7 @@ export function MushafStudyClient({
       return prev.filter((r) => r.id !== id);
     });
     setServerRecordings((prev) => prev.filter((r) => r.id !== id));
+    await deleteLocalRecordingBlob(id);
     await fetch("/api/audio/assess", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -505,7 +682,7 @@ export function MushafStudyClient({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#1b4332]">
-              <span>Medine Mushafı · Sayfa {pageData.pageNumber}</span>
+              <span>Medine Mushafı · Sayfa {pageData.pageNumber} / {pageData.edition.totalPages}</span>
               <span className="text-[#b08d57]">•</span>
               <span>Cüz {pageData.juzNumber}</span>
               <span className="text-[#b08d57]">•</span>
@@ -518,7 +695,7 @@ export function MushafStudyClient({
             </h1>
           </div>
 
-          {/* Page & Surah Navigation */}
+          {/* 604-Page, 30-Juz & 114-Surah Navigation */}
           <div className="flex flex-wrap items-center gap-2">
             {prevPage ? (
               <Link
@@ -526,19 +703,42 @@ export function MushafStudyClient({
                 className="inline-flex items-center gap-1 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3 py-2 text-xs font-semibold text-[#1c241f] hover:bg-[#f3efe6]"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
-                <span>Sayfa {prevPage}</span>
+                <span>S.{prevPage}</span>
               </Link>
             ) : null}
 
+            <form onSubmit={handlePageJump} className="inline-flex items-center gap-1">
+              <input
+                type="number"
+                min={1}
+                max={pageData.edition.totalPages}
+                aria-label="Sayfa numarasına git (1-604)"
+                value={pageJumpInput}
+                onChange={(e) => setPageJumpInput(e.target.value)}
+                className="w-16 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-2.5 py-2 text-xs font-semibold text-[#1b4332] text-center"
+              />
+              <button
+                type="submit"
+                className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-2.5 py-2 text-xs font-semibold text-[#1b4332] hover:bg-[#f3efe6]"
+              >
+                Git
+              </button>
+            </form>
+
             <select
-              aria-label="Mushaf sayfası seç"
-              value={String(pageData.pageNumber)}
-              onChange={(e) => router.push(`/mushaf?page=${e.target.value}`)}
-              className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3 py-2 text-xs font-semibold text-[#1b4332]"
+              aria-label="Cüz seç"
+              value={String(pageData.juzNumber)}
+              onChange={(e) => {
+                const chosen = MADINAH_JUZ_RANGES.find(
+                  (j) => j.juz === Number(e.target.value)
+                );
+                if (chosen) router.push(`/mushaf?page=${chosen.startPage}`);
+              }}
+              className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-2.5 py-2 text-xs font-semibold text-[#1c241f]"
             >
-              {pageData.availablePages.map((p) => (
-                <option key={p} value={String(p)}>
-                  Sayfa {p} {p === 1 ? "(Fâtiha)" : "(Cüz Amme)"}
+              {MADINAH_JUZ_RANGES.map((j) => (
+                <option key={j.juz} value={String(j.juz)}>
+                  Cüz {j.juz} (S.{j.startPage})
                 </option>
               ))}
             </select>
@@ -547,7 +747,7 @@ export function MushafStudyClient({
               aria-label="Sureye git"
               value={String(primarySection.surah.id)}
               onChange={(e) => router.push(`/mushaf?surah=${e.target.value}`)}
-              className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3 py-2 text-xs font-semibold text-[#1c241f]"
+              className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3 py-2 text-xs font-semibold text-[#1c241f] max-w-[200px]"
             >
               {availableSurahs.map((s) => (
                 <option key={s.id} value={String(s.id)}>
@@ -561,7 +761,7 @@ export function MushafStudyClient({
                 href={`/mushaf?page=${nextPage}`}
                 className="inline-flex items-center gap-1 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3 py-2 text-xs font-semibold text-[#1c241f] hover:bg-[#f3efe6]"
               >
-                <span>Sayfa {nextPage}</span>
+                <span>S.{nextPage}</span>
                 <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             ) : null}
@@ -569,7 +769,7 @@ export function MushafStudyClient({
         </div>
 
         {/* Action & Typography Controls */}
-        <div className="pt-3 border-t border-[#e5dec9] flex flex-wrap items-center gap-3 text-xs text-[#3f4a43]">
+        <div className="pt-3 border-t border-[#e5dec9] flex flex-wrap items-center gap-2.5 text-xs text-[#3f4a43]">
           <button
             type="button"
             disabled={markingPage}
@@ -584,6 +784,41 @@ export function MushafStudyClient({
             <CheckCircle2 className="h-3.5 w-3.5" />
             <span>
               {pageStudied ? `Sayfa ${pageData.pageNumber} Çalışıldı` : "Sayfayı Çalışıldı İşaretle"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSearchOpen((v) => !v)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 font-semibold transition-colors",
+              searchOpen
+                ? "border-[#1b4332] bg-[#1b4332] text-white"
+                : "border-[#e5dec9] bg-[#faf8f3] text-[#1c241f] hover:bg-[#f3efe6]"
+            )}
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span>Kur&apos;an İçi Ara</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={savingOffline}
+            onClick={handleDownloadOffline}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 font-semibold transition-colors",
+              offlineSaved
+                ? "border-[#2d6a4f]/40 bg-[#edf5f0] text-[#1b4332]"
+                : "border-[#e5dec9] bg-[#faf8f3] text-[#1c241f] hover:bg-[#f3efe6]"
+            )}
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>
+              {savingOffline
+                ? "İndiriliyor..."
+                : offlineSaved
+                  ? "Çevrimdışı Hazır"
+                  : "Sayfayı İndir"}
             </span>
           </button>
 
@@ -710,6 +945,94 @@ export function MushafStudyClient({
           </label>
         </div>
 
+        {/* Full-Quran Normalized Search Drawer */}
+        {searchOpen && (
+          <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-bold text-[#1b4332]">
+                Tam Kur&apos;an Arama (6.236 Ayet · Harekeli/Harekesiz Arapça, Türkçe Meal veya 2:255)
+              </p>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                aria-label="Aramayı kapat"
+                className="text-[#5a655e] hover:text-[#1c241f]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Aramak istediğiniz kelime (ör. rahmet, الله, 2:255)..."
+                className="flex-1 rounded-xl border border-[#e5dec9] bg-white px-3.5 py-2 text-sm"
+              />
+              <button
+                type="submit"
+                disabled={searching}
+                className="rounded-xl bg-[#1b4332] px-5 py-2 text-xs font-semibold text-white hover:bg-[#143326]"
+              >
+                {searching ? "Aranıyor..." : "Kur'an'da Ara"}
+              </button>
+            </form>
+
+            {searchRoots.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="font-semibold text-[#5a655e]">Eşleşen Kökler:</span>
+                {searchRoots.map((rt) => (
+                  <Link
+                    key={rt.root}
+                    href={`/vocabulary?root=${encodeURIComponent(rt.root)}`}
+                    className="inline-flex items-center gap-1 rounded-lg border border-[#e5dec9] bg-white px-2 py-1 hover:border-[#1b4332]"
+                  >
+                    <span lang="ar" dir="rtl" translate="no" className="font-arabic text-base font-bold text-[#1b4332]">
+                      {rt.root}
+                    </span>
+                    <span className="text-[11px] text-[#5a655e]">({rt.count})</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {searchResults.length > 0 && (
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                <p className="text-[11px] text-[#5a655e]">
+                  Toplam {searchTotal} eşleşme (ilk {searchResults.length} gösteriliyor):
+                </p>
+                {searchResults.map((item) => (
+                  <Link
+                    key={item.verseKey}
+                    href={`/mushaf?page=${item.pageNumber}&verse=${item.verseKey}`}
+                    onClick={() => setSearchOpen(false)}
+                    className="block rounded-xl border border-[#e5dec9] bg-white p-3 hover:border-[#1b4332] space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-[#1b4332]">
+                        {item.surahNameTr} · {item.verseKey}
+                      </span>
+                      <span className="font-mono text-[11px] text-[#5a655e]">
+                        Sayfa {item.pageNumber}
+                      </span>
+                    </div>
+                    <p lang="ar" dir="rtl" translate="no" className="font-arabic text-xl text-right text-[#1c241f]">
+                      {item.textUthmani}
+                    </p>
+                    <p className="text-xs text-[#3f4a43]">{item.translationDiyanet}</p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {offlineMsg && (
+          <div className="rounded-xl bg-[#edf5f0] border border-[#2d6a4f]/30 px-3 py-2 text-xs text-[#1b4332]">
+            {offlineMsg}
+          </div>
+        )}
+
         {audioError && (
           <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900">
             {audioError}
@@ -810,6 +1133,7 @@ export function MushafStudyClient({
                     const isSelectedVerse = selectedVerse.verseKey === verse.verseKey;
                     const isBookmarked = bookmarks.has(verse.verseKey);
                     const note = notesByVerse[verse.verseKey];
+                    const mutMatches = mutashabihatMap[verse.verseKey] ?? [];
                     const activeTrans =
                       verse.translations.find((t) => t.resourceId === translationId) ??
                       verse.translations[0];
@@ -832,7 +1156,7 @@ export function MushafStudyClient({
                       >
                         {/* Verse Top Meta */}
                         <div className="flex items-center justify-between gap-2 mb-3">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
                               onClick={() => selectVerse(verse.verseKey)}
@@ -851,6 +1175,16 @@ export function MushafStudyClient({
                               <span className="rounded-md bg-amber-100 text-amber-900 px-2 py-0.5 text-[11px] font-semibold">
                                 Zor İşaretli
                               </span>
+                            )}
+                            {mutMatches.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => selectVerse(verse.verseKey)}
+                                className="inline-flex items-center gap-1 rounded-md bg-[#f7f1e3] text-[#8d682c] px-2 py-0.5 text-[11px] font-semibold"
+                              >
+                                <GitCompareArrows className="h-3 w-3" />
+                                <span>{mutMatches.length} Müteşâbih</span>
+                              </button>
                             )}
                           </div>
 
@@ -971,7 +1305,7 @@ export function MushafStudyClient({
           })}
         </section>
 
-        {/* Right Side: Word Inspector + Verse Notes + Voice Comparison */}
+        {/* Right Side: Word Inspector + Mutashabihat + Voice Comparison + Notes */}
         <aside className="lg:col-span-5 space-y-6 lg:sticky lg:top-6">
           {/* 1. Word Inspector */}
           <div className="rounded-2xl border border-[#e5dec9] bg-white p-5 sm:p-6 space-y-4">
@@ -1074,13 +1408,13 @@ export function MushafStudyClient({
                   {rootOccurrences.length > 1 && (
                     <div className="pt-1">
                       <p className="text-[11px] font-medium text-[#5a655e] mb-1">
-                        Aynı kökten koleksiyondaki örnek geçişler ({rootOccurrences.length}+):
+                        Aynı kökten Kur&apos;an genelindeki örnek geçişler ({rootOccurrences.length}+):
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {rootOccurrences.map((occ) => (
                           <Link
                             key={occ.location}
-                            href={`/mushaf?page=${occ.pageNumber}`}
+                            href={`/mushaf?page=${occ.pageNumber}&verse=${occ.verseKey}`}
                             className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-[#e5dec9] px-2 py-1 hover:border-[#1b4332]"
                           >
                             <span lang="ar" dir="rtl" translate="no" className="font-arabic text-base">
@@ -1127,6 +1461,39 @@ export function MushafStudyClient({
             )}
           </div>
 
+          {/* Mutashabihat Similar Verses Card when applicable */}
+          {selectedMutashabihat.length > 0 && (
+            <div className="rounded-2xl border border-[#e3d2ae] bg-[#f7f1e3]/70 p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-[#6e511e] flex items-center gap-1.5">
+                  <GitCompareArrows className="h-4 w-4" />
+                  <span>Müteşâbihât (Benzer Ayetler · {selectedVerse.verseKey})</span>
+                </h2>
+              </div>
+              <div className="space-y-2">
+                {selectedMutashabihat.map((m) => (
+                  <Link
+                    key={m.targetKey}
+                    href={`/mushaf?page=${m.targetPage}&verse=${m.targetKey}`}
+                    className="block rounded-xl border border-[#e3d2ae] bg-white p-3 hover:border-[#1b4332] space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-mono font-bold text-[#1b4332]">
+                        {m.targetKey} (Sayfa {m.targetPage})
+                      </span>
+                      <span className="rounded-md bg-[#f7f1e3] px-2 py-0.5 text-[11px] font-semibold text-[#6e511e]">
+                        %{m.similarity} benzerlik
+                      </span>
+                    </div>
+                    <p lang="ar" dir="rtl" translate="no" className="font-arabic text-xl text-right text-[#1c241f]">
+                      {m.textUthmani}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 2. Local Recitation Recording & Honest Comparison Studio */}
           <div className="rounded-2xl border border-[#e5dec9] bg-white p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -1135,7 +1502,7 @@ export function MushafStudyClient({
                   Sesli Okuma ve Karşılaştırma ({selectedVerse.verseKey})
                 </h2>
                 <p className="text-xs text-[#5a655e]">
-                  Kendi okumanızı kaydedip referans kâri ile yan yana dinleyin
+                  Kendi okumanızı tarayıcıda kalıcı saklayıp referans kâri ile dinleyin
                 </p>
               </div>
               <Mic className="h-4 w-4 text-[#1b4332]" />
@@ -1183,7 +1550,7 @@ export function MushafStudyClient({
                 className="mt-0.5 accent-[#1b4332]"
               />
               <span>
-                İleride yapılandırılacak harici Kur&apos;an ASR değerlendirmesi için ses kaydının sunucuya gönderilmesine açık onay veriyorum (varsayılan kapalı, yalnızca yerelde saklanır).
+                Harici Kur&apos;an ASR kelime sırası kontrolü için ses kaydımın sunucuya gönderilmesine açık onay veriyorum (kapalıyken hiçbir ses verisi dışarı gönderilmez).
               </span>
             </label>
 
@@ -1196,7 +1563,7 @@ export function MushafStudyClient({
 
             {verseLocalRecordings.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-[#1c241f]">Bu Oturumdaki Kayıtlarınız</p>
+                <p className="text-xs font-semibold text-[#1c241f]">Bu Ayet İçin Kayıtlarınız</p>
                 {verseLocalRecordings.map((rec) => (
                   <div
                     key={rec.id}
@@ -1223,6 +1590,11 @@ export function MushafStudyClient({
                   <span>Değerlendirme Durumu (Şeffaf Bildirim)</span>
                 </div>
                 <p className="leading-relaxed">{lastAssessment.summaryTr}</p>
+                {lastAssessment.recognizedText && (
+                  <p lang="ar" dir="rtl" translate="no" className="font-arabic text-xl bg-white/80 rounded-lg px-2.5 py-1.5 text-right text-[#1c241f]">
+                    {lastAssessment.recognizedText}
+                  </p>
+                )}
                 {lastAssessment.findings.map((f, i) => (
                   <p key={i} className="text-[11px] opacity-90">
                     • {f.messageTr}

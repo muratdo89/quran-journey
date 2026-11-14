@@ -1,15 +1,13 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import zlib from "node:zlib";
 
-const fatihaPath = path.join(process.cwd(), "src", "data", "canonical", "surah-1-fatiha.json");
-const collectionPath = path.join(
-  process.cwd(),
-  "src",
-  "data",
-  "canonical",
-  "fatiha-and-juz-amma.json"
-);
+const canonicalDir = path.join(process.cwd(), "src", "data", "canonical");
+const fatihaPath = path.join(canonicalDir, "surah-1-fatiha.json");
+const quranMetaPath = path.join(canonicalDir, "quran-meta.json");
+const lexiconPath = path.join(canonicalDir, "lexicon-index.json.gz");
+const surahsDir = path.join(canonicalDir, "surahs");
 const manifestPath = path.join(process.cwd(), "src", "data", "manifest.json");
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
@@ -21,7 +19,7 @@ function assert(condition, message) {
   }
 }
 
-// 1. Verify Surah Al-Fatiha canonical dataset
+// 1. Verify Surah Al-Fatiha canonical fixture
 const rawFatiha = fs.readFileSync(fatihaPath, "utf8");
 const fatihaSha = crypto.createHash("sha256").update(rawFatiha, "utf8").digest("hex");
 const expectedFatihaSha = manifest.datasets["surah-1-fatiha"]?.sha256;
@@ -42,49 +40,89 @@ for (const verse of fatiha.verses) {
 }
 assert(fatihaWordCount === 29, `Expected 29 Fatiha words, got ${fatihaWordCount}`);
 
-// 2. Verify Fatiha + Juz Amma canonical collection dataset
-const rawCollection = fs.readFileSync(collectionPath, "utf8");
-const collectionSha = crypto.createHash("sha256").update(rawCollection, "utf8").digest("hex");
-const expectedCollectionSha = manifest.datasets["fatiha-and-juz-amma"]?.sha256;
+// 2. Verify quran-meta.json (114 Surahs, 604 Madinah Mushaf pages)
+const rawMeta = fs.readFileSync(quranMetaPath, "utf8");
+const metaSha = crypto.createHash("sha256").update(rawMeta, "utf8").digest("hex");
+const expectedMetaSha = manifest.datasets["quran-meta"]?.sha256;
 assert(
-  collectionSha === expectedCollectionSha,
-  `fatiha-and-juz-amma.json SHA-256 mismatch: expected ${expectedCollectionSha}, got ${collectionSha}`
+  metaSha === expectedMetaSha,
+  `quran-meta.json SHA-256 mismatch: expected ${expectedMetaSha}, got ${metaSha}`
 );
 
-const collection = JSON.parse(rawCollection);
-const expectedSurahIds = [1, ...Array.from({ length: 37 }, (_, i) => 78 + i)];
-const expectedPages = [1, ...Array.from({ length: 23 }, (_, i) => 582 + i)];
+const quranMeta = JSON.parse(rawMeta);
+assert(quranMeta.totalSurahs === 114, `Expected 114 surahs in meta, got ${quranMeta.totalSurahs}`);
+assert(quranMeta.totalPages === 604, `Expected 604 pages in meta, got ${quranMeta.totalPages}`);
+assert(quranMeta.totalVerses === 6236, `Expected 6236 verses in meta, got ${quranMeta.totalVerses}`);
+assert(quranMeta.totalWords === 77429, `Expected 77429 words in meta, got ${quranMeta.totalWords}`);
+assert(
+  quranMeta.surahs?.length === 114 &&
+    JSON.stringify(quranMeta.surahs.map((s) => s.id)) ===
+      JSON.stringify(Array.from({ length: 114 }, (_, i) => i + 1)),
+  "quran-meta surahs must cover 1..114 sequentially"
+);
+assert(
+  Object.keys(quranMeta.pageSurahs ?? {}).length === 604 &&
+    Object.keys(quranMeta.pageJuzHizb ?? {}).length === 604,
+  "quran-meta pageSurahs and pageJuzHizb must map all 604 pages"
+);
 
+// 3. Verify lexicon-index.json.gz (6,236 verse index tuples, roots & mutashabihat)
+const lexiconGz = fs.readFileSync(lexiconPath);
+const lexiconSha = crypto.createHash("sha256").update(lexiconGz).digest("hex");
+const expectedLexiconSha = manifest.datasets["lexicon-index"]?.sha256;
 assert(
-  collection.surahs?.length === 38,
-  `Expected 38 surahs, got ${collection.surahs?.length}`
-);
-assert(
-  JSON.stringify(collection.surahs.map((s) => s.surah.id)) === JSON.stringify(expectedSurahIds),
-  "Collection surah IDs do not match [1, 78..114]"
-);
-assert(
-  collection.includedPages?.length === 24 &&
-    JSON.stringify(collection.includedPages) === JSON.stringify(expectedPages),
-  "Collection includedPages do not match [1, 582..604]"
+  lexiconSha === expectedLexiconSha,
+  `lexicon-index.json.gz SHA-256 mismatch: expected ${expectedLexiconSha}, got ${lexiconSha}`
 );
 
-const pageSet = new Set(collection.includedPages);
+const lexiconIndex = JSON.parse(zlib.gunzipSync(lexiconGz).toString("utf8"));
+assert(
+  lexiconIndex.verses?.length === 6236,
+  `Expected 6236 lexicon verse rows, got ${lexiconIndex.verses?.length}`
+);
+assert(
+  lexiconIndex.roots?.length === 1651,
+  `Expected 1651 lexicon roots, got ${lexiconIndex.roots?.length}`
+);
+assert(
+  Object.keys(lexiconIndex.mutashabihat ?? {}).length >= 1000,
+  `Expected >= 1000 mutashabihat entries, got ${Object.keys(lexiconIndex.mutashabihat ?? {}).length}`
+);
+
+// 4. Verify all 114 compressed Surah datasets
+const surahChecksums = manifest.surahChecksums ?? {};
+assert(
+  Object.keys(surahChecksums).length === 114,
+  `Expected 114 entries in manifest.surahChecksums, got ${Object.keys(surahChecksums).length}`
+);
+
+const seenPages = new Set();
+const missingAudioLocations = [];
 let totalVerses = 0;
 let totalWords = 0;
 
-for (const entry of collection.surahs) {
+for (let surahId = 1; surahId <= 114; surahId += 1) {
+  const filename = `surah-${String(surahId).padStart(3, "0")}.json.gz`;
+  const expectedGzSha = surahChecksums[filename];
+  assert(Boolean(expectedGzSha), `Missing manifest checksum for ${filename}`);
+
+  const gzBuf = fs.readFileSync(path.join(surahsDir, filename));
+  const actualGzSha = crypto.createHash("sha256").update(gzBuf).digest("hex");
   assert(
-    entry.verses.length === entry.surah.versesCount,
-    `Surah ${entry.surah.id} verse count mismatch: expected ${entry.surah.versesCount}, got ${entry.verses.length}`
+    actualGzSha === expectedGzSha,
+    `${filename} SHA-256 mismatch: expected ${expectedGzSha}, got ${actualGzSha}`
+  );
+
+  const entry = JSON.parse(zlib.gunzipSync(gzBuf).toString("utf8"));
+  assert(entry.surah?.id === surahId, `${filename} surah.id mismatch: got ${entry.surah?.id}`);
+  assert(
+    entry.verses?.length === entry.surah.versesCount,
+    `Surah ${surahId} verse count mismatch: expected ${entry.surah.versesCount}, got ${entry.verses?.length}`
   );
 
   for (const verse of entry.verses) {
     totalVerses += 1;
-    const verseSha = crypto
-      .createHash("sha256")
-      .update(verse.textUthmani, "utf8")
-      .digest("hex");
+    const verseSha = crypto.createHash("sha256").update(verse.textUthmani, "utf8").digest("hex");
     assert(
       verseSha === verse.textUthmaniSha256,
       `Verse ${verse.verseKey} textUthmaniSha256 mismatch`
@@ -94,9 +132,10 @@ for (const entry of collection.surahs) {
       `Empty Arabic text in verse ${verse.verseKey}`
     );
     assert(
-      pageSet.has(verse.pageNumber),
-      `Verse ${verse.verseKey} mapped to unexpected page ${verse.pageNumber}`
+      Number.isInteger(verse.pageNumber) && verse.pageNumber >= 1 && verse.pageNumber <= 604,
+      `Verse ${verse.verseKey} mapped to out-of-range page ${verse.pageNumber}`
     );
+    seenPages.add(verse.pageNumber);
 
     const diyanet = verse.translations.find((t) => t.resourceId === 77);
     const elmalili = verse.translations.find((t) => t.resourceId === 52);
@@ -109,6 +148,17 @@ for (const entry of collection.surahs) {
       `Missing Elmalili translation for ${verse.verseKey}`
     );
 
+    assert(
+      typeof verse.audio?.alafasyAyahUrl === "string" &&
+        /^https:\/\//.test(verse.audio.alafasyAyahUrl),
+      `Missing Alafasy ayah URL at ${verse.verseKey}`
+    );
+    assert(
+      typeof verse.audio?.husaryMuallimAyahUrl === "string" &&
+        /^https:\/\//.test(verse.audio.husaryMuallimAyahUrl),
+      `Missing Husary ayah URL at ${verse.verseKey}`
+    );
+
     verse.words.forEach((word, idx) => {
       totalWords += 1;
       assert(
@@ -116,25 +166,35 @@ for (const entry of collection.surahs) {
         `Word position gap in ${verse.verseKey}: expected ${idx + 1}, got ${word.position}`
       );
       assert(
-        word.location === `${entry.surah.id}:${verse.verseNumber}:${idx + 1}`,
+        word.location === `${surahId}:${verse.verseNumber}:${idx + 1}`,
         `Word location mismatch: ${word.location}`
       );
       assert(
         word.translationTr && word.translationTr.trim().length > 0,
         `Empty word translation at ${word.location}`
       );
-      assert(
-        typeof word.audioUrl === "string" &&
-          /^https:\/\/audio\.qurancdn\.com\/wbw\/.+\.mp3$/.test(word.audioUrl),
-        `Invalid audio URL at ${word.location}: ${word.audioUrl}`
-      );
+      if (word.audioUrl === null) {
+        missingAudioLocations.push(word.location);
+      } else {
+        assert(
+          typeof word.audioUrl === "string" &&
+            /^https:\/\/audio\.qurancdn\.com\/wbw\/.+\.mp3$/.test(word.audioUrl),
+          `Invalid audio URL at ${word.location}: ${word.audioUrl}`
+        );
+      }
     });
   }
 }
 
-assert(totalVerses === 571, `Expected 571 total verses, got ${totalVerses}`);
-assert(totalWords === 2337, `Expected 2337 total words, got ${totalWords}`);
+assert(seenPages.size === 604, `Expected all 604 Mushaf pages covered, got ${seenPages.size}`);
+assert(totalVerses === 6236, `Expected 6236 total verses, got ${totalVerses}`);
+assert(totalWords === 77429, `Expected 77429 total words, got ${totalWords}`);
+assert(
+  JSON.stringify(missingAudioLocations) === JSON.stringify(["36:52:7"]),
+  `Unexpected missing word audio locations: ${JSON.stringify(missingAudioLocations)}`
+);
 
 console.log(
-  `Content verification PASSED: surah-1-fatiha (7 verses, 29 words, SHA-256 ${fatihaSha.slice(0, 12)}...) & fatiha-and-juz-amma (${collection.surahs.length} surahs, ${collection.includedPages.length} pages, ${totalVerses} verses, ${totalWords} words, SHA-256 ${collectionSha.slice(0, 12)}...)`
+  `Content verification PASSED: 114 surahs, ${seenPages.size} Mushaf pages, ${totalVerses} verses, ${totalWords} words, ${lexiconIndex.roots.length} roots, ${Object.keys(lexiconIndex.mutashabihat).length} mutashabihat entries (quran-meta SHA-256 ${metaSha.slice(0, 12)}...).`
 );
+
