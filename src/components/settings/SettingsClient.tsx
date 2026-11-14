@@ -1,0 +1,431 @@
+"use client";
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Check, Cloud, Database, LogIn, LogOut, ShieldCheck, UserPlus } from "lucide-react";
+import type { ContentManifest } from "@/lib/content/types";
+import type {
+  BackendConfigurationStatus,
+  LearningGoalRecord,
+  UserPreferencesRecord,
+  UserProfileRecord,
+} from "@/lib/db/types";
+
+interface SettingsClientProps {
+  profile: UserProfileRecord;
+  preferences: UserPreferencesRecord;
+  goals: LearningGoalRecord;
+  backendStatus: BackendConfigurationStatus;
+  manifest: ContentManifest;
+}
+
+export function SettingsClient({
+  profile,
+  preferences,
+  goals,
+  backendStatus,
+  manifest,
+}: SettingsClientProps) {
+  const router = useRouter();
+  const [displayName, setDisplayName] = useState(profile.displayName);
+  const [dailyMinutes, setDailyMinutes] = useState(goals.dailyTargetMinutes);
+  const [cloudConsent, setCloudConsent] = useState(preferences.cloudAiAudioConsent);
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState(false);
+
+  // Supabase Auth states
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authMessage, setAuthMessage] = useState<{ type: "ok" | "err"; text: string } | null>(
+    null
+  );
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setSavedMsg(false);
+    try {
+      const res = await fetch("/api/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName,
+          dailyTargetMinutes: dailyMinutes,
+          cloudAiAudioConsent: cloudConsent,
+        }),
+      });
+      if (res.ok) setSavedMsg(true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleAuthSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthMessage(null);
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: authMode,
+          email,
+          password,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthMessage({ type: "err", text: data.error ?? "İşlem başarısız oldu." });
+        return;
+      }
+      if (data.needsEmailVerification) {
+        setAuthMessage({ type: "ok", text: data.messageTr });
+        return;
+      }
+      setAuthMessage({
+        type: "ok",
+        text: "Supabase oturumu açıldı! Verileriniz artık PostgreSQL üzerinde saklanıyor.",
+      });
+      router.refresh();
+    } catch {
+      setAuthMessage({ type: "err", text: "Bağlantı hatası oluştu." });
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function handleSignOut() {
+    setAuthLoading(true);
+    setAuthMessage(null);
+    try {
+      await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "signout" }),
+      });
+      router.refresh();
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  const persistenceLabel =
+    backendStatus.activePersistence === "supabase_postgres"
+      ? `Supabase PostgreSQL (${backendStatus.supabaseAuthenticatedUserEmail ?? "Aktif"})`
+      : backendStatus.activePersistence === "sqlite_ephemeral_tmp"
+        ? `Geçici Sunucu SQLite (${backendStatus.sqlitePath})`
+        : `Yerel SQLite (${backendStatus.sqlitePath})`;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-[#1c241f]">
+          Profil, Ayarlar ve Kaynak Doğrulama
+        </h1>
+        <p className="text-sm text-[#5a655e]">
+          Kişisel öğrenme hedefleri, Supabase bulut oturumu, gizlilik tercihleri ve doğrulanmış kaynak lisansları.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Profile & Preferences Form */}
+        <form
+          onSubmit={handleSave}
+          className="lg:col-span-6 rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4"
+        >
+          <h2 className="text-base font-bold text-[#1c241f]">Kişisel Tercihler</h2>
+
+          <label className="block space-y-1.5 text-xs">
+            <span className="font-semibold text-[#1c241f]">Hitap Edilecek İsim</span>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className="w-full rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3.5 py-2.5 text-sm"
+            />
+          </label>
+
+          <label className="block space-y-1.5 text-xs">
+            <span className="font-semibold text-[#1c241f]">
+              Günlük Hedef Süre ({dailyMinutes} dakika)
+            </span>
+            <input
+              type="range"
+              min={5}
+              max={60}
+              step={5}
+              value={dailyMinutes}
+              onChange={(e) => setDailyMinutes(Number(e.target.value))}
+              className="w-full accent-[#1b4332]"
+            />
+          </label>
+
+          <label className="flex items-start gap-2.5 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3.5 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={cloudConsent}
+              onChange={(e) => setCloudConsent(e.target.checked)}
+              className="mt-0.5 accent-[#1b4332]"
+            />
+            <span className="text-[#3f4a43] leading-relaxed">
+              Gelecekteki sunucu tarafı Kur&apos;an ASR telaffuz analizi için ses kayıtlarımın açık onayımla işlenmesine izin veriyorum (kapalıyken hiçbir ses kaydı harici servise gönderilmez).
+            </span>
+          </label>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-xl bg-[#1b4332] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#143326]"
+            >
+              {saving ? "Kaydediliyor..." : "Ayarları Kaydet"}
+            </button>
+            {savedMsg && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#2d6a4f]">
+                <Check className="h-3.5 w-3.5" />
+                Kaydedildi
+              </span>
+            )}
+          </div>
+        </form>
+
+        {/* Backend & Integration Status */}
+        <section className="lg:col-span-6 rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
+          <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
+            <Database className="h-4 w-4 text-[#1b4332]" />
+            <span>Veritabanı ve Entegrasyon Durumu</span>
+          </h2>
+
+          <div className="space-y-2.5 text-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3">
+              <span className="font-semibold">Aktif Kalıcı Depolama</span>
+              <span
+                className={
+                  backendStatus.activePersistence === "sqlite_ephemeral_tmp"
+                    ? "rounded-full bg-amber-100 px-2.5 py-0.5 font-semibold text-amber-900"
+                    : "rounded-full bg-[#edf5f0] px-2.5 py-0.5 font-semibold text-[#1b4332]"
+                }
+              >
+                {persistenceLabel}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3">
+              <span className="font-semibold">Supabase PostgreSQL &amp; Auth</span>
+              <span
+                className={
+                  backendStatus.supabaseConfigured
+                    ? "rounded-full bg-[#edf5f0] px-2.5 py-0.5 font-semibold text-[#1b4332]"
+                    : "rounded-full bg-[#f7f1e3] px-2.5 py-0.5 font-semibold text-[#8d682c]"
+                }
+              >
+                {backendStatus.supabaseConfigured
+                  ? backendStatus.supabaseAuthenticatedUserEmail
+                    ? "Bağlı (Oturum Açık)"
+                    : "Yapılandırıldı (Giriş Bekliyor)"
+                  : "Ortam Değişkeni Bekliyor"}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3">
+              <span className="font-semibold">Doğrulanmış Mushaf Kapsamı</span>
+              <span className="rounded-full bg-[#edf5f0] px-2.5 py-0.5 font-semibold text-[#1b4332]">
+                Fâtiha + Cüz Amme (38 Sure · 24 Sayfa)
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3">
+              <span className="font-semibold">Kur&apos;an ASR / Telaffuz Sağlayıcısı</span>
+              <span className="rounded-full bg-[#f7f1e3] px-2.5 py-0.5 font-semibold text-[#8d682c]">
+                {backendStatus.asrProviderConfigured
+                  ? "Bağlı"
+                  : "Yalnızca Yerel Karşılaştırma"}
+              </span>
+            </div>
+          </div>
+
+          {backendStatus.activePersistence === "sqlite_ephemeral_tmp" && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-950 leading-relaxed">
+              <strong>Önemli:</strong> Sunucusuz (ör. Vercel) ortamda yerel dosya sistemi salt okunur olduğu için geçici <code className="font-mono">/tmp</code> veritabanı çalışır; sunucu yeniden başladığında sıfırlanabilir. Telefon ve masaüstü kalıcılığı için aşağıdaki Supabase hesabıyla giriş yapın.
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* Supabase Cloud Account Sync Section */}
+      <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
+              <Cloud className="h-4 w-4 text-[#1b4332]" />
+              <span>Supabase Bulut Senkronizasyonu (Telefon &amp; Masaüstü)</span>
+            </h2>
+            <p className="text-xs text-[#5a655e] mt-0.5">
+              İlerlemenizi kişisel Supabase PostgreSQL veritabanınızda güvenle tutar.
+            </p>
+          </div>
+        </div>
+
+        {!backendStatus.supabaseConfigured ? (
+          <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 text-xs text-[#3f4a43] space-y-2 leading-relaxed">
+            <p className="font-semibold text-[#1c241f]">
+              Bilgisayarsız (Telefon Tarayıcısından) Bulut Kurulumu:
+            </p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>
+                <strong>Supabase</strong> üzerinde ücretsiz proje açıp SQL Editor bölümünde şu sırayla dosyaları çalıştırın:{" "}
+                <code className="font-mono">0001_initial_schema.sql</code>,{" "}
+                <code className="font-mono">0002_rls_policies.sql</code> ve{" "}
+                <code className="font-mono">0003_phase2_progress_columns.sql</code>.
+              </li>
+              <li>
+                Supabase <em>Settings → API</em> kısmından <strong>Project URL</strong> ve{" "}
+                <strong>anon public key</strong> değerlerini kopyalayın.
+              </li>
+              <li>
+                <strong>Vercel</strong> proje ayarlarında <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> ve{" "}
+                <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> değişkenlerini ekleyip yeniden yayınlayın.
+              </li>
+            </ol>
+          </div>
+        ) : backendStatus.supabaseAuthenticatedUserEmail ? (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-[#2d6a4f]/30 bg-[#edf5f0] p-4 text-xs">
+            <div>
+              <p className="font-bold text-[#1b4332]">
+                Bulut Hesabı Aktif: {backendStatus.supabaseAuthenticatedUserEmail}
+              </p>
+              <p className="text-[#3f4a43] mt-0.5">
+                Tüm kelime kartlarınız, FSRS aralıkları, ezber durumları ve ayet notları PostgreSQL üzerine yazılıyor.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={authLoading}
+              onClick={handleSignOut}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#1b4332] bg-white px-4 py-2 font-semibold text-[#1b4332] hover:bg-[#faf8f3] shrink-0"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span>Oturumu Kapat</span>
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setAuthMode("signin")}
+                className={`rounded-xl px-4 py-2 text-xs font-semibold ${
+                  authMode === "signin"
+                    ? "bg-[#1b4332] text-white"
+                    : "border border-[#e5dec9] bg-[#faf8f3] text-[#1c241f]"
+                }`}
+              >
+                Giriş Yap
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMode("signup")}
+                className={`rounded-xl px-4 py-2 text-xs font-semibold ${
+                  authMode === "signup"
+                    ? "bg-[#1b4332] text-white"
+                    : "border border-[#e5dec9] bg-[#faf8f3] text-[#1c241f]"
+                }`}
+              >
+                Yeni Hesap Oluştur
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="E-posta adresiniz"
+                className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3.5 py-2.5 text-sm"
+              />
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Parola (en az 6 karakter)"
+                className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3.5 py-2.5 text-sm"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={authLoading}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#1b4332] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#143326] disabled:opacity-50"
+            >
+              {authMode === "signin" ? (
+                <LogIn className="h-3.5 w-3.5" />
+              ) : (
+                <UserPlus className="h-3.5 w-3.5" />
+              )}
+              <span>
+                {authLoading
+                  ? "Bağlanılıyor..."
+                  : authMode === "signin"
+                    ? "Supabase ile Giriş Yap"
+                    : "Hesap Oluştur ve Bağla"}
+              </span>
+            </button>
+
+            {authMessage && (
+              <p
+                className={`text-xs font-semibold ${
+                  authMessage.type === "ok" ? "text-[#2d6a4f]" : "text-red-700"
+                }`}
+              >
+                {authMessage.text}
+              </p>
+            )}
+          </form>
+        )}
+      </section>
+
+      {/* Verified Source & Licensing Manifest */}
+      <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-[#1b4332]" />
+            <span>Doğrulanmış İçerik Kaynakları ve Lisans Bildirimi</span>
+          </h2>
+          <span className="font-mono text-[11px] text-[#5a655e]">
+            38 Sure Paketi SHA-256:{" "}
+            {manifest.datasets["fatiha-and-juz-amma"]?.sha256.slice(0, 16) ??
+              manifest.datasets["surah-1-fatiha"]?.sha256.slice(0, 16)}
+            ...
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {manifest.sources.map((src) => (
+            <article
+              key={src.id}
+              className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 space-y-2 text-xs"
+            >
+              <p className="font-bold text-[#1b4332]">{src.provider}</p>
+              <p className="font-medium text-[#1c241f]">{src.resource}</p>
+              <p className="text-[11px] text-[#5a655e]">
+                <strong>Lisans:</strong> {src.license}
+              </p>
+              <p className="text-[11px] text-[#5a655e]">
+                <strong>Kısıtlama:</strong> {src.usageRestrictions}
+              </p>
+              <p className="text-[11px] text-[#5a655e] break-all">
+                <strong>Kaynak:</strong> {src.url}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}

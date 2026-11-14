@@ -1,0 +1,10 @@
+{
+  "name": "Quran Journey — Kişisel Kur'an Öğrenme Platformu",
+  "short_name": "Quran Journey",
+  "description": "Türkçe konuşan öğreniciler için Arapça okuma, kelime anlamları, tecvid, aralıklı tekrar ve Kur'an ezber platformu.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf8f3",
+  "theme_color": "#1b4332",
+  "lang": "tr"
+}

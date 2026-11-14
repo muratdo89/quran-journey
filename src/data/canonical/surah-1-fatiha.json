@@ -1,0 +1,1651 @@
+{
+  "edition": {
+    "slug": "madinah-1405-uthmani",
+    "name": "Medine Mushafı (1405H / 604 Sayfa — Hafs an Asım)",
+    "scriptType": "uthmani",
+    "totalPages": 604
+  },
+  "surah": {
+    "id": 1,
+    "nameArabic": "الفاتحة",
+    "nameSimple": "Al-Fatihah",
+    "nameTurkish": "Fâtiha",
+    "revelationPlace": "makkah",
+    "revelationOrder": 5,
+    "versesCount": 7,
+    "pages": [
+      1,
+      1
+    ],
+    "bismillahPre": false
+  },
+  "chapterRecitations": {
+    "alafasyChapterAudioUrl": "https://download.quranicaudio.com/qdc/mishari_al_afasy/murattal/1.mp3"
+  },
+  "verses": [
+    {
+      "id": 1,
+      "surahId": 1,
+      "verseNumber": 1,
+      "verseKey": "1:1",
+      "pageNumber": 1,
+      "juzNumber": 1,
+      "hizbNumber": 1,
+      "rubElHizbNumber": 1,
+      "textUthmani": "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ",
+      "textUthmaniTanzil": "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+      "textUthmaniSha256": "1ad501ee473ec3953c6d669513e2ae2550ad333577aef0f156926b52f6972b61",
+      "tanzilTextSha256": "ac1e6f8f64c2e83d0b5087625a5e1eb0067b99d4a8962d3ad30528709dcf3dd6",
+      "textImlaei": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+      "translations": [
+        {
+          "resourceId": 77,
+          "translatorName": "Diyanet İşleri Başkanlığı",
+          "languageCode": "tr",
+          "text": "Rahman ve Rahim olan Allah'ın adıyla:"
+        },
+        {
+          "resourceId": 52,
+          "translatorName": "Elmalılı Muhammed Hamdi Yazır",
+          "languageCode": "tr",
+          "text": "Rahmân ve Rahîm olan Allah'ın ismiyle."
+        }
+      ],
+      "audio": {
+        "alafasyAyahUrl": "https://verses.quran.foundation/Alafasy/mp3/001001.mp3",
+        "husaryMuallimAyahUrl": "https://mirrors.quranicaudio.com/everyayah/Husary_Muallim_128kbps/001001.mp3",
+        "alafasyChapterSegment": {
+          "timestampFromMs": 0,
+          "timestampToMs": 6090,
+          "durationMs": 6090,
+          "segments": [
+            [
+              1,
+              0,
+              580
+            ],
+            [
+              2,
+              580,
+              1409
+            ],
+            [
+              3,
+              1409,
+              2502
+            ],
+            [
+              4,
+              2502,
+              5840
+            ]
+          ]
+        }
+      },
+      "words": [
+        {
+          "id": 1,
+          "position": 1,
+          "location": "1:1:1",
+          "pageNumber": 1,
+          "lineNumber": 2,
+          "textUthmani": "بِسْمِ",
+          "textImlaei": "بِسْمِ",
+          "translationTr": "adıyla",
+          "transliteration": "bis'mi",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_001_001.mp3",
+          "morphology": {
+            "rootArabic": "سمو",
+            "lemmaArabic": "ب",
+            "segments": [
+              {
+                "wordLocation": "1:1:1",
+                "segmentIndex": 1,
+                "segmentText": "بِ",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ب",
+                "features": [
+                  "P",
+                  "PREF",
+                  "LEM:ب"
+                ]
+              },
+              {
+                "wordLocation": "1:1:1",
+                "segmentIndex": 2,
+                "segmentText": "سْمِ",
+                "partOfSpeech": "N",
+                "rootArabic": "سمو",
+                "lemmaArabic": "اسْم",
+                "features": [
+                  "ROOT:سمو",
+                  "LEM:اسْم",
+                  "M",
+                  "GEN"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 2,
+          "position": 2,
+          "location": "1:1:2",
+          "pageNumber": 1,
+          "lineNumber": 2,
+          "textUthmani": "ٱللَّهِ",
+          "textImlaei": "اللَّهِ",
+          "translationTr": "Allah'ın",
+          "transliteration": "l-lahi",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_001_002.mp3",
+          "morphology": {
+            "rootArabic": "أله",
+            "lemmaArabic": "اللَّه",
+            "segments": [
+              {
+                "wordLocation": "1:1:2",
+                "segmentIndex": 1,
+                "segmentText": "ٱللَّهِ",
+                "partOfSpeech": "N",
+                "rootArabic": "أله",
+                "lemmaArabic": "اللَّه",
+                "features": [
+                  "PN",
+                  "ROOT:أله",
+                  "LEM:اللَّه",
+                  "GEN"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 3,
+          "position": 3,
+          "location": "1:1:3",
+          "pageNumber": 1,
+          "lineNumber": 2,
+          "textUthmani": "ٱلرَّحْمَـٰنِ",
+          "textImlaei": "الرَّحْمَٰنِ",
+          "translationTr": "Rahman",
+          "transliteration": "l-raḥmāni",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_001_003.mp3",
+          "morphology": {
+            "rootArabic": "رحم",
+            "lemmaArabic": "ال",
+            "segments": [
+              {
+                "wordLocation": "1:1:3",
+                "segmentIndex": 1,
+                "segmentText": "ٱل",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ال",
+                "features": [
+                  "DET",
+                  "PREF",
+                  "LEM:ال"
+                ]
+              },
+              {
+                "wordLocation": "1:1:3",
+                "segmentIndex": 2,
+                "segmentText": "رَّحْمَٰنِ",
+                "partOfSpeech": "N",
+                "rootArabic": "رحم",
+                "lemmaArabic": "رَحْمٰن",
+                "features": [
+                  "ROOT:رحم",
+                  "LEM:رَحْمٰن",
+                  "MS",
+                  "GEN",
+                  "ADJ"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 4,
+          "position": 4,
+          "location": "1:1:4",
+          "pageNumber": 1,
+          "lineNumber": 2,
+          "textUthmani": "ٱلرَّحِيمِ",
+          "textImlaei": "الرَّحِيمِ",
+          "translationTr": "Rahim",
+          "transliteration": "l-raḥīmi",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_001_004.mp3",
+          "morphology": {
+            "rootArabic": "رحم",
+            "lemmaArabic": "ال",
+            "segments": [
+              {
+                "wordLocation": "1:1:4",
+                "segmentIndex": 1,
+                "segmentText": "ٱل",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ال",
+                "features": [
+                  "DET",
+                  "PREF",
+                  "LEM:ال"
+                ]
+              },
+              {
+                "wordLocation": "1:1:4",
+                "segmentIndex": 2,
+                "segmentText": "رَّحِيمِ",
+                "partOfSpeech": "N",
+                "rootArabic": "رحم",
+                "lemmaArabic": "رَحِيم",
+                "features": [
+                  "ROOT:رحم",
+                  "LEM:رَحِيم",
+                  "MS",
+                  "GEN",
+                  "ADJ"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "surahId": 1,
+      "verseNumber": 2,
+      "verseKey": "1:2",
+      "pageNumber": 1,
+      "juzNumber": 1,
+      "hizbNumber": 1,
+      "rubElHizbNumber": 1,
+      "textUthmani": "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَـٰلَمِينَ",
+      "textUthmaniTanzil": "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ",
+      "textUthmaniSha256": "463f13295bc7d90e0ea221942d7b39359a137da8686420b58f63d0774eebda09",
+      "tanzilTextSha256": "5abcd9e1410e57f62499e3ee2cbe2d3e094cd520aa3a8c625f01cae755997017",
+      "textImlaei": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+      "translations": [
+        {
+          "resourceId": 77,
+          "translatorName": "Diyanet İşleri Başkanlığı",
+          "languageCode": "tr",
+          "text": "Hamd, Alemlerin Rabbi Allah'a mahsustur."
+        },
+        {
+          "resourceId": 52,
+          "translatorName": "Elmalılı Muhammed Hamdi Yazır",
+          "languageCode": "tr",
+          "text": "Hamd o âlemlerin Rabbi,"
+        }
+      ],
+      "audio": {
+        "alafasyAyahUrl": "https://verses.quran.foundation/Alafasy/mp3/001002.mp3",
+        "husaryMuallimAyahUrl": "https://mirrors.quranicaudio.com/everyayah/Husary_Muallim_128kbps/001002.mp3",
+        "alafasyChapterSegment": {
+          "timestampFromMs": 6090,
+          "timestampToMs": 11680,
+          "durationMs": 5590,
+          "segments": [
+            [
+              1,
+              6025,
+              7025
+            ],
+            [
+              2,
+              7025,
+              7885
+            ],
+            [
+              3,
+              7885,
+              8515
+            ],
+            [
+              4,
+              8515,
+              11550
+            ]
+          ]
+        }
+      },
+      "words": [
+        {
+          "id": 1130,
+          "position": 1,
+          "location": "1:2:1",
+          "pageNumber": 1,
+          "lineNumber": 3,
+          "textUthmani": "ٱلْحَمْدُ",
+          "textImlaei": "الْحَمْدُ",
+          "translationTr": "hamdolsun",
+          "transliteration": "al-ḥamdu",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_002_001.mp3",
+          "morphology": {
+            "rootArabic": "حمد",
+            "lemmaArabic": "ال",
+            "segments": [
+              {
+                "wordLocation": "1:2:1",
+                "segmentIndex": 1,
+                "segmentText": "ٱلْ",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ال",
+                "features": [
+                  "DET",
+                  "PREF",
+                  "LEM:ال"
+                ]
+              },
+              {
+                "wordLocation": "1:2:1",
+                "segmentIndex": 2,
+                "segmentText": "حَمْدُ",
+                "partOfSpeech": "N",
+                "rootArabic": "حمد",
+                "lemmaArabic": "حَمْد",
+                "features": [
+                  "ROOT:حمد",
+                  "LEM:حَمْد",
+                  "M",
+                  "NOM"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 1131,
+          "position": 2,
+          "location": "1:2:2",
+          "pageNumber": 1,
+          "lineNumber": 3,
+          "textUthmani": "لِلَّهِ",
+          "textImlaei": "لِلَّهِ",
+          "translationTr": "Allah'a",
+          "transliteration": "lillahi",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_002_002.mp3",
+          "morphology": {
+            "rootArabic": "أله",
+            "lemmaArabic": "ل",
+            "segments": [
+              {
+                "wordLocation": "1:2:2",
+                "segmentIndex": 1,
+                "segmentText": "لِ",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ل",
+                "features": [
+                  "P",
+                  "PREF",
+                  "LEM:ل"
+                ]
+              },
+              {
+                "wordLocation": "1:2:2",
+                "segmentIndex": 2,
+                "segmentText": "لَّهِ",
+                "partOfSpeech": "N",
+                "rootArabic": "أله",
+                "lemmaArabic": "اللَّه",
+                "features": [
+                  "PN",
+                  "ROOT:أله",
+                  "LEM:اللَّه",
+                  "GEN"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 1132,
+          "position": 3,
+          "location": "1:2:3",
+          "pageNumber": 1,
+          "lineNumber": 3,
+          "textUthmani": "رَبِّ",
+          "textImlaei": "رَبِّ",
+          "translationTr": "Rabbi",
+          "transliteration": "rabbi",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_002_003.mp3",
+          "morphology": {
+            "rootArabic": "ربب",
+            "lemmaArabic": "رَبّ",
+            "segments": [
+              {
+                "wordLocation": "1:2:3",
+                "segmentIndex": 1,
+                "segmentText": "رَبِّ",
+                "partOfSpeech": "N",
+                "rootArabic": "ربب",
+                "lemmaArabic": "رَبّ",
+                "features": [
+                  "ROOT:ربب",
+                  "LEM:رَبّ",
+                  "M",
+                  "GEN"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 1133,
+          "position": 4,
+          "location": "1:2:4",
+          "pageNumber": 1,
+          "lineNumber": 3,
+          "textUthmani": "ٱلْعَـٰلَمِينَ",
+          "textImlaei": "الْعَالَمِينَ",
+          "translationTr": "Alemlerin",
+          "transliteration": "l-ʿālamīna",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_002_004.mp3",
+          "morphology": {
+            "rootArabic": "علم",
+            "lemmaArabic": "ال",
+            "segments": [
+              {
+                "wordLocation": "1:2:4",
+                "segmentIndex": 1,
+                "segmentText": "ٱلْ",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ال",
+                "features": [
+                  "DET",
+                  "PREF",
+                  "LEM:ال"
+                ]
+              },
+              {
+                "wordLocation": "1:2:4",
+                "segmentIndex": 2,
+                "segmentText": "عَٰلَمِينَ",
+                "partOfSpeech": "N",
+                "rootArabic": "علم",
+                "lemmaArabic": "عالَم",
+                "features": [
+                  "ROOT:علم",
+                  "LEM:عالَم",
+                  "MP",
+                  "GEN"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "surahId": 1,
+      "verseNumber": 3,
+      "verseKey": "1:3",
+      "pageNumber": 1,
+      "juzNumber": 1,
+      "hizbNumber": 1,
+      "rubElHizbNumber": 1,
+      "textUthmani": "ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ",
+      "textUthmaniTanzil": "ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+      "textUthmaniSha256": "29fdcd850fbbaf0e4b6bb93077b4fb2c6cdbcc2d8d1826a3b8f24131bc7621c5",
+      "tanzilTextSha256": "d9ae5659f8dff44d603b8c11ea95dd0604d5324d43a7e160190a288137d5ab12",
+      "textImlaei": "الرَّحْمَٰنِ الرَّحِيمِ",
+      "translations": [
+        {
+          "resourceId": 77,
+          "translatorName": "Diyanet İşleri Başkanlığı",
+          "languageCode": "tr",
+          "text": "O Rahman ve Rahim'dir,"
+        },
+        {
+          "resourceId": 52,
+          "translatorName": "Elmalılı Muhammed Hamdi Yazır",
+          "languageCode": "tr",
+          "text": "O Rahmân ve Rahim,"
+        }
+      ],
+      "audio": {
+        "alafasyAyahUrl": "https://verses.quran.foundation/Alafasy/mp3/001003.mp3",
+        "husaryMuallimAyahUrl": "https://mirrors.quranicaudio.com/everyayah/Husary_Muallim_128kbps/001003.mp3",
+        "alafasyChapterSegment": {
+          "timestampFromMs": 11680,
+          "timestampToMs": 16300,
+          "durationMs": 4620,
+          "segments": [
+            [
+              1,
+              11615,
+              12855
+            ],
+            [
+              2,
+              12855,
+              16180
+            ]
+          ]
+        }
+      },
+      "words": [
+        {
+          "id": 2953,
+          "position": 1,
+          "location": "1:3:1",
+          "pageNumber": 1,
+          "lineNumber": 4,
+          "textUthmani": "ٱلرَّحْمَـٰنِ",
+          "textImlaei": "الرَّحْمَٰنِ",
+          "translationTr": "(O) Rahman'dır",
+          "transliteration": "al-raḥmāni",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_003_001.mp3",
+          "morphology": {
+            "rootArabic": "رحم",
+            "lemmaArabic": "ال",
+            "segments": [
+              {
+                "wordLocation": "1:3:1",
+                "segmentIndex": 1,
+                "segmentText": "ٱل",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ال",
+                "features": [
+                  "DET",
+                  "PREF",
+                  "LEM:ال"
+                ]
+              },
+              {
+                "wordLocation": "1:3:1",
+                "segmentIndex": 2,
+                "segmentText": "رَّحْمَٰنِ",
+                "partOfSpeech": "N",
+                "rootArabic": "رحم",
+                "lemmaArabic": "رَحْمٰن",
+                "features": [
+                  "ROOT:رحم",
+                  "LEM:رَحْمٰن",
+                  "MS",
+                  "GEN",
+                  "ADJ"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 2954,
+          "position": 2,
+          "location": "1:3:2",
+          "pageNumber": 1,
+          "lineNumber": 4,
+          "textUthmani": "ٱلرَّحِيمِ",
+          "textImlaei": "الرَّحِيمِ",
+          "translationTr": "Rahim'dir",
+          "transliteration": "l-raḥīmi",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_003_002.mp3",
+          "morphology": {
+            "rootArabic": "رحم",
+            "lemmaArabic": "ال",
+            "segments": [
+              {
+                "wordLocation": "1:3:2",
+                "segmentIndex": 1,
+                "segmentText": "ٱل",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ال",
+                "features": [
+                  "DET",
+                  "PREF",
+                  "LEM:ال"
+                ]
+              },
+              {
+                "wordLocation": "1:3:2",
+                "segmentIndex": 2,
+                "segmentText": "رَّحِيمِ",
+                "partOfSpeech": "N",
+                "rootArabic": "رحم",
+                "lemmaArabic": "رَحِيم",
+                "features": [
+                  "ROOT:رحم",
+                  "LEM:رَحِيم",
+                  "MS",
+                  "GEN",
+                  "ADJ"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "surahId": 1,
+      "verseNumber": 4,
+      "verseKey": "1:4",
+      "pageNumber": 1,
+      "juzNumber": 1,
+      "hizbNumber": 1,
+      "rubElHizbNumber": 1,
+      "textUthmani": "مَـٰلِكِ يَوْمِ ٱلدِّينِ",
+      "textUthmaniTanzil": "مَٰلِكِ يَوْمِ ٱلدِّينِ",
+      "textUthmaniSha256": "f19e0a517a68a043e08be6066abc107fff347f785c2ec1efe8b7364663923ee2",
+      "tanzilTextSha256": "b504f2c65018b7e9aaae6927947d59a6ad6078eb3c2406924c62af74d5b61b8a",
+      "textImlaei": "مَالِكِ يَوْمِ الدِّينِ",
+      "translations": [
+        {
+          "resourceId": 77,
+          "translatorName": "Diyanet İşleri Başkanlığı",
+          "languageCode": "tr",
+          "text": "Din Gününün sahibidir."
+        },
+        {
+          "resourceId": 52,
+          "translatorName": "Elmalılı Muhammed Hamdi Yazır",
+          "languageCode": "tr",
+          "text": "O, din gününün maliki Allah'ın."
+        }
+      ],
+      "audio": {
+        "alafasyAyahUrl": "https://verses.quran.foundation/Alafasy/mp3/001004.mp3",
+        "husaryMuallimAyahUrl": "https://mirrors.quranicaudio.com/everyayah/Husary_Muallim_128kbps/001004.mp3",
+        "alafasyChapterSegment": {
+          "timestampFromMs": 16300,
+          "timestampToMs": 20950,
+          "durationMs": 4650,
+          "segments": [
+            [
+              1,
+              16245,
+              17065
+            ],
+            [
+              2,
+              17065,
+              17665
+            ],
+            [
+              3,
+              17665,
+              20830
+            ]
+          ]
+        }
+      },
+      "words": [
+        {
+          "id": 3252,
+          "position": 1,
+          "location": "1:4:1",
+          "pageNumber": 1,
+          "lineNumber": 4,
+          "textUthmani": "مَـٰلِكِ",
+          "textImlaei": "مَالِكِ",
+          "translationTr": "sahibidir",
+          "transliteration": "māliki",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_004_001.mp3",
+          "morphology": {
+            "rootArabic": "ملك",
+            "lemmaArabic": "مالِك",
+            "segments": [
+              {
+                "wordLocation": "1:4:1",
+                "segmentIndex": 1,
+                "segmentText": "مَٰلِكِ",
+                "partOfSpeech": "N",
+                "rootArabic": "ملك",
+                "lemmaArabic": "مالِك",
+                "features": [
+                  "ACT_PCPL",
+                  "VF:1",
+                  "ROOT:ملك",
+                  "LEM:مالِك",
+                  "M",
+                  "GEN"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 3253,
+          "position": 2,
+          "location": "1:4:2",
+          "pageNumber": 1,
+          "lineNumber": 4,
+          "textUthmani": "يَوْمِ",
+          "textImlaei": "يَوْمِ",
+          "translationTr": "gününün",
+          "transliteration": "yawmi",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_004_002.mp3",
+          "morphology": {
+            "rootArabic": "يوم",
+            "lemmaArabic": "يَوْم",
+            "segments": [
+              {
+                "wordLocation": "1:4:2",
+                "segmentIndex": 1,
+                "segmentText": "يَوْمِ",
+                "partOfSpeech": "N",
+                "rootArabic": "يوم",
+                "lemmaArabic": "يَوْم",
+                "features": [
+                  "ROOT:يوم",
+                  "LEM:يَوْم",
+                  "M",
+                  "GEN"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 3254,
+          "position": 3,
+          "location": "1:4:3",
+          "pageNumber": 1,
+          "lineNumber": 4,
+          "textUthmani": "ٱلدِّينِ",
+          "textImlaei": "الدِّينِ",
+          "translationTr": "Din",
+          "transliteration": "l-dīni",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_004_003.mp3",
+          "morphology": {
+            "rootArabic": "دين",
+            "lemmaArabic": "ال",
+            "segments": [
+              {
+                "wordLocation": "1:4:3",
+                "segmentIndex": 1,
+                "segmentText": "ٱل",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ال",
+                "features": [
+                  "DET",
+                  "PREF",
+                  "LEM:ال"
+                ]
+              },
+              {
+                "wordLocation": "1:4:3",
+                "segmentIndex": 2,
+                "segmentText": "دِّينِ",
+                "partOfSpeech": "N",
+                "rootArabic": "دين",
+                "lemmaArabic": "دِين",
+                "features": [
+                  "ROOT:دين",
+                  "LEM:دِين",
+                  "M",
+                  "GEN"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "surahId": 1,
+      "verseNumber": 5,
+      "verseKey": "1:5",
+      "pageNumber": 1,
+      "juzNumber": 1,
+      "hizbNumber": 1,
+      "rubElHizbNumber": 1,
+      "textUthmani": "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+      "textUthmaniTanzil": "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+      "textUthmaniSha256": "c44ba775d0ba7689a0d97e83a27cd9b5d917cb569f98013518018b591b42c015",
+      "tanzilTextSha256": "c44ba775d0ba7689a0d97e83a27cd9b5d917cb569f98013518018b591b42c015",
+      "textImlaei": "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+      "translations": [
+        {
+          "resourceId": 77,
+          "translatorName": "Diyanet İşleri Başkanlığı",
+          "languageCode": "tr",
+          "text": "Ancak Sana kulluk eder ve yalnız Senden yardım dileriz."
+        },
+        {
+          "resourceId": 52,
+          "translatorName": "Elmalılı Muhammed Hamdi Yazır",
+          "languageCode": "tr",
+          "text": "Ancak sana ederiz kulluğu, ibadeti ve ancak senden dileriz yardımı, inayeti. (Ya Rab!)."
+        }
+      ],
+      "audio": {
+        "alafasyAyahUrl": "https://verses.quran.foundation/Alafasy/mp3/001005.mp3",
+        "husaryMuallimAyahUrl": "https://mirrors.quranicaudio.com/everyayah/Husary_Muallim_128kbps/001005.mp3",
+        "alafasyChapterSegment": {
+          "timestampFromMs": 20950,
+          "timestampToMs": 27660,
+          "durationMs": 6710,
+          "segments": [
+            [
+              1,
+              20885,
+              21875
+            ],
+            [
+              2,
+              21875,
+              22645
+            ],
+            [
+              3,
+              22645,
+              23765
+            ],
+            [
+              4,
+              23765,
+              27520
+            ]
+          ]
+        }
+      },
+      "words": [
+        {
+          "id": 5334,
+          "position": 1,
+          "location": "1:5:1",
+          "pageNumber": 1,
+          "lineNumber": 5,
+          "textUthmani": "إِيَّاكَ",
+          "textImlaei": "إِيَّاكَ",
+          "translationTr": "ancak sana",
+          "transliteration": "iyyāka",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_005_001.mp3",
+          "morphology": {
+            "rootArabic": null,
+            "lemmaArabic": "إِيّا",
+            "segments": [
+              {
+                "wordLocation": "1:5:1",
+                "segmentIndex": 1,
+                "segmentText": "إِيَّاكَ",
+                "partOfSpeech": "N",
+                "rootArabic": null,
+                "lemmaArabic": "إِيّا",
+                "features": [
+                  "PRON",
+                  "LEM:إِيّا",
+                  "2MS"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 5335,
+          "position": 2,
+          "location": "1:5:2",
+          "pageNumber": 1,
+          "lineNumber": 5,
+          "textUthmani": "نَعْبُدُ",
+          "textImlaei": "نَعْبُدُ",
+          "translationTr": "kulluk ederiz",
+          "transliteration": "naʿbudu",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_005_002.mp3",
+          "morphology": {
+            "rootArabic": "عبد",
+            "lemmaArabic": "عَبَدَ",
+            "segments": [
+              {
+                "wordLocation": "1:5:2",
+                "segmentIndex": 1,
+                "segmentText": "نَعْبُدُ",
+                "partOfSpeech": "V",
+                "rootArabic": "عبد",
+                "lemmaArabic": "عَبَدَ",
+                "features": [
+                  "IMPF",
+                  "VF:1",
+                  "ROOT:عبد",
+                  "LEM:عَبَدَ",
+                  "1P",
+                  "MOOD:IND"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 5336,
+          "position": 3,
+          "location": "1:5:3",
+          "pageNumber": 1,
+          "lineNumber": 5,
+          "textUthmani": "وَإِيَّاكَ",
+          "textImlaei": "وَإِيَّاكَ",
+          "translationTr": "ancak senden",
+          "transliteration": "wa-iyyāka",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_005_003.mp3",
+          "morphology": {
+            "rootArabic": null,
+            "lemmaArabic": "و",
+            "segments": [
+              {
+                "wordLocation": "1:5:3",
+                "segmentIndex": 1,
+                "segmentText": "وَ",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "و",
+                "features": [
+                  "CONJ",
+                  "PREF",
+                  "LEM:و"
+                ]
+              },
+              {
+                "wordLocation": "1:5:3",
+                "segmentIndex": 2,
+                "segmentText": "إِيَّاكَ",
+                "partOfSpeech": "N",
+                "rootArabic": null,
+                "lemmaArabic": "إِيّا",
+                "features": [
+                  "PRON",
+                  "LEM:إِيّا",
+                  "2MS"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 5337,
+          "position": 4,
+          "location": "1:5:4",
+          "pageNumber": 1,
+          "lineNumber": 5,
+          "textUthmani": "نَسْتَعِينُ",
+          "textImlaei": "نَسْتَعِينُ",
+          "translationTr": "yardım isteriz",
+          "transliteration": "nastaʿīnu",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_005_004.mp3",
+          "morphology": {
+            "rootArabic": "عون",
+            "lemmaArabic": "اسْتَعِينُ",
+            "segments": [
+              {
+                "wordLocation": "1:5:4",
+                "segmentIndex": 1,
+                "segmentText": "نَسْتَعِينُ",
+                "partOfSpeech": "V",
+                "rootArabic": "عون",
+                "lemmaArabic": "اسْتَعِينُ",
+                "features": [
+                  "IMPF",
+                  "VF:10",
+                  "ROOT:عون",
+                  "LEM:اسْتَعِينُ",
+                  "1P",
+                  "MOOD:IND"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "surahId": 1,
+      "verseNumber": 6,
+      "verseKey": "1:6",
+      "pageNumber": 1,
+      "juzNumber": 1,
+      "hizbNumber": 1,
+      "rubElHizbNumber": 1,
+      "textUthmani": "ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ",
+      "textUthmaniTanzil": "ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ",
+      "textUthmaniSha256": "e257cf2a178fab0948da4af9d74b8b6152ba03a5d8c0e7179f46203cd3864c39",
+      "tanzilTextSha256": "e257cf2a178fab0948da4af9d74b8b6152ba03a5d8c0e7179f46203cd3864c39",
+      "textImlaei": "اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ",
+      "translations": [
+        {
+          "resourceId": 77,
+          "translatorName": "Diyanet İşleri Başkanlığı",
+          "languageCode": "tr",
+          "text": "Bizi doğru yola eriştir."
+        },
+        {
+          "resourceId": 52,
+          "translatorName": "Elmalılı Muhammed Hamdi Yazır",
+          "languageCode": "tr",
+          "text": "Hidayet eyle bizi doğru yola,"
+        }
+      ],
+      "audio": {
+        "alafasyAyahUrl": "https://verses.quran.foundation/Alafasy/mp3/001006.mp3",
+        "husaryMuallimAyahUrl": "https://mirrors.quranicaudio.com/everyayah/Husary_Muallim_128kbps/001006.mp3",
+        "alafasyChapterSegment": {
+          "timestampFromMs": 27660,
+          "timestampToMs": 33250,
+          "durationMs": 5590,
+          "segments": [
+            [
+              1,
+              27585,
+              28325
+            ],
+            [
+              2,
+              28325,
+              29225
+            ],
+            [
+              3,
+              29225,
+              33110
+            ]
+          ]
+        }
+      },
+      "words": [
+        {
+          "id": 6844,
+          "position": 1,
+          "location": "1:6:1",
+          "pageNumber": 1,
+          "lineNumber": 5,
+          "textUthmani": "ٱهْدِنَا",
+          "textImlaei": "اهْدِنَا",
+          "translationTr": "bizi ilet",
+          "transliteration": "ih'dinā",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_006_001.mp3",
+          "morphology": {
+            "rootArabic": "هدي",
+            "lemmaArabic": "هَدَى",
+            "segments": [
+              {
+                "wordLocation": "1:6:1",
+                "segmentIndex": 1,
+                "segmentText": "ٱهْدِ",
+                "partOfSpeech": "V",
+                "rootArabic": "هدي",
+                "lemmaArabic": "هَدَى",
+                "features": [
+                  "IMPV",
+                  "VF:1",
+                  "ROOT:هدي",
+                  "LEM:هَدَى",
+                  "2MS"
+                ]
+              },
+              {
+                "wordLocation": "1:6:1",
+                "segmentIndex": 2,
+                "segmentText": "نَا",
+                "partOfSpeech": "N",
+                "rootArabic": null,
+                "lemmaArabic": null,
+                "features": [
+                  "PRON",
+                  "SUFF",
+                  "1P"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 6845,
+          "position": 2,
+          "location": "1:6:2",
+          "pageNumber": 1,
+          "lineNumber": 6,
+          "textUthmani": "ٱلصِّرَٰطَ",
+          "textImlaei": "الصِّرَاطَ",
+          "translationTr": "yola",
+          "transliteration": "l-ṣirāṭa",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_006_002.mp3",
+          "morphology": {
+            "rootArabic": "صرط",
+            "lemmaArabic": "ال",
+            "segments": [
+              {
+                "wordLocation": "1:6:2",
+                "segmentIndex": 1,
+                "segmentText": "ٱل",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ال",
+                "features": [
+                  "DET",
+                  "PREF",
+                  "LEM:ال"
+                ]
+              },
+              {
+                "wordLocation": "1:6:2",
+                "segmentIndex": 2,
+                "segmentText": "صِّرَٰطَ",
+                "partOfSpeech": "N",
+                "rootArabic": "صرط",
+                "lemmaArabic": "صِراط",
+                "features": [
+                  "ROOT:صرط",
+                  "LEM:صِراط",
+                  "M",
+                  "ACC"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 6846,
+          "position": 3,
+          "location": "1:6:3",
+          "pageNumber": 1,
+          "lineNumber": 6,
+          "textUthmani": "ٱلْمُسْتَقِيمَ",
+          "textImlaei": "الْمُسْتَقِيمَ",
+          "translationTr": "doğru",
+          "transliteration": "l-mus'taqīma",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_006_003.mp3",
+          "morphology": {
+            "rootArabic": "قوم",
+            "lemmaArabic": "ال",
+            "segments": [
+              {
+                "wordLocation": "1:6:3",
+                "segmentIndex": 1,
+                "segmentText": "ٱلْ",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ال",
+                "features": [
+                  "DET",
+                  "PREF",
+                  "LEM:ال"
+                ]
+              },
+              {
+                "wordLocation": "1:6:3",
+                "segmentIndex": 2,
+                "segmentText": "مُسْتَقِيمَ",
+                "partOfSpeech": "N",
+                "rootArabic": "قوم",
+                "lemmaArabic": "مُسْتَقِيم",
+                "features": [
+                  "ACT_PCPL",
+                  "VF:10",
+                  "ROOT:قوم",
+                  "LEM:مُسْتَقِيم",
+                  "M",
+                  "ACC",
+                  "ADJ"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "surahId": 1,
+      "verseNumber": 7,
+      "verseKey": "1:7",
+      "pageNumber": 1,
+      "juzNumber": 1,
+      "hizbNumber": 1,
+      "rubElHizbNumber": 1,
+      "textUthmani": "صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ",
+      "textUthmaniTanzil": "صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ",
+      "textUthmaniSha256": "4a564d7b057f073d907a3faad63bd2b01eeee4c509d505e5ecf03ec803397eea",
+      "tanzilTextSha256": "4a564d7b057f073d907a3faad63bd2b01eeee4c509d505e5ecf03ec803397eea",
+      "textImlaei": "صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ",
+      "translations": [
+        {
+          "resourceId": 77,
+          "translatorName": "Diyanet İşleri Başkanlığı",
+          "languageCode": "tr",
+          "text": "Nimete erdirdiğin kimselerin yoluna; gazaba uğrayanların, ya da sapıtanların yoluna değil."
+        },
+        {
+          "resourceId": 52,
+          "translatorName": "Elmalılı Muhammed Hamdi Yazır",
+          "languageCode": "tr",
+          "text": "O kendilerine nimet verdiğin mutlu kimselerin yoluna; o gazaba uğramışların ve o sapmışların yoluna değil."
+        }
+      ],
+      "audio": {
+        "alafasyAyahUrl": "https://verses.quran.foundation/Alafasy/mp3/001007.mp3",
+        "husaryMuallimAyahUrl": "https://mirrors.quranicaudio.com/everyayah/Husary_Muallim_128kbps/001007.mp3",
+        "alafasyChapterSegment": {
+          "timestampFromMs": 33250,
+          "timestampToMs": 46490,
+          "durationMs": 13250,
+          "segments": [
+            [
+              1,
+              33185,
+              33935
+            ],
+            [
+              2,
+              33935,
+              34855
+            ],
+            [
+              3,
+              34855,
+              35875
+            ],
+            [
+              4,
+              35875,
+              36805
+            ],
+            [
+              5,
+              36805,
+              37395
+            ],
+            [
+              6,
+              37395,
+              38565
+            ],
+            [
+              7,
+              38565,
+              39565
+            ],
+            [
+              8,
+              39565,
+              39855
+            ],
+            [
+              9,
+              39855,
+              46360
+            ]
+          ]
+        }
+      },
+      "words": [
+        {
+          "id": 8411,
+          "position": 1,
+          "location": "1:7:1",
+          "pageNumber": 1,
+          "lineNumber": 6,
+          "textUthmani": "صِرَٰطَ",
+          "textImlaei": "صِرَاطَ",
+          "translationTr": "yoluna",
+          "transliteration": "ṣirāṭa",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_007_001.mp3",
+          "morphology": {
+            "rootArabic": "صرط",
+            "lemmaArabic": "صِراط",
+            "segments": [
+              {
+                "wordLocation": "1:7:1",
+                "segmentIndex": 1,
+                "segmentText": "صِرَٰطَ",
+                "partOfSpeech": "N",
+                "rootArabic": "صرط",
+                "lemmaArabic": "صِراط",
+                "features": [
+                  "ROOT:صرط",
+                  "LEM:صِراط",
+                  "M",
+                  "ACC"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 8412,
+          "position": 2,
+          "location": "1:7:2",
+          "pageNumber": 1,
+          "lineNumber": 6,
+          "textUthmani": "ٱلَّذِينَ",
+          "textImlaei": "الَّذِينَ",
+          "translationTr": "onlar ki",
+          "transliteration": "alladhīna",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_007_002.mp3",
+          "morphology": {
+            "rootArabic": null,
+            "lemmaArabic": "الَّذِي",
+            "segments": [
+              {
+                "wordLocation": "1:7:2",
+                "segmentIndex": 1,
+                "segmentText": "ٱلَّذِينَ",
+                "partOfSpeech": "N",
+                "rootArabic": null,
+                "lemmaArabic": "الَّذِي",
+                "features": [
+                  "REL",
+                  "LEM:الَّذِي",
+                  "MP"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 8413,
+          "position": 3,
+          "location": "1:7:3",
+          "pageNumber": 1,
+          "lineNumber": 6,
+          "textUthmani": "أَنْعَمْتَ",
+          "textImlaei": "أَنْعَمْتَ",
+          "translationTr": "ni'met verdin",
+          "transliteration": "anʿamta",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_007_003.mp3",
+          "morphology": {
+            "rootArabic": "نعم",
+            "lemmaArabic": "أَنْعَمَ",
+            "segments": [
+              {
+                "wordLocation": "1:7:3",
+                "segmentIndex": 1,
+                "segmentText": "أَنْعَمْ",
+                "partOfSpeech": "V",
+                "rootArabic": "نعم",
+                "lemmaArabic": "أَنْعَمَ",
+                "features": [
+                  "PERF",
+                  "VF:4",
+                  "ROOT:نعم",
+                  "LEM:أَنْعَمَ",
+                  "2MS"
+                ]
+              },
+              {
+                "wordLocation": "1:7:3",
+                "segmentIndex": 2,
+                "segmentText": "تَ",
+                "partOfSpeech": "N",
+                "rootArabic": null,
+                "lemmaArabic": null,
+                "features": [
+                  "PRON",
+                  "SUFF",
+                  "2MS"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 8414,
+          "position": 4,
+          "location": "1:7:4",
+          "pageNumber": 1,
+          "lineNumber": 7,
+          "textUthmani": "عَلَيْهِمْ",
+          "textImlaei": "عَلَيْهِمْ",
+          "translationTr": "kimselerin",
+          "transliteration": "ʿalayhim",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_007_004.mp3",
+          "morphology": {
+            "rootArabic": null,
+            "lemmaArabic": "عَلَى",
+            "segments": [
+              {
+                "wordLocation": "1:7:4",
+                "segmentIndex": 1,
+                "segmentText": "عَلَيْ",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "عَلَى",
+                "features": [
+                  "P",
+                  "LEM:عَلَى"
+                ]
+              },
+              {
+                "wordLocation": "1:7:4",
+                "segmentIndex": 2,
+                "segmentText": "هِمْ",
+                "partOfSpeech": "N",
+                "rootArabic": null,
+                "lemmaArabic": null,
+                "features": [
+                  "PRON",
+                  "SUFF",
+                  "3MP"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 8415,
+          "position": 5,
+          "location": "1:7:5",
+          "pageNumber": 1,
+          "lineNumber": 7,
+          "textUthmani": "غَيْرِ",
+          "textImlaei": "غَيْرِ",
+          "translationTr": "değil",
+          "transliteration": "ghayri",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_007_005.mp3",
+          "morphology": {
+            "rootArabic": "غير",
+            "lemmaArabic": "غَيْر",
+            "segments": [
+              {
+                "wordLocation": "1:7:5",
+                "segmentIndex": 1,
+                "segmentText": "غَيْرِ",
+                "partOfSpeech": "N",
+                "rootArabic": "غير",
+                "lemmaArabic": "غَيْر",
+                "features": [
+                  "ROOT:غير",
+                  "LEM:غَيْر",
+                  "M",
+                  "GEN"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 8416,
+          "position": 6,
+          "location": "1:7:6",
+          "pageNumber": 1,
+          "lineNumber": 7,
+          "textUthmani": "ٱلْمَغْضُوبِ",
+          "textImlaei": "الْمَغْضُوبِ",
+          "translationTr": "gazabedilmiş olanların",
+          "transliteration": "l-maghḍūbi",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_007_006.mp3",
+          "morphology": {
+            "rootArabic": "غضب",
+            "lemmaArabic": "ال",
+            "segments": [
+              {
+                "wordLocation": "1:7:6",
+                "segmentIndex": 1,
+                "segmentText": "ٱلْ",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ال",
+                "features": [
+                  "DET",
+                  "PREF",
+                  "LEM:ال"
+                ]
+              },
+              {
+                "wordLocation": "1:7:6",
+                "segmentIndex": 2,
+                "segmentText": "مَغْضُوبِ",
+                "partOfSpeech": "N",
+                "rootArabic": "غضب",
+                "lemmaArabic": "مَغْضُوب",
+                "features": [
+                  "PASS_PCPL",
+                  "VF:1",
+                  "ROOT:غضب",
+                  "LEM:مَغْضُوب",
+                  "M",
+                  "GEN"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 8417,
+          "position": 7,
+          "location": "1:7:7",
+          "pageNumber": 1,
+          "lineNumber": 7,
+          "textUthmani": "عَلَيْهِمْ",
+          "textImlaei": "عَلَيْهِمْ",
+          "translationTr": "kendilerine",
+          "transliteration": "ʿalayhim",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_007_007.mp3",
+          "morphology": {
+            "rootArabic": null,
+            "lemmaArabic": "عَلَى",
+            "segments": [
+              {
+                "wordLocation": "1:7:7",
+                "segmentIndex": 1,
+                "segmentText": "عَلَيْ",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "عَلَى",
+                "features": [
+                  "P",
+                  "LEM:عَلَى"
+                ]
+              },
+              {
+                "wordLocation": "1:7:7",
+                "segmentIndex": 2,
+                "segmentText": "هِمْ",
+                "partOfSpeech": "N",
+                "rootArabic": null,
+                "lemmaArabic": null,
+                "features": [
+                  "PRON",
+                  "SUFF",
+                  "3MP"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 8418,
+          "position": 8,
+          "location": "1:7:8",
+          "pageNumber": 1,
+          "lineNumber": 8,
+          "textUthmani": "وَلَا",
+          "textImlaei": "وَلَا",
+          "translationTr": "ve değil",
+          "transliteration": "walā",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_007_008.mp3",
+          "morphology": {
+            "rootArabic": null,
+            "lemmaArabic": "و",
+            "segments": [
+              {
+                "wordLocation": "1:7:8",
+                "segmentIndex": 1,
+                "segmentText": "وَ",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "و",
+                "features": [
+                  "CONJ",
+                  "PREF",
+                  "LEM:و"
+                ]
+              },
+              {
+                "wordLocation": "1:7:8",
+                "segmentIndex": 2,
+                "segmentText": "لَا",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "لا",
+                "features": [
+                  "NEG",
+                  "LEM:لا"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 8419,
+          "position": 9,
+          "location": "1:7:9",
+          "pageNumber": 1,
+          "lineNumber": 8,
+          "textUthmani": "ٱلضَّآلِّينَ",
+          "textImlaei": "الضَّالِّينَ",
+          "translationTr": "sapmışların",
+          "transliteration": "l-ḍālīna",
+          "audioUrl": "https://audio.qurancdn.com/wbw/001_007_009.mp3",
+          "morphology": {
+            "rootArabic": "ضلل",
+            "lemmaArabic": "ال",
+            "segments": [
+              {
+                "wordLocation": "1:7:9",
+                "segmentIndex": 1,
+                "segmentText": "ٱل",
+                "partOfSpeech": "P",
+                "rootArabic": null,
+                "lemmaArabic": "ال",
+                "features": [
+                  "DET",
+                  "PREF",
+                  "LEM:ال"
+                ]
+              },
+              {
+                "wordLocation": "1:7:9",
+                "segmentIndex": 2,
+                "segmentText": "ضَّآلِّينَ",
+                "partOfSpeech": "N",
+                "rootArabic": "ضلل",
+                "lemmaArabic": "ضالّ",
+                "features": [
+                  "ACT_PCPL",
+                  "VF:1",
+                  "ROOT:ضلل",
+                  "LEM:ضالّ",
+                  "MP",
+                  "GEN"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

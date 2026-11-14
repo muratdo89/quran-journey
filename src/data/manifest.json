@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-11-14T16:22:56.451Z",
+  "sources": [
+    {
+      "id": "tanzil-uthmani",
+      "provider": "Tanzil Project",
+      "resource": "Tanzil Quran Text (Uthmani, v1.1)",
+      "url": "https://tanzil.net",
+      "license": "Creative Commons Attribution 3.0 (CC BY 3.0)",
+      "attribution": "Tanzil Quran Text Copyright (C) 2007-2021 Tanzil Project (https://tanzil.net). Verbatim copy without modification.",
+      "retrievedAt": "2026-11-14T16:22:56.453Z",
+      "version": "1.1",
+      "usageRestrictions": "Changing the Quran text is strictly prohibited."
+    },
+    {
+      "id": "quran-com-api-v4",
+      "provider": "Quran.com / Quran Foundation",
+      "resource": "Madinah Mushaf page/line mappings, Uthmani & Imlaei words, Turkish word-by-word translations, Diyanet (77) & Elmalılı (52) translations, reciter audio & word segments",
+      "url": "https://api.quran.com/api/v4",
+      "license": "Public API access with source & translator attribution; Quran Foundation OAuth2 recommended for full-scale production",
+      "attribution": "Quran.com API v4 / Quran Foundation; Diyanet İşleri Başkanlığı Meali; Elmalılı M. Hamdi Yazır Meali; Mishary Rashid al-Afasy; Mahmoud Khalil al-Husary (Muallim).",
+      "retrievedAt": "2026-11-14T16:22:56.453Z",
+      "version": "v4",
+      "usageRestrictions": "Preserve Quran text verbatim; add translate='no' on Arabic text containers."
+    },
+    {
+      "id": "quran-arabic-corpus-morphology",
+      "provider": "Quranic Arabic Corpus v0.4 (University of Leeds) via mustafa0x/quran-morphology",
+      "resource": "Word-by-word Arabic morphological segments, POS tags, lemmas, and trilateral roots",
+      "url": "https://corpus.quran.com",
+      "license": "GNU General Public License (GPL)",
+      "attribution": "Quranic Arabic Corpus (Kais Dukes, University of Leeds) and mustafa0x/quran-morphology.",
+      "retrievedAt": "2026-11-14T16:22:56.453Z",
+      "version": "0.4-ar",
+      "usageRestrictions": "GPL copyleft notice applies if redistributed; replace with non-GPL lexicon for closed-source commercial forks."
+    }
+  ],
+  "datasets": {
+    "surah-1-fatiha": {
+      "path": "src/data/canonical/surah-1-fatiha.json",
+      "sha256": "2aa338b8f26b4905be2536526aac52bb1907804246e92e2cdbe33889a1c6f645",
+      "versesCount": 7,
+      "wordsCount": 29
+    },
+    "fatiha-and-juz-amma": {
+      "path": "src/data/canonical/fatiha-and-juz-amma.json",
+      "sha256": "00c06468ea69be339f1f4f522b7add78f6b5a551e481eb5b6071ada452dbd886",
+      "surahsCount": 38,
+      "pagesCount": 24,
+      "versesCount": 571,
+      "wordsCount": 2337
+    }
+  }
+}

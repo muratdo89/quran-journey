@@ -1,0 +1,47 @@
+@import "tailwindcss" source("../");
+
+:root {
+  --bg-ivory: #faf8f3;
+  --bg-parchment: #f3efe6;
+  --surface-card: #ffffff;
+  --border-sand: #e5dec9;
+  --text-ink: #1c241f;
+  --text-muted: #5a655e;
+  --accent-forest: #1b4332;
+  --accent-forest-hover: #143326;
+  --accent-emerald: #2d6a4f;
+  --accent-gold: #b08d57;
+  --accent-gold-soft: #f7f1e3;
+}
+
+@theme inline {
+  --color-background: var(--bg-ivory);
+  --color-foreground: var(--text-ink);
+  --font-sans: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+  --font-arabic: var(--font-amiri), var(--font-scheherazade), serif;
+  --font-arabic-naskh: var(--font-scheherazade), var(--font-amiri), serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+}
+
+html {
+  background-color: var(--bg-ivory);
+  color: var(--text-ink);
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-ivory);
+  color: var(--text-ink);
+  font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-arabic {
+  font-family: var(--font-amiri), var(--font-scheherazade), "Times New Roman", serif;
+  font-feature-settings: "liga" 1, "calt" 1, "mark" 1, "mkmk" 1;
+}
+
+.font-arabic-study {
+  font-family: var(--font-scheherazade), var(--font-amiri), serif;
+  font-feature-settings: "liga" 1, "calt" 1, "mark" 1, "mkmk" 1;
+}
