@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Ear, Mic, Pause, Play, SkipBack, SkipForward, Square, Volume2 } from "lucide-react";
+import React, { useState } from "react";
+import { ChevronDown, Ear, Mic, Pause, Play, SkipBack, SkipForward, Square, Volume2 } from "lucide-react";
 import type { CanonicalWord } from "@/lib/content/types";
 import {
   LISTEN_REPEAT_GROUP_SIZES,
@@ -30,6 +30,7 @@ export function ListenRepeatPanel({
   onStart,
 }: ListenRepeatPanelProps) {
   const { settings, updateSettings, isActive, error } = listenRepeat;
+  const [showSettings, setShowSettings] = useState(false);
 
   return (
     <div
@@ -67,6 +68,24 @@ export function ListenRepeatPanel({
             )}
           </div>
 
+          <button
+            type="button"
+            onClick={() => setShowSettings((v) => !v)}
+            aria-expanded={showSettings}
+            className="flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-parchment px-3.5 py-2 text-left text-xs text-ink-soft hover:bg-sand"
+          >
+            <span className="min-w-0 truncate">
+              <span className="font-semibold text-ink">Ayarlar: </span>
+              {settings.speed === 1 ? "Normal hız" : `${settings.speed}×`} ·{" "}
+              {LISTEN_REPEAT_PAUSES.find((p) => p.id === settings.pause)?.labelTr} ·{" "}
+              {settings.repeatCount}× ·{" "}
+              {settings.groupSize === 1 ? "tek kelime" : `${settings.groupSize} kelime`} ·{" "}
+              {settings.scope === "verse" ? "bu ayet" : "sayfa sonuna kadar"}
+            </span>
+            <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", showSettings && "rotate-180")} />
+          </button>
+
+          {showSettings && (
           <div className="space-y-3 text-xs">
             <OptionRow label="Hız">
               {LISTEN_REPEAT_SPEEDS.map((speed) => (
@@ -136,6 +155,7 @@ export function ListenRepeatPanel({
               <span>Ayet bitince tamamını seçili kâriden bir kez dinle</span>
             </label>
           </div>
+          )}
 
           <button
             type="button"
@@ -146,10 +166,12 @@ export function ListenRepeatPanel({
             <span>Başlat</span>
           </button>
 
-          <p className="text-[11px] leading-relaxed text-muted">
-            Kelime sesleri Quran.com&apos;un kelime kelime kaydından gelir; gerçek insan sesidir,
-            yapay ses kullanılmaz. Kelime kaydı seçili kâriden bağımsızdır.
-          </p>
+          {showSettings && (
+            <p className="text-[11px] leading-relaxed text-muted">
+              Kelime sesleri Quran.com&apos;un kelime kelime kaydından gelir; gerçek insan sesidir,
+              yapay ses kullanılmaz. Kelime kaydı seçili kâriden bağımsızdır.
+            </p>
+          )}
         </>
       )}
 
@@ -180,6 +202,12 @@ export function ListenRepeatNowPlaying({
   const arabic = wordsStep
     ? wordsStep.words.map((w) => w.textUthmani).join(" ")
     : `Ayet ${currentStep.verseKey}`;
+  const meaning = wordsStep
+    ? wordsStep.words
+        .map((w) => w.translationTr)
+        .filter(Boolean)
+        .join(" · ")
+    : "";
   const transliteration = wordsStep
     ? wordsStep.words
         .map((w) => w.transliteration)
@@ -238,6 +266,7 @@ export function ListenRepeatNowPlaying({
         >
           {arabic}
         </p>
+        {meaning && <p className="mt-0.5 text-sm font-semibold text-forest">{meaning}</p>}
         {showTransliteration && transliteration && (
           <p className="mt-1 text-xs font-mono text-muted">{transliteration}</p>
         )}

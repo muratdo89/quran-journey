@@ -103,6 +103,8 @@ export interface ListenRepeatWord {
   position: number;
   textUthmani: string;
   transliteration: string | null;
+  /** Word meaning, shown under the word while drilling. */
+  translationTr?: string;
   audioUrl: string;
 }
 
@@ -165,6 +167,7 @@ export function buildListenRepeatQueue(
         position: w.position,
         textUthmani: w.textUthmani,
         transliteration: w.transliteration,
+        translationTr: w.translationTr,
         audioUrl: w.audioUrl!,
       }));
     const groups: ListenRepeatWord[][] = [];

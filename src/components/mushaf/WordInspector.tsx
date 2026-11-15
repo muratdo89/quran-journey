@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Check, Plus, Volume2 } from "lucide-react";
+import { Check, Plus, Volume2, X } from "lucide-react";
 import type { CanonicalVerse, CanonicalWord } from "@/lib/content/types";
 import { getTajweedLegend, type TajweedRuleDetail } from "@/lib/content/tajweed-analyzer";
 import { POS_LABELS_TR, isEnglishFallbackGloss, type RootOccurrencePreview } from "./shared";
@@ -31,7 +31,7 @@ export function WordInspector({
   onAddWordCard,
 }: WordInspectorProps) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6 space-y-4">
+    <div id="kelime-inceleyici" className="scroll-mt-20 rounded-2xl border border-line bg-surface p-5 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-lg font-semibold tracking-tight text-ink">Kelime İnceleyici</h2>
@@ -212,6 +212,57 @@ function WordTajweedRules({ rules }: { rules: TajweedRuleDetail[] }) {
           Bu kelimede özel vurgulu tecvid işareti bulunmuyor (doğal akışla okunur).
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * Mobile: the inspector sits far below the verses, so show the tapped word's meaning in a
+ * small bar above the bottom menu. "Ayrıntı" jumps to the full inspector.
+ */
+export function WordPeekBar({
+  word,
+  verseKey,
+  hidden,
+  onPlayWord,
+}: {
+  word: CanonicalWord | null;
+  verseKey: string;
+  hidden: boolean;
+  onPlayWord: (url: string, verseKey: string) => void;
+}) {
+  const [dismissedFor, setDismissedFor] = React.useState<string | null>(null);
+  if (!word || hidden || dismissedFor === word.location) return null;
+
+  return (
+    <div className="lg:hidden fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-3 rounded-2xl border border-line bg-surface/95 px-3 py-2.5 shadow-lg backdrop-blur">
+      {word.audioUrl && (
+        <button
+          type="button"
+          onClick={() => onPlayWord(word.audioUrl!, verseKey)}
+          aria-label="Kelimeyi dinle"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-forest text-parchment"
+        >
+          <Volume2 className="h-4 w-4" />
+        </button>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-forest">{word.translationTr}</p>
+        <a href="#kelime-inceleyici" className="text-[11px] font-semibold text-muted underline-offset-2 hover:underline">
+          {word.location} · Ayrıntı
+        </a>
+      </div>
+      <p lang="ar" dir="rtl" translate="no" className="font-arabic text-2xl leading-[1.6] text-ink">
+        {word.textUthmani}
+      </p>
+      <button
+        type="button"
+        onClick={() => setDismissedFor(word.location)}
+        aria-label="Kapat"
+        className="shrink-0 rounded-lg p-1 text-muted hover:text-ink"
+      >
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 }

@@ -29,7 +29,7 @@ import { TajweedLegendStrip } from "./TajweedLegendStrip";
 import { MushafSearchPanel } from "./MushafSearchPanel";
 import { MushafSurahHeader } from "./MushafSurahHeader";
 import { MushafVerseCard } from "./MushafVerseCard";
-import { WordInspector } from "./WordInspector";
+import { WordInspector, WordPeekBar } from "./WordInspector";
 import { MutashabihatCard } from "./MutashabihatCard";
 import { RecitationStudio } from "./RecitationStudio";
 import { VerseNoteForm } from "./VerseNoteForm";
@@ -157,6 +157,22 @@ export function MushafStudyClient({
       ?.words.find((w) => w.location === wordLocation);
     if (word) setSelectedWord(word);
   }
+
+  // Takipli Dinle: the word inspector follows the word being recited.
+  const followWordPos = audio.playingMode === "chapter" ? audio.activeAudioWordPos : null;
+  const followVerseKey = audio.playingMode === "chapter" ? audio.activeAudioVerseKey : null;
+  useEffect(() => {
+    if (!followVerseKey || followWordPos === null) return;
+    const verse = allVersesOnPage.find((v) => v.verseKey === followVerseKey);
+    const word = verse?.words.find((w) => w.position === followWordPos);
+    if (!word) return;
+    // Mirror the audio position into the inspector (selectVerse also swaps the note draft).
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (followVerseKey !== selectedVerseKey) selectVerse(followVerseKey);
+    setSelectedWord(word);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to the audio position
+  }, [followVerseKey, followWordPos]);
 
   function startListenRepeat() {
     audio.stopAudio();
@@ -366,7 +382,10 @@ export function MushafStudyClient({
         </section>
 
         {/* Right Side: Word Inspector + Mutashabihat + Voice Comparison + Notes */}
-        <aside className="lg:col-span-5 space-y-6 lg:sticky lg:top-6">
+        <aside
+          aria-label="Çalışma paneli"
+          className="lg:col-span-5 space-y-6 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1 lg:[scrollbar-width:thin]"
+        >
           <ListenRepeatPanel
             listenRepeat={listenRepeat}
             startWord={
@@ -420,6 +439,13 @@ export function MushafStudyClient({
           />
         </aside>
       </div>
+
+      <WordPeekBar
+        word={selectedWord}
+        verseKey={selectedVerse.verseKey}
+        hidden={listenRepeat.isActive}
+        onPlayWord={audio.playWord}
+      />
 
       <ListenRepeatFloatingBar
         listenRepeat={listenRepeat}
