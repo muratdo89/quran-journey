@@ -20,6 +20,7 @@ export interface VerseCardAudioState {
   playingMode: MushafPlayingMode;
   activeAudioVerseKey: string | null;
   activeAudioWordPos: number | null;
+  isPageLooping?: boolean;
 }
 
 interface MushafVerseCardProps {
@@ -77,10 +78,24 @@ export function MushafVerseCard({
     el?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [firstDrillPosition]);
 
+  // Follow-along playback (Takipli Dinle, page loop): bring the verse being recited into view.
+  const articleRef = useRef<HTMLElement | null>(null);
+  const followThisVerse =
+    isVerseAudioPlaying &&
+    (audio.playingMode === "chapter" || (audio.playingMode === "ayah" && !!audio.isPageLooping));
+  useEffect(() => {
+    const el = articleRef.current;
+    if (!followThisVerse || !el) return;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const fitsOnScreen = el.getBoundingClientRect().height < window.innerHeight * 0.7;
+    el.scrollIntoView({ block: fitsOnScreen ? "center" : "start", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [followThisVerse]);
+
   return (
     <article
+      ref={articleRef}
       className={cn(
-        "rounded-2xl border p-4 sm:p-5 transition-all",
+        "scroll-mt-20 scroll-mb-40 rounded-2xl border p-4 sm:p-5 transition-all",
         isSelected
           ? darkReader
             ? "border-[#4b8a68] bg-[#1b2720]"
