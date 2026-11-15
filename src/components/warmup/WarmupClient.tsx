@@ -7,6 +7,7 @@ import { ArrowRight, Check, Play, RotateCcw, Volume2, X } from "lucide-react";
 import type { Warmup, WarmupRound, WarmupWord } from "@/lib/content/warmup";
 import { advanceSession, useActiveSession } from "@/lib/study-session";
 import { cn } from "@/lib/utils";
+import { playSharedClip, type ClipHandle } from "@/lib/audio/shared-player";
 
 /* ---------- small audio helpers ---------- */
 
@@ -36,21 +37,24 @@ function playTone(kind: "correct" | "wrong") {
 }
 
 function useRecitation() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Rounds and the closing verse start after timers, so they must reuse the shared,
+  // tap-unlocked audio element instead of a fresh new Audio() (blocked on iOS).
+  const clipRef = useRef<ClipHandle | null>(null);
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
 
   const play = useCallback((url: string | null | undefined) => {
     if (!url) return;
-    audioRef.current?.pause();
-    const a = new Audio(url);
-    audioRef.current = a;
-    a.onended = () => setPlayingUrl(null);
-    a.onerror = () => setPlayingUrl(null);
+    const clip = playSharedClip(url);
+    clipRef.current = clip;
     setPlayingUrl(url);
-    a.play().catch(() => setPlayingUrl(null));
+    void clip.done.then(() => {
+      if (clipRef.current !== clip) return;
+      clipRef.current = null;
+      setPlayingUrl(null);
+    });
   }, []);
 
-  useEffect(() => () => audioRef.current?.pause(), []);
+  useEffect(() => () => clipRef.current?.stop(), []);
   return { play, playingUrl };
 }
 

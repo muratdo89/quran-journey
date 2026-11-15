@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
+import { playSharedClip } from "@/lib/audio/shared-player";
 import {
   BookOpen,
   CheckCircle2,
@@ -73,7 +74,6 @@ export function LearnArabicClient({
   const [letterFilter, setLetterFilter] = useState<
     "all" | "ince" | "kalın" | "peltek" | "boğaz" | "non_connecting"
   >("all");
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const activeModule =
     ARABIC_READING_MODULES.find((m) => m.id === activeModuleId) ??
@@ -89,12 +89,7 @@ export function LearnArabicClient({
 
   function playSampleAudio(url: string | undefined) {
     if (!url) return;
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    const audio = new Audio(url);
-    audioRef.current = audio;
-    audio.play().catch(() => {});
+    playSharedClip(url);
   }
 
   async function handleSubmitPlacement(e: React.FormEvent) {

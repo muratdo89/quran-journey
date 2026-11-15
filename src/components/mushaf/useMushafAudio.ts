@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import type { CanonicalVerse, MushafPageData } from "@/lib/content/types";
 import { getReciterAyahAudioUrl } from "@/lib/audio/reciters";
 import { buildRangePlaybackQueue, type RangePlaybackStep } from "@/lib/audio/range-loop-player";
+import {
+  AUDIO_BLOCKED_MESSAGE,
+  AUDIO_LOAD_ERROR_MESSAGE,
+  playSharedClip,
+  type ClipHandle,
+} from "@/lib/audio/shared-player";
 
 export type MushafPlayingMode = "idle" | "chapter" | "ayah" | "word";
 
@@ -24,7 +30,8 @@ export function useMushafAudio({
   playbackSpeed,
   onSelectVerse,
 }: UseMushafAudioOptions) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Handle on the shared, tap-unlocked audio element (see shared-player.ts).
+  const clipRef = useRef<ClipHandle | null>(null);
   const [playingMode, setPlayingMode] = useState<MushafPlayingMode>("idle");
   const [activeChapterSurahId, setActiveChapterSurahId] = useState<number | null>(null);
   const [activeAudioVerseKey, setActiveAudioVerseKey] = useState<string | null>(null);
@@ -38,17 +45,13 @@ export function useMushafAudio({
   const pageLoopCancelRef = useRef<boolean>(false);
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = playbackSpeed;
-    }
+    clipRef.current?.setRate(playbackSpeed);
   }, [playbackSpeed]);
 
   useEffect(() => {
     return () => {
       pageLoopCancelRef.current = true;
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      clipRef.current?.stop();
     };
   }, []);
 
@@ -56,10 +59,8 @@ export function useMushafAudio({
     pageLoopCancelRef.current = true;
     setIsPageLooping(false);
     setPageLoopStep(null);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
+    clipRef.current?.stop();
+    clipRef.current = null;
     setPlayingMode("idle");
     setActiveChapterSurahId(null);
     setActiveAudioVerseKey(null);
@@ -106,24 +107,14 @@ export function useMushafAudio({
       setActiveAudioVerseKey(verse.verseKey);
       onSelectVerse(verse.verseKey);
 
-      const finished = await new Promise<boolean>((resolve) => {
-        if (pageLoopCancelRef.current) {
-          resolve(false);
-          return;
-        }
-        const audio = new Audio(url);
-        audio.playbackRate = playbackSpeed;
-        audioRef.current = audio;
-        audio.onended = () => resolve(true);
-        audio.onerror = () => {
-          setAudioError("Döngü oynatma sırasında ses dosyası yüklenemedi.");
-          resolve(false);
-        };
-        audio.play().catch(() => {
-          setAudioError("Tarayıcı ses oynatmayı engelledi; lütfen tekrar tıklayın.");
-          resolve(false);
-        });
-      });
+      if (pageLoopCancelRef.current) break;
+      // Next verse starts after an await, so it must reuse the unlocked shared element.
+      const clip = playSharedClip(url, { rate: playbackSpeed });
+      clipRef.current = clip;
+      const result = await clip.done;
+      if (result.status === "error") setAudioError("Döngü oynatma sırasında ses dosyası yüklenemedi.");
+      if (result.status === "blocked") setAudioError(AUDIO_BLOCKED_MESSAGE);
+      const finished = result.status === "ended";
 
       if (!finished || pageLoopCancelRef.current) break;
     }
@@ -144,57 +135,47 @@ export function useMushafAudio({
     surahId: number | null = null
   ) {
     setAudioError(null);
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    const audio = new Audio(url);
-    audio.playbackRate = playbackSpeed;
-    audioRef.current = audio;
     setPlayingMode(mode);
     setActiveChapterSurahId(surahId);
     setActiveAudioVerseKey(verseKey);
 
-    if (mode === "chapter") {
-      audio.ontimeupdate = () => {
-        const ms = audio.currentTime * 1000;
-        let matchedVerse: string | null = null;
-        let matchedWord: number | null = null;
-        for (const v of sectionVerses) {
-          const seg = v.audio.alafasyChapterSegment;
-          if (!seg) continue;
-          if (ms >= seg.timestampFromMs && ms <= seg.timestampToMs) {
-            matchedVerse = v.verseKey;
-            for (const [wordPos, startMs, endMs] of seg.segments) {
-              if (ms >= startMs && ms <= endMs) {
-                matchedWord = wordPos;
+    const onTimeUpdate =
+      mode === "chapter"
+        ? (seconds: number) => {
+            const ms = seconds * 1000;
+            let matchedVerse: string | null = null;
+            let matchedWord: number | null = null;
+            for (const v of sectionVerses) {
+              const seg = v.audio.alafasyChapterSegment;
+              if (!seg) continue;
+              if (ms >= seg.timestampFromMs && ms <= seg.timestampToMs) {
+                matchedVerse = v.verseKey;
+                for (const [wordPos, startMs, endMs] of seg.segments) {
+                  if (ms >= startMs && ms <= endMs) {
+                    matchedWord = wordPos;
+                    break;
+                  }
+                }
                 break;
               }
             }
-            break;
+            setActiveAudioVerseKey(matchedVerse);
+            setActiveAudioWordPos(matchedWord);
           }
-        }
-        setActiveAudioVerseKey(matchedVerse);
-        setActiveAudioWordPos(matchedWord);
-      };
-    }
+        : undefined;
 
-    audio.onended = () => {
+    const clip = playSharedClip(url, { rate: playbackSpeed, onTimeUpdate });
+    clipRef.current = clip;
+    void clip.done.then((result) => {
+      // Replaced by a newer clip from this page: that one owns the state now.
+      if (clipRef.current !== clip) return;
+      clipRef.current = null;
+      if (result.status === "error") setAudioError(AUDIO_LOAD_ERROR_MESSAGE);
+      if (result.status === "blocked") setAudioError(AUDIO_BLOCKED_MESSAGE);
       setPlayingMode("idle");
       setActiveChapterSurahId(null);
       setActiveAudioVerseKey(null);
       setActiveAudioWordPos(null);
-    };
-
-    audio.onerror = () => {
-      setAudioError("Ses dosyası yüklenemedi. İnternet bağlantınızı kontrol edin.");
-      setPlayingMode("idle");
-      setActiveChapterSurahId(null);
-    };
-
-    audio.play().catch(() => {
-      setAudioError("Tarayıcı ses oynatmayı engelledi; lütfen tekrar tıklayın.");
-      setPlayingMode("idle");
-      setActiveChapterSurahId(null);
     });
   }
 
