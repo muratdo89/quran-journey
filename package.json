@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "verify:content": "node scripts/verify-content.mjs",
-    "seed:supabase": "node scripts/generate-supabase-seed.mjs"
+    "seed:supabase": "node scripts/generate-supabase-seed.mjs",
+    "setup:env": "node scripts/setup-cloud-env.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

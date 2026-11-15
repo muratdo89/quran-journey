@@ -3,10 +3,12 @@
 import React, { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Activity,
   Bell,
   Check,
   Cloud,
   Database,
+  Download,
   LogIn,
   LogOut,
   ShieldCheck,
@@ -26,6 +28,25 @@ interface SettingsClientProps {
   goals: LearningGoalRecord;
   backendStatus: BackendConfigurationStatus;
   manifest: ContentManifest;
+}
+
+interface HealthCheckReport {
+  ok: boolean;
+  timestamp: string;
+  canonicalCorpus: {
+    totalSurahs: number;
+    totalPages: number;
+    totalVerses: number;
+    totalWords: number;
+    quranMetaSha256: string | null;
+  };
+  backend: BackendConfigurationStatus;
+  deploymentReady: {
+    localSqliteReady: boolean;
+    supabaseSqlFilesReady: boolean;
+    supabaseConfigured: boolean;
+    asrProviderConfigured: boolean;
+  };
 }
 
 const REMINDER_EVENT = "qj-reminder-change";
@@ -75,6 +96,13 @@ export function SettingsClient({
   const [authMessage, setAuthMessage] = useState<{ type: "ok" | "err"; text: string } | null>(
     null
   );
+
+  // Health check & backup export states
+  const [healthChecking, setHealthChecking] = useState(false);
+  const [healthReport, setHealthReport] = useState<HealthCheckReport | null>(null);
+  const [healthError, setHealthError] = useState<string | null>(null);
+  const [exportingBackup, setExportingBackup] = useState(false);
+  const [exportStatusTr, setExportStatusTr] = useState<string | null>(null);
 
   async function toggleReminder(nextEnabled: boolean) {
     setReminderStatusTr(null);
@@ -173,6 +201,84 @@ export function SettingsClient({
       router.refresh();
     } finally {
       setAuthLoading(false);
+    }
+  }
+
+  async function handleHealthCheck() {
+    setHealthChecking(true);
+    setHealthError(null);
+    try {
+      const res = await fetch("/api/health", { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as HealthCheckReport;
+      setHealthReport(data);
+    } catch {
+      setHealthError("Sistem sağlık kontrolü alınamadı.");
+    } finally {
+      setHealthChecking(false);
+    }
+  }
+
+  async function handleExportBackup() {
+    setExportingBackup(true);
+    setExportStatusTr(null);
+    try {
+      const res = await fetch("/api/state", { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const stateData = (await res.json()) as {
+        snapshot: {
+          profile: UserProfileRecord;
+          goals: LearningGoalRecord;
+          pillarScores: Record<string, number>;
+          verseProgress: Array<{ verseKey: string; memorizationState: string }>;
+          pageProgress: Array<{ pageNumber: number }>;
+          notes: Array<{ verseKey: string; isDifficult: boolean; noteText: string }>;
+          bookmarks: Array<{ verseKey: string }>;
+          cards: unknown[];
+          recordings: unknown[];
+        };
+        dueCardsCount: number;
+      };
+
+      const difficultVerses = stateData.snapshot.notes.filter((n) => n.isDifficult);
+      const exportPayload = {
+        exportedAt: new Date().toISOString(),
+        version: "1.0",
+        app: "Quran Journey",
+        teacherReviewSummary: {
+          learnerName: stateData.snapshot.profile.displayName,
+          currentPageNumber: stateData.snapshot.profile.currentPageNumber,
+          pillarScores: stateData.snapshot.pillarScores,
+          memorizationTrackedCount: stateData.snapshot.verseProgress.length,
+          difficultVerses,
+          notes: stateData.snapshot.notes,
+        },
+        snapshot: stateData.snapshot,
+      };
+
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], {
+        type: "application/json;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "quran-journey-yedek.json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      setExportStatusTr(
+        `Yedek indirildi (${stateData.snapshot.verseProgress.length} ayet ilerlemesi, ${stateData.snapshot.notes.length} not, ${stateData.snapshot.cards.length} FSRS kartı).`
+      );
+    } catch {
+      setExportStatusTr("Çalışma yedeği hazırlanırken hata oluştu.");
+    } finally {
+      setExportingBackup(false);
     }
   }
 
@@ -358,6 +464,45 @@ export function SettingsClient({
               <strong>Önemli:</strong> Sunucusuz (ör. Vercel) ortamda yerel dosya sistemi salt okunur olduğu için geçici <code className="font-mono">/tmp</code> veritabanı çalışır. Telefon ve masaüstü kalıcılığı için aşağıdaki Supabase hesabıyla giriş yapın.
             </div>
           )}
+
+          <div className="pt-2 border-t border-[#e5dec9] space-y-2.5">
+            <button
+              type="button"
+              disabled={healthChecking}
+              onClick={handleHealthCheck}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#1b4332] bg-[#edf5f0] px-4 py-2 text-xs font-semibold text-[#1b4332] hover:bg-[#dcece2] disabled:opacity-60"
+            >
+              <Activity className="h-3.5 w-3.5" />
+              <span>
+                {healthChecking
+                  ? "Doğrulanıyor..."
+                  : "Bağlantı ve Sistem Sağlığını Doğrula (/api/health)"}
+              </span>
+            </button>
+
+            {healthError && (
+              <p className="text-xs font-semibold text-red-700">{healthError}</p>
+            )}
+
+            {healthReport && (
+              <div className="rounded-xl border border-[#2d6a4f]/30 bg-[#edf5f0] p-3 text-[11px] text-[#1b4332] space-y-1">
+                <p className="font-bold">
+                  Sistem Sağlığı: {healthReport.ok ? "Çalışır ve Doğrulandı" : "Sorun Bildirildi"}
+                </p>
+                <p>
+                  Kanonik Veri: {healthReport.canonicalCorpus.totalSurahs} Sure ·{" "}
+                  {healthReport.canonicalCorpus.totalPages} Sayfa ·{" "}
+                  {healthReport.canonicalCorpus.totalVerses} Ayet ·{" "}
+                  {healthReport.canonicalCorpus.totalWords} Kelime
+                </p>
+                <p>
+                  Depolama: {healthReport.backend.activePersistence} · Supabase SQL Hazır:{" "}
+                  {healthReport.deploymentReady.supabaseSqlFilesReady ? "Evet" : "Hayır"} · ASR:{" "}
+                  {healthReport.deploymentReady.asrProviderConfigured ? "Yapılandırıldı" : "Yerel Mod"}
+                </p>
+              </div>
+            )}
+          </div>
         </section>
       </div>
 
@@ -492,6 +637,36 @@ export function SettingsClient({
               </p>
             )}
           </form>
+        )}
+      </section>
+
+      {/* Study Backup & Teacher Summary Export Section */}
+      <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
+              <Download className="h-4 w-4 text-[#1b4332]" />
+              <span>Çalışma Yedeği ve Hoca İnceleme Özeti Dışa Aktarma</span>
+            </h2>
+            <p className="text-xs text-[#5a655e] mt-0.5">
+              Tüm ezber durumlarınızı, zor işaretli ayetlerinizi, FSRS kart özetinizi ve ayet notlarınızı JSON yedeği olarak indirin.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={exportingBackup}
+            onClick={handleExportBackup}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#1b4332] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#143326] disabled:opacity-60 shrink-0"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>{exportingBackup ? "Hazırlanıyor..." : "Yedek ve Özeti İndir (.json)"}</span>
+          </button>
+        </div>
+        {exportStatusTr && (
+          <p className="text-xs font-semibold text-[#2d6a4f] flex items-center gap-1.5">
+            <Check className="h-3.5 w-3.5" />
+            <span>{exportStatusTr}</span>
+          </p>
         )}
       </section>
 

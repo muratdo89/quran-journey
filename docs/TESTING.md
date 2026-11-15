@@ -21,11 +21,15 @@
    - Verify `buildErrorPatternInsights` and `buildJuzProgressGrid` (30 Juz across all 604 pages).
 5. **Database & API Integration Tests (`tests/repository.test.ts`)**
    - Verify async SQLite repository CRUD, foreign key constraints, FSRS card persistence, bookmark/note toggles, bulk Surah vocabulary card creation (`ensureSurahVocabularyCards` including Surah 2 / Al-Baqarah), and Mushaf page progress (`markPageStudied`) across temp DB reloads.
-6. **TypeScript, Lint, Tracing & Production Build Verification**
+6. **Multi-Reciter, Teacher Review & Cloud Readiness Tests (`tests/phase6-features.test.ts`)**
+   - Verify all 6 Qaris resolve valid HTTPS ayah audio URLs (`001001.mp3`, `002255.mp3`) via `getReciterAyahAudioUrl`.
+   - Verify `buildVerseTeacherReviewPackage` outputs the 5-criterion Tajweed checklist, learner notes/duration, ASR sequence summary, and mandatory `requiresHumanReview: true` epistemic notice.
+   - Verify `runCloudEnvSetup` and `/api/health` readiness diagnostics against canonical corpus totals and Supabase SQL assets.
+7. **TypeScript, Lint, Tracing & Production Build Verification**
    - `npx tsc --noEmit` (strict TypeScript check).
    - `pnpm lint` and `pnpm build` (including `.nft.json` inspection confirming compressed canonical data files are traced).
-7. **Live Server / End-to-End Smoke Verification**
-   - Verify live Next.js server rendering across all routes (`/`, `/learn-arabic`, `/mushaf`, `/mushaf?page=2`, `/mushaf?page=604`, `/vocabulary`, `/vocabulary?tab=roots`, `/memorization?surah=2`, `/review`, `/statistics`, `/settings`, `/sw.js`) and API routes (`/api/state`, `/api/search`, `/api/vocabulary`, `/api/mushaf/offline`).
+8. **Live Server / End-to-End Smoke Verification**
+   - Verify live Next.js server rendering across all routes (`/`, `/learn-arabic`, `/mushaf`, `/mushaf?page=2`, `/mushaf?page=604`, `/vocabulary`, `/vocabulary?tab=roots`, `/memorization?surah=2`, `/review`, `/statistics`, `/settings`, `/sw.js`) and API routes (`/api/health`, `/api/state`, `/api/search`, `/api/vocabulary`, `/api/mushaf/offline`).
 
 ---
 
@@ -39,4 +43,9 @@
 - [x] Full-Quran normalized Arabic & Turkish search (`/api/search`), 1,651-root family explorer (`/api/vocabulary`), and Mutashabihat alerts across Mushaf and Memorization studios.
 - [x] Consent-gated `ConfigurableHttpAsrProvider` + DP alignment + persistent browser IndexedDB audio storage without claiming Tajweed mastery.
 - [x] 30-Juz / 604-page coverage matrix, longitudinal error-pattern analytics, PWA Service Worker offline page/audio caching, and single-paste `supabase/setup_all.sql`.
+
+### Phase 6 (Multi-Reciter, Teacher Review & Cloud Readiness)
+- [x] 6 verified Qaris selectable across `/mushaf` and `/memorization`.
+- [x] Downloadable local recitation audio + copyable/downloadable Turkish Teacher Review Markdown package with 5-point Tajweed checklist and JSON study backup export.
+- [x] `/api/health` diagnostics endpoint, `pnpm setup:env` local/cloud setup check, and interactive `/settings` verification UI.
 

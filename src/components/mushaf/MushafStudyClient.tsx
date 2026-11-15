@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Download,
   Eye,
   EyeOff,
@@ -45,6 +46,12 @@ import type {
   UserPreferencesRecord,
 } from "@/lib/db/types";
 import type { RecitationEvaluationResult } from "@/lib/audio/assessment-provider";
+import {
+  QURAN_RECITERS,
+  getReciterAyahAudioUrl,
+  getReciterById,
+} from "@/lib/audio/reciters";
+import { buildVerseTeacherReviewPackage } from "@/lib/audio/teacher-review";
 import {
   deleteLocalRecordingBlob,
   getLocalRecordingBlob,
@@ -224,6 +231,7 @@ export function MushafStudyClient({
   const [lastAssessment, setLastAssessment] = useState<RecitationEvaluationResult | null>(
     null
   );
+  const [teacherReportStatus, setTeacherReportStatus] = useState<string | null>(null);
 
   const selectedVerse: CanonicalVerse = useMemo(
     () =>
@@ -254,6 +262,7 @@ export function MushafStudyClient({
     const existing = notesByVerse[verseKey];
     setNoteDraft(existing?.noteText ?? "");
     setIsDifficultDraft(existing?.isDifficult ?? false);
+    setTeacherReportStatus(null);
   }
 
   useEffect(() => {
@@ -496,8 +505,7 @@ export function MushafStudyClient({
   }
 
   function handlePlayVerse(verse: CanonicalVerse) {
-    const url =
-      reciterId === 12 ? verse.audio.husaryMuallimAyahUrl : verse.audio.alafasyAyahUrl;
+    const url = getReciterAyahAudioUrl(verse, reciterId);
     if (!url) return;
     if (playingMode === "ayah" && activeAudioVerseKey === verse.verseKey) {
       stopAudio();
@@ -668,6 +676,57 @@ export function MushafStudyClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
+  }
+
+  async function handleCopyTeacherReport(rec: LocalAudioBlobEntry) {
+    const verseSection = pageData.sections.find(
+      (s) => s.surah.id === selectedVerse.surahId
+    );
+    const surahNameTr = verseSection
+      ? `${verseSection.surah.nameTurkish} Suresi`
+      : `Sure ${selectedVerse.surahId}`;
+    const activeTrans =
+      selectedVerse.translations.find((t) => t.resourceId === translationId) ??
+      selectedVerse.translations[0];
+
+    const pkg = buildVerseTeacherReviewPackage({
+      verseKey: selectedVerse.verseKey,
+      pageNumber: selectedVerse.pageNumber,
+      surahNameTr,
+      textUthmani: selectedVerse.textUthmani,
+      translationTr: activeTrans?.text ?? "",
+      durationMs: rec.durationMs,
+      createdAt: rec.createdAt,
+      reciterNameTr: getReciterById(reciterId).nameTr,
+      noteText: noteDraft,
+      isDifficult: isDifficultDraft,
+      assessment: lastAssessment,
+    });
+
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        await navigator.clipboard.writeText(pkg.reportMarkdownTr);
+        setTeacherReportStatus(
+          "Hoca inceleme raporu panoya kopyalandı. Ses dosyasını da indirip hocanıza iletebilirsiniz."
+        );
+        return;
+      }
+    } catch {
+      // Fallback to downloadable Markdown file below
+    }
+
+    const mdBlob = new Blob([pkg.reportMarkdownTr], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const url = URL.createObjectURL(mdBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `quran-journey-${rec.verseKey.replace(":", "-")}-hoca-raporu.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setTeacherReportStatus("Hoca inceleme raporu (.md) cihazınıza indirildi.");
   }
 
   const verseLocalRecordings = localRecordings.filter(
@@ -872,6 +931,7 @@ export function MushafStudyClient({
           <label className="flex items-center gap-2">
             <span className="font-medium">Kâri:</span>
             <select
+              aria-label="Kâri seç"
               value={reciterId}
               onChange={(e) => {
                 const val = Number(e.target.value);
@@ -880,8 +940,11 @@ export function MushafStudyClient({
               }}
               className="rounded-lg border border-[#e5dec9] bg-[#faf8f3] px-2 py-1"
             >
-              <option value={7}>Mişari Râşid el-Afâsî</option>
-              <option value={12}>Mahmud Halîl el-Husarî (Muallim)</option>
+              {QURAN_RECITERS.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.nameTr} ({r.styleTr})
+                </option>
+              ))}
             </select>
           </label>
 
@@ -1567,19 +1630,45 @@ export function MushafStudyClient({
                 {verseLocalRecordings.map((rec) => (
                   <div
                     key={rec.id}
-                    className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-2.5 flex items-center justify-between gap-2"
+                    className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-2.5 space-y-2"
                   >
-                    <audio controls src={rec.objectUrl} className="h-8 w-full" />
-                    <button
-                      type="button"
-                      onClick={() => deleteRecording(rec.id)}
-                      title="Kaydı kalıcı olarak sil"
-                      className="rounded-lg p-1.5 text-red-700 hover:bg-red-50 shrink-0"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-between gap-2">
+                      <audio controls src={rec.objectUrl} className="h-8 w-full" />
+                      <button
+                        type="button"
+                        onClick={() => deleteRecording(rec.id)}
+                        title="Kaydı kalıcı olarak sil"
+                        className="rounded-lg p-1.5 text-red-700 hover:bg-red-50 shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[#e5dec9]/70">
+                      <a
+                        href={rec.objectUrl}
+                        download={`quran-journey-${rec.verseKey.replace(":", "-")}.webm`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#e5dec9] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1b4332] hover:bg-[#f3efe6]"
+                      >
+                        <Download className="h-3 w-3" />
+                        <span>Ses İndir</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyTeacherReport(rec)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#b08d57] bg-[#f7f1e3] px-2.5 py-1 text-[11px] font-semibold text-[#6e511e] hover:bg-[#efe4ca]"
+                      >
+                        <Copy className="h-3 w-3" />
+                        <span>Hoca Raporu Kopyala</span>
+                      </button>
+                    </div>
                   </div>
                 ))}
+                {teacherReportStatus && (
+                  <p className="text-[11px] font-semibold text-[#2d6a4f] flex items-center gap-1.5">
+                    <Check className="h-3.5 w-3.5" />
+                    <span>{teacherReportStatus}</span>
+                  </p>
+                )}
               </div>
             )}
 

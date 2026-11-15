@@ -35,3 +35,8 @@
 - Implemented longitudinal error-pattern analytics (`buildErrorPatternInsights` and `buildJuzProgressGrid`) surfaced in `/statistics` with a clickable 30-Juz / 604-page coverage matrix, FSRS lapse alerts, and top missed root recommendations.
 - Added offline connectivity banner, per-page offline bundle download in `/mushaf`, consolidated `supabase/setup_all.sql` single-paste migration, and gentle local browser reminder controls in `/settings`.
 
+## Phase 6 — Multi-Reciter Expansion, Teacher Review Export & Cloud Readiness Diagnostics (Completed)
+- Expanded verified ayah recitation playback across 6 Qaris (`src/lib/audio/reciters.ts`: Afâsî, Husarî Muallim, Husarî Mürettel, Abdülbasit Abdüssamed, Abdurrahman es-Sudeys, Ebû Bekir eş-Şatrî) across both `/mushaf` and `/memorization`.
+- Built structured Teacher Review Package generator (`src/lib/audio/teacher-review.ts`) with a 5-criterion Tajweed checklist and mandatory human-review notice, plus direct `.webm` recording downloads and clipboard/Markdown report copy in `/mushaf` and JSON backup exports in `/settings`.
+- Added `/api/health` diagnostics endpoint, `scripts/setup-cloud-env.mjs` (`pnpm setup:env`), and live health-check controls in `/settings`.
+

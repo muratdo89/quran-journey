@@ -2,15 +2,16 @@
 
 Türkçe konuşan yetişkin öğreniciler için geliştirilmiş; Arapça okuma (Elif-Bâ ve harf formları), kelime kelime anlam ve kök incelemesi, tecvid farkındalığı, FSRS aralıklı tekrar ve Kur'an ezberi (Hıfz) odaklı kişisel öğrenme platformu.
 
-## Kapsam (Faz 1 – Faz 5 Tamamlandı)
+## Kapsam (Faz 1 – Faz 6 Tamamlandı)
 
 - **Tam Kur'an Doğrulanmış Kanonik Mushaf Verisi:** **114 Sure**, **604 Medine Mushaf Sayfası** (30 Cüz), **6.236 Ayet** ve **77.429 Kelime** (Tanzil Uthmani v1.1 + Quran.com API v4 + Quranic Arabic Corpus v0.4). Tembel yüklemeli (`surah-001.json.gz` … `surah-114.json.gz` + `lexicon-index.json.gz`) mimariyle düşük bellek tüketir ve tüm veriler SHA-256 ile doğrulanır.
 - **5 Bağımsız Öğrenme Boyutu:** Arapça Okuma, Telaffuz & Tecvid, Kelime Hazinesi, Ayet Anlama ve Ezber (Hıfz).
 - **28 Harflik Elif-Bâ & Okuma ve Tecvid Müfredatı:** Seviye tespit değerlendirmesi, 28 harfin 4 konumlu tablosu + Kur'an ses örnekleri, 8 aşamalı okuma modülü ve 8 aşamalı Tecvid dersi.
 - **Kelime Hazinesi, 1.651 Kök Ailesi ve Müteşâbihât:** Tüm 77.429 kelime için sunucu taraflı sayfalanmış arama, **Kök Ailesi Gezgini** (`1.651` kök) ve Mushaf / Hıfz modlarında **Müteşâbihât** (benzer ayet) uyarıları.
 - **Bilimsel Aralıklı Tekrar ve Toparlanma Modu:** `ts-fsrs` tabanlı aktif hatırlama kuyruğu, suçluluk yüklemeyen 3–5 dakikalık toparlanma modu ve çift yönlü (`AR→TR`, `TR→AR`) sure bazlı toplu kelime kartı üretimi.
+- **6 Doğrulanmış Kâri & Hoca İnceleme Paketi:** Afâsî, Husarî (Muallim & Mürettel), Abdülbasit Abdüssamed, Abdurrahman es-Sudeys ve Ebû Bekir eş-Şatrî ayet tilavetleri; yerel ses indirme ve 5 kriterli Tecvid kontrol listesi içeren kopyalanabilir Hoca Raporu + JSON çalışma yedeği dışa aktarımı.
 - **Genişletilebilir Kur'an ASR Kelime Sırası Analizi:** `ConfigurableHttpAsrProvider` + Arapça Levenshtein DP hizalama motoru. Mikrofon kayıtları IndexedDB'de yerel saklanır; harici ASR yalnızca açık kullanıcı onayı (`consentGranted`) olduğunda çalışır ve tecvid teyidi için her zaman uzman incelemesi gerektirir (`requiresHumanReview: true`).
-- **Derin Analitik ve Çevrimdışı PWA Desteği:** 30 Cüz / 604 sayfalık ilerleme matrisi, unutulan kök ve FSRS hata örüntüsü analitiği, Service Worker sayfa/ses önbellekleme (`public/sw.js`) ve nazik tarayıcı hatırlatıcısı.
+- **Derin Analitik, Sağlık Kontrolü ve Çevrimdışı PWA Desteği:** 30 Cüz / 604 sayfalık ilerleme matrisi, unutulan kök ve FSRS hata örüntüsü analitiği, `/api/health` canlı durum doğrulaması, Service Worker sayfa/ses önbellekleme (`public/sw.js`) ve nazik tarayıcı hatırlatıcısı.
 
 ## Kurulum ve Yerel Çalıştırma
 
@@ -37,8 +38,9 @@ Uygulama bilgisayara ihtiyaç duymadan doğrudan telefon tarayıcısı üzerinde
 ## Doğrulama ve Testler
 
 ```bash
+pnpm setup:env       # .env.local şablonunu ve Supabase SQL dosyalarının hazırlığını doğrular
 pnpm verify:content  # Tüm 114 sure, 604 sayfa, 6.236 ayet, 77.429 kelime ve lexicon-index SHA-256 denetimi
-pnpm test            # İçerik bütünlüğü, müfredat, FSRS/öğrenme motoru, ASR hizalama ve SQLite entegrasyon testleri
+pnpm test            # İçerik bütünlüğü, müfredat, FSRS/öğrenme motoru, ASR hizalama, SQLite ve Faz 6 testleri
 npx tsc --noEmit     # Katı TypeScript denetimi
 pnpm lint            # ESLint denetimi
 pnpm build           # Next.js üretim derlemesi

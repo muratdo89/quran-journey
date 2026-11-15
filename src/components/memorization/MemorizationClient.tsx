@@ -23,6 +23,7 @@ import type {
   MutashabihatMatch,
 } from "@/lib/content/types";
 import type { VerseProgressRecord } from "@/lib/db/types";
+import { QURAN_RECITERS, getReciterAyahAudioUrl } from "@/lib/audio/reciters";
 import { MEMORIZATION_STATE_LABELS_TR } from "@/lib/learning-engine";
 import { cn } from "@/lib/utils";
 
@@ -91,6 +92,7 @@ export function MemorizationClient({
   const [revealedCloze, setRevealedCloze] = useState<Set<number>>(() => new Set());
   const [nextVerseRevealed, setNextVerseRevealed] = useState(false);
   const [showMutashabihat, setShowMutashabihat] = useState(false);
+  const [selectedReciterId, setSelectedReciterId] = useState<number>(QURAN_RECITERS[0]!.id);
   const [loopAudio, setLoopAudio] = useState(false);
   const [savingOutcome, setSavingOutcome] = useState(false);
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
@@ -170,10 +172,8 @@ export function MemorizationClient({
     );
   }
 
-  function playVerseAudio(verse: CanonicalVerse, useMuallim = false) {
-    const url = useMuallim
-      ? verse.audio.husaryMuallimAyahUrl
-      : verse.audio.alafasyAyahUrl;
+  function playVerseAudio(verse: CanonicalVerse, reciterIdOverride?: number) {
+    const url = getReciterAyahAudioUrl(verse, reciterIdOverride ?? selectedReciterId);
     if (!url) return;
     if (audioRef.current) {
       audioRef.current.pause();
@@ -443,7 +443,7 @@ export function MemorizationClient({
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => playVerseAudio(selectedVerse, false)}
+                onClick={() => playVerseAudio(selectedVerse, 7)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#f3efe6] px-3 py-2 text-xs font-semibold text-[#1b4332] hover:bg-[#e5dec9]"
               >
                 <Volume2 className="h-3.5 w-3.5" />
@@ -451,12 +451,34 @@ export function MemorizationClient({
               </button>
               <button
                 type="button"
-                onClick={() => playVerseAudio(selectedVerse, true)}
+                onClick={() => playVerseAudio(selectedVerse, 12)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#f3efe6] px-3 py-2 text-xs font-semibold text-[#1b4332] hover:bg-[#e5dec9]"
               >
                 <Volume2 className="h-3.5 w-3.5" />
                 <span>Husarî (Muallim)</span>
               </button>
+              <div className="inline-flex items-center gap-1.5 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-1">
+                <select
+                  aria-label="Ezber kârisi seç"
+                  value={selectedReciterId}
+                  onChange={(e) => setSelectedReciterId(Number(e.target.value))}
+                  className="rounded-lg bg-transparent px-2 py-1 text-xs font-semibold text-[#1c241f]"
+                >
+                  {QURAN_RECITERS.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.nameTr} ({r.styleTr})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => playVerseAudio(selectedVerse, selectedReciterId)}
+                  className="inline-flex items-center gap-1 rounded-lg bg-[#1b4332] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#143326]"
+                >
+                  <Volume2 className="h-3 w-3" />
+                  <span>Seçili Kâriyi Dinle</span>
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => setLoopAudio((v) => !v)}
