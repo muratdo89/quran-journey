@@ -6,7 +6,14 @@ export type SessionMode = "normal" | "intensive" | "recovery";
 export interface DailyPlanStep {
   id: string;
   order: number;
-  kind: "vocab_review" | "verse_review" | "arabic_reading" | "new_passage" | "memorization" | "assessment";
+  kind:
+    | "warmup"
+    | "vocab_review"
+    | "verse_review"
+    | "arabic_reading"
+    | "new_passage"
+    | "memorization"
+    | "assessment";
   titleTr: string;
   descriptionTr: string;
   estimatedMinutes: number;
@@ -101,18 +108,17 @@ export function buildDailyLearningPlan(ctx: PlannerContext): DailyLearningPlan {
   const steps: DailyPlanStep[] = [];
   let order = 1;
 
-  if (!ctx.placementCompleted) {
-    steps.push({
-      id: "step-placement",
-      order: order++,
-      kind: "arabic_reading",
-      titleTr: "Başlangıç Okuma Değerlendirmesi (3 dk)",
-      descriptionTr: "Bildiğiniz konuları atlayıp yalnızca eksiklerinizi belirleyin.",
-      estimatedMinutes: 3,
-      href: "/learn-arabic",
-      priority: "core",
-    });
-  }
+  // Always open with a one-minute, audio-first warm-up: an easy first win.
+  steps.push({
+    id: "step-warmup",
+    order: order++,
+    kind: "warmup",
+    titleTr: "1 dakikalık ısınma: dinle ve tanı",
+    descriptionTr: "Hocanın sesinden bugünkü sayfadan üç kelime: dinle, tanı, anlamını seç.",
+    estimatedMinutes: 1,
+    href: "/warmup",
+    priority: "core",
+  });
 
   if (dueCards.length > 0) {
     steps.push({
@@ -173,6 +179,20 @@ export function buildDailyLearningPlan(ctx: PlannerContext): DailyLearningPlan {
         priority: "new",
       });
     }
+  }
+
+  // The placement test is useful but long; offer it last so it never blocks starting.
+  if (!ctx.placementCompleted) {
+    steps.push({
+      id: "step-placement",
+      order: order++,
+      kind: "assessment",
+      titleTr: "İsteğe bağlı: 6 soruluk seviye testi",
+      descriptionTr: "Bildiğin konuları atlamak için kısa bir test; istediğin gün yapabilirsin.",
+      estimatedMinutes: 3,
+      href: "/learn-arabic?placement=1",
+      priority: "core",
+    });
   }
 
   const totalMinutes = steps.reduce((sum, s) => sum + s.estimatedMinutes, 0);

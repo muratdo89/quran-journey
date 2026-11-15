@@ -103,3 +103,35 @@ body {
     opacity: 0.6;
   }
 }
+
+/* Warm-up: listening ripple, sound bars, round entrance, wrong-answer nudge */
+@keyframes qj-ripple {
+  from { transform: scale(1); opacity: 0.5; }
+  to { transform: scale(1.7); opacity: 0; }
+}
+.qj-ripple { animation: qj-ripple 1.6s ease-out infinite; }
+.qj-ripple-delay { animation-delay: 0.8s; }
+
+@keyframes qj-bar {
+  0%, 100% { height: 30%; }
+  50% { height: 100%; }
+}
+.qj-bar { height: 30%; animation: qj-bar 0.9s ease-in-out infinite; }
+
+@keyframes qj-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.qj-rise { animation: qj-rise 0.35s ease-out both; }
+
+@keyframes qj-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+.qj-shake { animation: qj-shake 0.3s ease-in-out 2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .qj-ripple, .qj-bar, .qj-rise, .qj-shake { animation: none; }
+  .qj-bar { height: 70%; }
+}

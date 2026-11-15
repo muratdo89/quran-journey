@@ -40,7 +40,8 @@ export function StudySessionBar() {
   const router = useRouter();
   const session = useActiveSession();
 
-  if (!session || pathname === "/") return null;
+  // The warm-up screen carries its own "next step" button.
+  if (!session || pathname === "/" || pathname === "/warmup") return null;
 
   const finished = isSessionFinished(session);
   const total = session.steps.length;

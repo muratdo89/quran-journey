@@ -28,6 +28,8 @@ interface LearnArabicClientProps {
   initialCompletedModuleIds: string[];
   initialPracticedTajweedSlugs: string[];
   initialTab?: string;
+  /** Open the placement test right away (when arriving from the daily plan). */
+  openPlacement?: boolean;
 }
 
 export function LearnArabicClient({
@@ -37,6 +39,7 @@ export function LearnArabicClient({
   initialCompletedModuleIds,
   initialPracticedTajweedSlugs,
   initialTab = "reading",
+  openPlacement = false,
 }: LearnArabicClientProps) {
   const [activeTab, setActiveTab] = useState<"reading" | "alphabet" | "tajweed">(
     initialTab === "tajweed"
@@ -45,7 +48,7 @@ export function LearnArabicClient({
         ? "alphabet"
         : "reading"
   );
-  const [showPlacement, setShowPlacement] = useState(!initialPlacementCompleted);
+  const [showPlacement, setShowPlacement] = useState(openPlacement && !initialPlacementCompleted);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [evaluation, setEvaluation] = useState<PlacementEvaluation | null>(null);
   const [placementMeta, setPlacementMeta] = useState({
