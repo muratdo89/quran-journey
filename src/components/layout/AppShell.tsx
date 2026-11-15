@@ -9,32 +9,95 @@ import {
   BookOpenText,
   Brain,
   GraduationCap,
-  LayoutDashboard,
   Languages,
   Menu,
   RotateCcw,
-  Settings,
+  Sunrise,
+  UserRound,
   WifiOff,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LastStudyTracker, StudySessionBar } from "@/components/layout/StudySessionBar";
 
 interface NavItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  /** Other routes that light up this item (e.g. Statistics under "Ben"). */
+  alsoActiveOn?: string[];
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Panel", icon: LayoutDashboard },
-  { href: "/learn-arabic", label: "Arapça Öğren", icon: GraduationCap },
+/** Five primary destinations: what the learner opens daily. */
+const PRIMARY_NAV: NavItem[] = [
+  { href: "/", label: "Bugün", icon: Sunrise, alsoActiveOn: ["/review"] },
   { href: "/mushaf", label: "Mushaf", icon: BookOpenText },
-  { href: "/vocabulary", label: "Kelime Hazinesi", icon: Languages },
   { href: "/memorization", label: "Ezber", icon: Brain },
-  { href: "/review", label: "Tekrar", icon: RotateCcw },
-  { href: "/statistics", label: "İstatistikler", icon: BarChart3 },
-  { href: "/settings", label: "Profil ve Ayarlar", icon: Settings },
+  { href: "/vocabulary", label: "Kelimeler", icon: Languages, alsoActiveOn: ["/learn-arabic"] },
+  { href: "/settings", label: "Ben", icon: UserRound, alsoActiveOn: ["/statistics"] },
 ];
+
+/** Reachable from the sidebar/drawer and from inside the related primary pages. */
+const SECONDARY_NAV: NavItem[] = [
+  { href: "/learn-arabic", label: "Arapça Dersleri", icon: GraduationCap },
+  { href: "/review", label: "Tekrar Kartları", icon: RotateCcw },
+  { href: "/statistics", label: "İstatistikler", icon: BarChart3 },
+];
+
+function matches(pathname: string, href: string): boolean {
+  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function isActive(pathname: string, item: NavItem, includeRelated: boolean): boolean {
+  if (matches(pathname, item.href)) return true;
+  return includeRelated && (item.alsoActiveOn ?? []).some((h) => matches(pathname, h));
+}
+
+function NavLink({
+  item,
+  active,
+  onClick,
+}: {
+  item: NavItem;
+  active: boolean;
+  onClick?: () => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors",
+        active ? "bg-forest text-parchment shadow-xs" : "text-ink-soft hover:bg-sand-strong hover:text-forest"
+      )}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      <span>{item.label}</span>
+    </Link>
+  );
+}
+
+function NavGroups({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  return (
+    <>
+      <div className="space-y-1">
+        {PRIMARY_NAV.map((item) => (
+          <NavLink key={item.href} item={item} active={isActive(pathname, item, false)} onClick={onNavigate} />
+        ))}
+      </div>
+      <p className="px-3.5 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
+        Diğer
+      </p>
+      <div className="space-y-1">
+        {SECONDARY_NAV.map((item) => (
+          <NavLink key={item.href} item={item} active={isActive(pathname, item, false)} onClick={onNavigate} />
+        ))}
+      </div>
+    </>
+  );
+}
 
 function subscribeOnlineStatus(callback: () => void): () => void {
   if (typeof window === "undefined") return () => {};
@@ -63,63 +126,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#faf8f3] text-[#1c241f]">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-parchment text-ink">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-[#e5dec9] bg-[#f6f2e9]">
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-[#e5dec9]">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1b4332] text-[#faf8f3] shadow-xs">
+      <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-line bg-sidebar">
+        <div className="flex items-center gap-3 px-6 py-5 border-b border-line">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-forest text-parchment shadow-xs">
             <BookOpen className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-bold tracking-tight text-[#1b4332]">Quran Journey</p>
-            <p className="text-xs text-[#5a655e]">Kişisel Kur&apos;an Yolculuğu</p>
+            <p className="text-sm font-bold tracking-tight text-forest">Quran Journey</p>
+            <p className="text-xs text-muted">Kişisel Kur&apos;an Yolculuğu</p>
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto" aria-label="Ana gezinme">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active =
-              item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-[#1b4332] text-[#faf8f3] shadow-xs"
-                    : "text-[#3f4a43] hover:bg-[#ebe4d3] hover:text-[#1b4332]"
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        <nav className="flex-1 px-3 py-5 overflow-y-auto" aria-label="Ana gezinme">
+          <NavGroups pathname={pathname} />
         </nav>
 
-        <div className="p-4 m-3 rounded-xl bg-[#faf8f3] border border-[#e5dec9]">
-          <p className="text-xs font-semibold text-[#1b4332]">Medine Mushafı · 604 Sayfa</p>
-          <p className="mt-1 text-xs text-[#5a655e] leading-relaxed">
+        <div className="p-4 m-3 rounded-xl bg-parchment border border-line">
+          <p className="text-xs font-semibold text-forest">Medine Mushafı · 604 Sayfa</p>
+          <p className="mt-1 text-xs text-muted leading-relaxed">
             114 Sure · 6.236 Ayet · 77.429 doğrulanmış kelime ile aktif çalışma.
           </p>
         </div>
       </aside>
 
       {/* Mobile Top Bar */}
-      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b border-[#e5dec9] bg-[#faf8f3]/95 backdrop-blur px-4 py-3">
+      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b border-line bg-parchment/95 backdrop-blur px-4 py-3">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1b4332] text-[#faf8f3]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-forest text-parchment">
             <BookOpen className="h-4 w-4" />
           </div>
-          <span className="text-sm font-bold text-[#1b4332]">Quran Journey</span>
+          <span className="text-sm font-bold text-forest">Quran Journey</span>
         </Link>
         <button
           type="button"
           onClick={() => setMobileMenuOpen((v) => !v)}
           aria-label="Menüyü aç/kapat"
-          className="rounded-lg border border-[#e5dec9] bg-white p-2 text-[#1b4332]"
+          className="rounded-lg border border-line bg-surface p-2 text-forest"
         >
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -129,46 +173,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setMobileMenuOpen(false)}>
           <div
-            className="w-72 max-w-[85vw] h-full bg-[#f6f2e9] border-r border-[#e5dec9] p-4 space-y-1"
+            className="w-72 max-w-[85vw] h-full overflow-y-auto bg-sidebar border-r border-line p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 mb-2 border-b border-[#e5dec9]">
-              <span className="text-sm font-bold text-[#1b4332]">Menü</span>
+            <div className="flex items-center justify-between pb-3 mb-2 border-b border-line">
+              <span className="text-sm font-bold text-forest">Menü</span>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="rounded-lg p-1 text-[#5a655e]"
+                className="rounded-lg p-1 text-muted"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const active =
-                item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium",
-                    active
-                      ? "bg-[#1b4332] text-[#faf8f3]"
-                      : "text-[#3f4a43] hover:bg-[#ebe4d3]"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+            <nav aria-label="Menü">
+              <NavGroups pathname={pathname} onNavigate={() => setMobileMenuOpen(false)} />
+            </nav>
           </div>
         </div>
       )}
 
       {/* Main Content */}
-      <main className="flex-1 lg:pl-64 pb-20 lg:pb-10">
+      <main className="flex-1 lg:pl-64 pb-40 lg:pb-24">
+        <LastStudyTracker />
         {isOffline && (
           <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-950 flex items-center justify-center gap-2">
             <WifiOff className="h-3.5 w-3.5 shrink-0" />
@@ -182,32 +209,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
+      <StudySessionBar />
+
       {/* Mobile Bottom Quick Nav */}
       <nav
         aria-label="Hızlı alt menü"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[#e5dec9] bg-[#faf8f3]/95 backdrop-blur grid grid-cols-5 py-1.5"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-line bg-parchment/95 backdrop-blur grid grid-cols-5 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]"
       >
-        {[
-          NAV_ITEMS[0],
-          NAV_ITEMS[2],
-          NAV_ITEMS[3],
-          NAV_ITEMS[4],
-          NAV_ITEMS[5],
-        ].map((item) => {
+        {PRIMARY_NAV.map((item) => {
           const Icon = item.icon;
-          const active =
-            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const active = isActive(pathname, item, true);
           return (
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 py-1 text-[11px] font-medium",
-                active ? "text-[#1b4332]" : "text-[#5a655e]"
+                active ? "text-forest" : "text-muted"
               )}
             >
-              <Icon className={cn("h-4 w-4", active && "stroke-[2.5]")} />
-              <span className="truncate max-w-[68px]">{item.label.split(" ")[0]}</span>
+              <span
+                className={cn(
+                  "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
+                  active && "bg-mint-strong"
+                )}
+              >
+                <Icon className={cn("h-[18px] w-[18px]", active && "stroke-[2.4]")} />
+              </span>
+              <span>{item.label}</span>
             </Link>
           );
         })}

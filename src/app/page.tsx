@@ -3,6 +3,7 @@ import { getAvailablePages, getAvailableSurahs } from "@/lib/content/canonical-l
 import { getBackendConfigurationStatus, getRepository } from "@/lib/db";
 import { buildDailyLearningPlan } from "@/lib/learning-engine";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { getDailyVerse, getJuzProgress } from "@/lib/content/daily-focus";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +26,17 @@ export default async function DashboardPage() {
     placementCompleted: snapshot.profile.placementCompleted,
   });
 
+  const currentPage = snapshot.profile.currentPageNumber;
+  const dailyVerse = getDailyVerse(currentPage);
+  const juzProgress = getJuzProgress(
+    currentPage,
+    snapshot.pageProgress.filter((p) => p.status !== "not_started").map((p) => p.pageNumber)
+  );
+
   return (
     <DashboardClient
+      dailyVerse={dailyVerse}
+      juzProgress={juzProgress}
       initialSnapshot={snapshot}
       initialPlan={dailyPlan}
       backendStatus={backendStatus}

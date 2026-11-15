@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function LearnArabicPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; placement?: string }>;
 }) {
   const params = await searchParams;
   const repo = await getRepository();
@@ -20,6 +20,7 @@ export default async function LearnArabicPage({
       initialCompletedModuleIds={snapshot.completedReadingModuleIds}
       initialPracticedTajweedSlugs={snapshot.practicedTajweedSlugs}
       initialTab={params.tab}
+      openPlacement={params.placement === "1"}
     />
   );
 }

@@ -43,16 +43,16 @@ export function MushafSearchPanel({ open, onClose }: MushafSearchPanelProps) {
   if (!open) return null;
 
   return (
-    <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 space-y-3">
+    <div className="rounded-xl border border-line bg-parchment p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-bold text-[#1b4332]">
+        <p className="text-xs font-bold text-forest">
           Tam Kur&apos;an Arama (6.236 Ayet · Harekeli/Harekesiz Arapça, Türkçe Meal veya 2:255)
         </p>
         <button
           type="button"
           onClick={onClose}
           aria-label="Aramayı kapat"
-          className="text-[#5a655e] hover:text-[#1c241f]"
+          className="text-muted hover:text-ink"
         >
           <X className="h-4 w-4" />
         </button>
@@ -63,12 +63,12 @@ export function MushafSearchPanel({ open, onClose }: MushafSearchPanelProps) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Aramak istediğiniz kelime (ör. rahmet, الله, 2:255)..."
-          className="flex-1 rounded-xl border border-[#e5dec9] bg-white px-3.5 py-2 text-sm"
+          className="flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm"
         />
         <button
           type="submit"
           disabled={searching}
-          className="rounded-xl bg-[#1b4332] px-5 py-2 text-xs font-semibold text-white hover:bg-[#143326]"
+          className="rounded-xl bg-forest px-5 py-2 text-xs font-semibold text-white hover:bg-forest-deep"
         >
           {searching ? "Aranıyor..." : "Kur'an'da Ara"}
         </button>
@@ -76,17 +76,17 @@ export function MushafSearchPanel({ open, onClose }: MushafSearchPanelProps) {
 
       {searchRoots.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="font-semibold text-[#5a655e]">Eşleşen Kökler:</span>
+          <span className="font-semibold text-muted">Eşleşen Kökler:</span>
           {searchRoots.map((rt) => (
             <Link
               key={rt.root}
               href={`/vocabulary?root=${encodeURIComponent(rt.root)}`}
-              className="inline-flex items-center gap-1 rounded-lg border border-[#e5dec9] bg-white px-2 py-1 hover:border-[#1b4332]"
+              className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-2 py-1 hover:border-forest"
             >
-              <span lang="ar" dir="rtl" translate="no" className="font-arabic text-base font-bold text-[#1b4332]">
+              <span lang="ar" dir="rtl" translate="no" className="font-arabic text-base font-bold text-forest">
                 {rt.root}
               </span>
-              <span className="text-[11px] text-[#5a655e]">({rt.count})</span>
+              <span className="text-[11px] text-muted">({rt.count})</span>
             </Link>
           ))}
         </div>
@@ -94,7 +94,7 @@ export function MushafSearchPanel({ open, onClose }: MushafSearchPanelProps) {
 
       {searchResults.length > 0 && (
         <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-          <p className="text-[11px] text-[#5a655e]">
+          <p className="text-[11px] text-muted">
             Toplam {searchTotal} eşleşme (ilk {searchResults.length} gösteriliyor):
           </p>
           {searchResults.map((item) => (
@@ -102,20 +102,20 @@ export function MushafSearchPanel({ open, onClose }: MushafSearchPanelProps) {
               key={item.verseKey}
               href={`/mushaf?page=${item.pageNumber}&verse=${item.verseKey}`}
               onClick={onClose}
-              className="block rounded-xl border border-[#e5dec9] bg-white p-3 hover:border-[#1b4332] space-y-1"
+              className="block rounded-xl border border-line bg-surface p-3 hover:border-forest space-y-1"
             >
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-[#1b4332]">
+                <span className="font-bold text-forest">
                   {item.surahNameTr} · {item.verseKey}
                 </span>
-                <span className="font-mono text-[11px] text-[#5a655e]">
+                <span className="font-mono text-[11px] text-muted">
                   Sayfa {item.pageNumber}
                 </span>
               </div>
-              <p lang="ar" dir="rtl" translate="no" className="font-arabic text-xl text-right text-[#1c241f]">
+              <p lang="ar" dir="rtl" translate="no" className="font-arabic text-xl text-right text-ink">
                 {item.textUthmani}
               </p>
-              <p className="text-xs text-[#3f4a43]">{item.translationDiyanet}</p>
+              <p className="text-xs text-ink-soft">{item.translationDiyanet}</p>
             </Link>
           ))}
         </div>

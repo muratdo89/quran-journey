@@ -35,18 +35,13 @@ export function MushafPageNavigator({ pageData, availableSurahs }: MushafPageNav
 
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-      <div>
-        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#1b4332]">
-          <span>Medine Mushafı · Sayfa {pageData.pageNumber} / {pageData.edition.totalPages}</span>
-          <span className="text-[#b08d57]">•</span>
-          <span>Cüz {pageData.juzNumber}</span>
-          <span className="text-[#b08d57]">•</span>
-          <span>
-            {pageData.sections.map((s) => s.surah.nameTurkish).join(" / ")}
-          </span>
-        </div>
-        <h1 className="mt-1 text-xl font-bold text-[#1c241f]">
-          Sayfa Odaklı Kur&apos;an Çalışması
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gold-ink">
+          Sayfa {pageData.pageNumber} / {pageData.edition.totalPages} · {pageData.juzNumber}. Cüz ·{" "}
+          {pageData.hizbNumber}. Hizb
+        </p>
+        <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-ink">
+          {pageData.sections.map((s) => s.surah.nameTurkish).join(" · ")}
         </h1>
       </div>
 
@@ -55,14 +50,14 @@ export function MushafPageNavigator({ pageData, availableSurahs }: MushafPageNav
         {prevPage ? (
           <Link
             href={`/mushaf?page=${prevPage}`}
-            className="inline-flex items-center gap-1 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3 py-2 text-xs font-semibold text-[#1c241f] hover:bg-[#f3efe6]"
+            className="order-1 lg:order-none inline-flex items-center gap-1 rounded-xl border border-line bg-parchment px-3 py-2 text-xs font-semibold text-ink hover:bg-sand"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
             <span>S.{prevPage}</span>
           </Link>
         ) : null}
 
-        <form onSubmit={handlePageJump} className="inline-flex items-center gap-1">
+        <form onSubmit={handlePageJump} className="order-2 lg:order-none inline-flex items-center gap-1">
           <input
             type="number"
             min={1}
@@ -70,11 +65,11 @@ export function MushafPageNavigator({ pageData, availableSurahs }: MushafPageNav
             aria-label="Sayfa numarasına git (1-604)"
             value={pageJumpInput}
             onChange={(e) => setPageJumpInput(e.target.value)}
-            className="w-16 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-2.5 py-2 text-xs font-semibold text-[#1b4332] text-center"
+            className="w-16 rounded-xl border border-line bg-parchment px-2.5 py-2 text-xs font-semibold text-forest text-center"
           />
           <button
             type="submit"
-            className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-2.5 py-2 text-xs font-semibold text-[#1b4332] hover:bg-[#f3efe6]"
+            className="rounded-xl border border-line bg-parchment px-2.5 py-2 text-xs font-semibold text-forest hover:bg-sand"
           >
             Git
           </button>
@@ -87,7 +82,7 @@ export function MushafPageNavigator({ pageData, availableSurahs }: MushafPageNav
             const chosen = MADINAH_JUZ_RANGES.find((j) => j.juz === Number(e.target.value));
             if (chosen) router.push(`/mushaf?page=${chosen.startPage}`);
           }}
-          className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-2.5 py-2 text-xs font-semibold text-[#1c241f]"
+          className="order-4 lg:order-none min-w-0 flex-[1_1_7rem] lg:flex-none rounded-xl border border-line bg-parchment px-2.5 py-2 text-xs font-semibold text-ink"
         >
           {MADINAH_JUZ_RANGES.map((j) => (
             <option key={j.juz} value={String(j.juz)}>
@@ -100,7 +95,7 @@ export function MushafPageNavigator({ pageData, availableSurahs }: MushafPageNav
           aria-label="Sureye git"
           value={String(primarySection.surah.id)}
           onChange={(e) => router.push(`/mushaf?surah=${e.target.value}`)}
-          className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3 py-2 text-xs font-semibold text-[#1c241f] max-w-[200px]"
+          className="order-5 lg:order-none min-w-0 flex-[2_1_10rem] lg:flex-none rounded-xl border border-line bg-parchment px-3 py-2 text-xs font-semibold text-ink lg:max-w-[200px]"
         >
           {availableSurahs.map((s) => (
             <option key={s.id} value={String(s.id)}>
@@ -112,7 +107,7 @@ export function MushafPageNavigator({ pageData, availableSurahs }: MushafPageNav
         {nextPage ? (
           <Link
             href={`/mushaf?page=${nextPage}`}
-            className="inline-flex items-center gap-1 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3 py-2 text-xs font-semibold text-[#1c241f] hover:bg-[#f3efe6]"
+            className="order-3 lg:order-none inline-flex items-center gap-1 rounded-xl border border-line bg-parchment px-3 py-2 text-xs font-semibold text-ink hover:bg-sand"
           >
             <span>S.{nextPage}</span>
             <ChevronRight className="h-3.5 w-3.5" />

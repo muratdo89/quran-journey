@@ -84,6 +84,24 @@ describe("5-Pillar Mastery Independence & Hifz State Machine", () => {
 });
 
 describe("Adaptive Session Planner & Placement Evaluation", () => {
+  it("opens with the one-minute warm-up and keeps the placement test last", () => {
+    const now = new Date("2026-11-15T12:00:00.000Z");
+    const plan = buildDailyLearningPlan({
+      requestedMode: "normal",
+      cards: [createInitialCardRecord("c1", "vocabulary", "1:1:1", "ar_to_tr", now)],
+      verseStates: [{ verseKey: "1:1", memorizationState: "not_started" }],
+      currentPageNumber: 1,
+      daysSinceLastStudy: 0,
+      placementCompleted: false,
+      now,
+    });
+
+    expect(plan.steps[0]?.id).toBe("step-warmup");
+    expect(plan.steps[0]?.href).toBe("/warmup");
+    expect(plan.steps[0]?.estimatedMinutes).toBe(1);
+    expect(plan.steps.at(-1)?.id).toBe("step-placement");
+  });
+
   it("offers a calm 3-5 min recovery suggestion after missed days without guilt", () => {
     const now = new Date("2026-11-14T12:00:00.000Z");
     const cards = [createInitialCardRecord("c1", "vocabulary", "1:1:1", "ar_to_tr", now)];
