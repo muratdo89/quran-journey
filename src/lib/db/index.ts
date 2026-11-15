@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { SqliteProgressRepository } from "./sqlite-repository";
+import { PREFS_COOKIE, parsePrefsCookie } from "./prefs-cookie";
 import {
   getSupabaseSessionFromCookies,
   isSupabaseConfigured,
@@ -20,7 +22,33 @@ export async function getRepository(): Promise<ProgressRepository> {
   if (session) {
     return new SupabaseProgressRepository(session.accessToken, session.userId);
   }
-  return getSqliteSingleton();
+  const sqlite = getSqliteSingleton();
+  await restorePrefsFromCookie(sqlite);
+  return sqlite;
+}
+
+/**
+ * Without Supabase, Vercel runs a temporary SQLite file per serverless instance, so a new
+ * instance forgets the chosen reciter, page and reader settings. The preferences route mirrors
+ * every saved setting into a cookie; replay it here so the choice survives instance changes.
+ */
+let lastAppliedPrefsCookie: string | null = null;
+async function restorePrefsFromCookie(repo: SqliteProgressRepository) {
+  let raw: string | undefined;
+  try {
+    raw = (await cookies()).get(PREFS_COOKIE)?.value;
+  } catch {
+    return; // called outside a request (build, tests)
+  }
+  if (!raw || raw === lastAppliedPrefsCookie) return;
+  const prefs = parsePrefsCookie(raw);
+  if (!prefs) return;
+  try {
+    await repo.updatePreferences(prefs);
+    lastAppliedPrefsCookie = raw;
+  } catch {
+    /* keep serving with database defaults */
+  }
 }
 
 export async function getBackendConfigurationStatus(): Promise<BackendConfigurationStatus> {

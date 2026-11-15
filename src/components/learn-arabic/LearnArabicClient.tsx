@@ -213,7 +213,20 @@ export function LearnArabicClient({
 
       {activeTab === "reading" && (
         <>
-          {/* Placement Status / Retake Card */}
+          {/* Placement: a one-line optional link until opened, so the lessons come first */}
+          {!showPlacement && (
+            <button
+              type="button"
+              onClick={() => setShowPlacement(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted underline-offset-2 hover:text-forest hover:underline"
+            >
+              <GraduationCap className="h-3.5 w-3.5" />
+              {placementMeta.completed
+                ? `Seviyen: ${placementMeta.level} (%${placementMeta.score ?? 0}) · testi yenile`
+                : "İsteğe bağlı: 6 soruluk seviye testi"}
+            </button>
+          )}
+          {showPlacement && (
           <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
@@ -317,6 +330,7 @@ export function LearnArabicClient({
               </form>
             )}
           </section>
+          )}
 
           {/* Curriculum Sidebar + Active Lesson */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

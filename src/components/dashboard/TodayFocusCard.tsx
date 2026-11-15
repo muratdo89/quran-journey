@@ -7,6 +7,7 @@ import { ArrowRight, CheckCircle2, Flame, HeartHandshake, History, Play, Timer }
 import type { DailyLearningPlan } from "@/lib/learning-engine";
 import {
   isSessionFinished,
+  isStepDone,
   startSession,
   useActiveSession,
   useLastStudy,
@@ -49,7 +50,8 @@ export function TodayFocusCard({ dailyVerse, juzProgress, displayName, plan, str
   const finished = isSessionFinished(session);
   const inProgress = !!session && !finished;
   const currentIndex = inProgress ? session.index : finished ? steps.length : -1;
-  const shownSteps = session?.steps ?? steps;
+  // Always show today's current plan; done marks are matched by step id.
+  const shownSteps = session && session.steps.length !== steps.length ? session.steps : steps;
 
   const remainingMinutes = inProgress
     ? session.steps.slice(session.index).reduce((sum, s) => sum + s.estimatedMinutes, 0)
@@ -65,6 +67,10 @@ export function TodayFocusCard({ dailyVerse, juzProgress, displayName, plan, str
       return;
     }
     router.push(startSession(steps));
+  }
+
+  function openStep(i: number) {
+    router.push(startSession(shownSteps, i));
   }
 
   function handleMini() {
@@ -121,7 +127,7 @@ export function TodayFocusCard({ dailyVerse, juzProgress, displayName, plan, str
                 ? "Tebrikler. İstersen kısa bir tur daha yapabilir ya da Mushaf'ta serbest okuyabilirsin."
                 : inProgress
                   ? `Adım ${session.index + 1}/${session.steps.length} · kalan ~${remainingMinutes} dk`
-                  : `${steps.length} adım, sırayla. Her adımın sonunda “Sıradaki” ile devam et.`}
+                  : `${steps.length} çalışma. Başlat'a bas ya da aşağıdan istediğini seç.`}
             </p>
           </div>
 
@@ -180,39 +186,52 @@ export function TodayFocusCard({ dailyVerse, juzProgress, displayName, plan, str
             </div>
           </div>
 
-          {/* Step track */}
+          {/* Step boxes: tap any one to open that study directly */}
           {shownSteps.length > 0 && (
-            <ol className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x" aria-label="Bugünkü adımlar">
-              {shownSteps.map((s, i) => {
-                const done = i < currentIndex;
-                const current = i === currentIndex;
-                return (
-                  <li
-                    key={s.id}
-                    className={cn(
-                      "snap-start shrink-0 w-40 rounded-2xl border px-3 py-2.5",
-                      current
-                        ? "border-forest bg-mint"
-                        : done
-                          ? "border-line bg-parchment opacity-70"
-                          : "border-line bg-parchment"
-                    )}
-                  >
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-muted">
-                      <span>Adım {i + 1}</span>
-                      {done ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald" />
-                      ) : (
-                        <span>{s.estimatedMinutes} dk</span>
-                      )}
-                    </div>
-                    <p className="mt-1 line-clamp-2 text-xs font-semibold leading-snug text-ink">
-                      {s.titleTr}
-                    </p>
-                  </li>
-                );
-              })}
-            </ol>
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                Bugünkü çalışmalar · istediğine dokun
+              </p>
+              <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label="Bugünkü adımlar">
+                {shownSteps.map((s, i) => {
+                  const done = isStepDone(session, s.id) || (finished && !session?.done);
+                  const current = !done && i === currentIndex;
+                  return (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        onClick={() => openStep(i)}
+                        className={cn(
+                          "flex h-full w-full flex-col rounded-2xl border px-3 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest",
+                          current
+                            ? "border-forest bg-mint hover:bg-mint-strong"
+                            : done
+                              ? "border-line bg-parchment hover:bg-sand"
+                              : "border-line bg-parchment hover:border-forest hover:bg-surface"
+                        )}
+                      >
+                        <span className="flex items-center justify-between text-[11px] font-semibold text-muted">
+                          <span>{done ? "Yapıldı" : `${s.estimatedMinutes} dk`}</span>
+                          {done ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald" />
+                          ) : (
+                            <ArrowRight className="h-3.5 w-3.5 text-forest" />
+                          )}
+                        </span>
+                        <span
+                          className={cn(
+                            "mt-1 line-clamp-2 text-xs font-semibold leading-snug",
+                            done ? "text-muted" : "text-ink"
+                          )}
+                        >
+                          {s.titleTr}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
           )}
 
           {plan.recoveryMessageTr && !inProgress && (

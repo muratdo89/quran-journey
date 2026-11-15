@@ -36,8 +36,8 @@ interface MushafReaderControlsProps {
 }
 
 /**
- * Primary page actions (mark studied, listen-repeat, page loop, search) stay visible;
- * reading preferences live in a folded "Görünüm" panel so the verses come first.
+ * Only the page's main actions (mark studied, listen-repeat, search) stay visible; page loop,
+ * tajweed legend and reading preferences live in a folded "Ayarlar" panel so the verses come first.
  */
 export function MushafReaderControls({
   pageNumber,
@@ -114,38 +114,19 @@ export function MushafReaderControls({
           <Ear className="h-3.5 w-3.5" />
           <span>{listenRepeatActive ? "Dinle-Tekrar Et: Bitir" : "Dinle ve Tekrar Et"}</span>
         </button>
-        <div className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-parchment px-2 py-1">
-          <select
-            aria-label="Sayfa tekrar sayısı"
-            value={audio.pageLoopRepeatCount}
-            onChange={(e) => audio.setPageLoopRepeatCount(Number(e.target.value))}
-            className="bg-transparent text-xs font-semibold text-ink"
-          >
-            <option value={1}>1x</option>
-            <option value={2}>2x</option>
-            <option value={3}>3x</option>
-          </select>
+        {isPageLooping && (
           <button
             type="button"
             onClick={audio.startPageLoop}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-semibold transition-colors",
-              isPageLooping ? "bg-red-700 text-white" : "bg-forest text-white hover:bg-forest-deep"
-            )}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-red-700 px-3.5 py-2 font-semibold text-white"
           >
-            <Repeat className="h-3 w-3" />
+            <Repeat className="h-3.5 w-3.5" />
             <span>
-              {isPageLooping && pageLoopStep
-                ? `Durdur (${pageLoopStep.verseKey} · ${pageLoopStep.verseRepeatIndex}/${pageLoopStep.verseRepeatTotal})`
-                : (
-                  <>
-                    <span className="sm:hidden">Döngü</span>
-                    <span className="hidden sm:inline">Sayfa Döngüsel Dinle</span>
-                  </>
-                )}
+              Döngüyü Durdur
+              {pageLoopStep ? ` (${pageLoopStep.verseKey} · ${pageLoopStep.verseRepeatIndex}/${pageLoopStep.verseRepeatTotal})` : ""}
             </span>
           </button>
-        </div>
+        )}
         <button
           type="button"
           onClick={onToggleSearch}
@@ -170,7 +151,7 @@ export function MushafReaderControls({
           )}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
-          <span>Görünüm</span>
+          <span>Ayarlar</span>
           <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", viewOpen && "rotate-180")} />
         </button>
       </div>
@@ -181,8 +162,43 @@ export function MushafReaderControls({
           id="mushaf-view-settings"
           className="grid gap-3 rounded-2xl border border-line bg-parchment p-3.5 sm:grid-cols-2 lg:grid-cols-3"
         >
+          <div className="sm:col-span-2 lg:col-span-3 flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-ink">Sayfayı döngüyle dinle:</span>
+            <div className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-parchment px-2 py-1">
+              <select
+                aria-label="Sayfa tekrar sayısı"
+                value={audio.pageLoopRepeatCount}
+                onChange={(e) => audio.setPageLoopRepeatCount(Number(e.target.value))}
+                className="bg-transparent text-xs font-semibold text-ink"
+              >
+                <option value={1}>1x</option>
+                <option value={2}>2x</option>
+                <option value={3}>3x</option>
+              </select>
+              <button
+                type="button"
+                onClick={audio.startPageLoop}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-semibold transition-colors",
+                  isPageLooping ? "bg-red-700 text-white" : "bg-forest text-white hover:bg-forest-deep"
+                )}
+              >
+                <Repeat className="h-3 w-3" />
+                <span>
+                  {isPageLooping && pageLoopStep
+                    ? `Durdur (${pageLoopStep.verseKey} · ${pageLoopStep.verseRepeatIndex}/${pageLoopStep.verseRepeatTotal})`
+                    : (
+                      <>
+                        <span className="sm:hidden">Döngü</span>
+                        <span className="hidden sm:inline">Sayfa Döngüsel Dinle</span>
+                      </>
+                    )}
+                </span>
+              </button>
+            </div>
+          </div>
           {prefs.showTajweedColors && (
-            <div className="sm:col-span-2 lg:hidden">
+            <div className="sm:col-span-2 lg:col-span-3">
               <TajweedLegendStrip />
             </div>
           )}
