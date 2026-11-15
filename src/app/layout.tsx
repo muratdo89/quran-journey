@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Amiri, JetBrains_Mono, Plus_Jakarta_Sans, Scheherazade_New } from "next/font/google";
 import { AppShell } from "@/components/layout/AppShell";
 import "./globals.css";
@@ -35,6 +35,11 @@ export const metadata: Metadata = {
   other: {
     google: "notranslate",
   },
+};
+
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: "#faf8f3",
 };
 
 export default function RootLayout({

@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LastStudyTracker, StudySessionBar } from "@/components/layout/StudySessionBar";
 
 interface NavItem {
   href: string;
@@ -168,7 +169,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 lg:pl-64 pb-20 lg:pb-10">
+      <main className="flex-1 lg:pl-64 pb-40 lg:pb-24">
+        <LastStudyTracker />
         {isOffline && (
           <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-950 flex items-center justify-center gap-2">
             <WifiOff className="h-3.5 w-3.5 shrink-0" />
@@ -182,10 +184,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
+      <StudySessionBar />
+
       {/* Mobile Bottom Quick Nav */}
       <nav
         aria-label="Hızlı alt menü"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[#e5dec9] bg-[#faf8f3]/95 backdrop-blur grid grid-cols-5 py-1.5"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[#e5dec9] bg-[#faf8f3]/95 backdrop-blur grid grid-cols-5 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]"
       >
         {[
           NAV_ITEMS[0],

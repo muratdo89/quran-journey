@@ -11,7 +11,6 @@ import {
   Cloud,
   Flame,
   GraduationCap,
-  HeartHandshake,
   Languages,
   Mic,
   RotateCcw,
@@ -24,6 +23,8 @@ import type {
 import type { DailyLearningPlan, SessionMode } from "@/lib/learning-engine";
 import { MEMORIZATION_STATE_LABELS_TR } from "@/lib/learning-engine";
 import { cn } from "@/lib/utils";
+import { startSession } from "@/lib/study-session";
+import { TodayFocusCard, toSessionSteps } from "@/components/dashboard/TodayFocusCard";
 
 interface DashboardClientProps {
   initialSnapshot: DashboardStateSnapshot;
@@ -35,10 +36,10 @@ interface DashboardClientProps {
   totalTajweedLessons: number;
 }
 
-const MODE_LABELS: Record<SessionMode, { title: string; subtitle: string }> = {
-  normal: { title: "Normal Mod", subtitle: "~20 dk · %60 Tekrar / %40 Yeni" },
-  intensive: { title: "Yoğun Mod", subtitle: "~35 dk · Derin Ezber & Analiz" },
-  recovery: { title: "Toparlanma", subtitle: "3–5 dk · Yalnızca Öncelikli Tekrar" },
+const MODE_LABELS: Record<SessionMode, { short: string; subtitle: string }> = {
+  recovery: { short: "Kısa", subtitle: "3–5 dk · Yalnızca öncelikli tekrar" },
+  normal: { short: "Normal", subtitle: "~20 dk · %60 tekrar / %40 yeni" },
+  intensive: { short: "Yoğun", subtitle: "~35 dk · Derin ezber ve analiz" },
 };
 
 export function DashboardClient({
@@ -77,7 +78,6 @@ export function DashboardClient({
   }
 
   const activePage = snapshot.profile.currentPageNumber;
-  const nextTaskHref = plan.steps[0]?.href ?? `/mushaf?page=${activePage}`;
   const memorizedVersesCount = snapshot.verseProgress.filter(
     (v) =>
       v.memorizationState === "provisional_mastery" ||
@@ -134,111 +134,12 @@ export function DashboardClient({
 
   return (
     <div className="space-y-8">
-      {/* Ephemeral / Cloud Sync Honest Banner when running in serverless temp SQLite */}
-      {backendStatus.activePersistence === "sqlite_ephemeral_tmp" && (
-        <div className="rounded-2xl border border-[#e3d2ae] bg-[#f7f1e3] px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#4a3b1f]">
-          <div className="flex items-start gap-2.5">
-            <Cloud className="h-4 w-4 text-[#9a7639] shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold">
-                {backendStatus.supabaseConfigured
-                  ? "Bulut Senkronizasyonu Hazır — Giriş Bekleniyor"
-                  : "Geçici Sunucu Belleği (/tmp SQLite) Aktif"}
-              </p>
-              <p className="opacity-90 mt-0.5">
-                {backendStatus.supabaseConfigured
-                  ? "Supabase bağlantınız hazır. İlerlemenizi telefon ve masaüstünde kalıcı tutmak için Ayarlar'dan giriş yapın."
-                  : "Bulut ortamında kalıcı kayıt için Ayarlar ekranından Supabase PostgreSQL kurulumunu tamamlayabilirsiniz."}
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/settings"
-            className="rounded-xl bg-[#1b4332] px-4 py-2 text-xs font-semibold text-white hover:bg-[#143326] shrink-0 text-center"
-          >
-            Ayarlar / Senkronizasyon
-          </Link>
-        </div>
-      )}
-
-      {/* Hero / Continue Learning */}
-      <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 sm:p-8 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex flex-wrap items-center gap-2 rounded-full bg-[#f3efe6] px-3 py-1 text-xs font-semibold text-[#1b4332]">
-              <span>Medine Mushafı · Sayfa {activePage}</span>
-              <span className="text-[#b08d57]">•</span>
-              <span>Tam Kur&apos;an ({totalSurahs} Sure · {totalPages} Sayfa)</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1c241f]">
-              Selam, {snapshot.profile.displayName}. Bugünkü yolculuğunuz hazır.
-            </h1>
-            <p className="text-sm sm:text-base text-[#5a655e] leading-relaxed">
-              {plan.dueCardsCount > 0
-                ? `${plan.dueCardsCount} tekrar kartı zamanı geldi. Yeni konuya geçmeden önce kısa bir aktif hatırlama ile öğrendiklerinizi koruyalım.`
-                : `Bekleyen tekrarlarınız güncel. Bugün Sayfa ${activePage} üzerinden okumaya, kelime/kök analizine veya ezber stüdyosuna devam edebilirsiniz.`}
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-3 shrink-0">
-            <Link
-              href={nextTaskHref}
-              className="inline-flex items-center justify-center gap-2.5 rounded-xl bg-[#1b4332] px-6 py-3.5 text-sm font-semibold text-[#faf8f3] hover:bg-[#143326] transition-colors shadow-xs"
-            >
-              <span>Öğrenmeye Başla</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href={`/mushaf?page=${activePage}`}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-4 py-2.5 text-xs font-semibold text-[#1b4332] hover:bg-[#f3efe6] transition-colors"
-            >
-              <BookOpenText className="h-4 w-4" />
-              <span>Mushaf Sayfa {activePage}&apos;i Aç</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Forgiving Recovery Banner if needed */}
-        {plan.recoveryMessageTr && (
-          <div className="mt-6 flex items-start gap-3 rounded-xl border border-[#e3d2ae] bg-[#f7f1e3] p-4 text-sm text-[#4a3b1f]">
-            <HeartHandshake className="h-5 w-5 text-[#9a7639] shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">Esnek Toparlanma Desteği</p>
-              <p className="mt-0.5 text-xs sm:text-sm leading-relaxed">{plan.recoveryMessageTr}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Session Mode Switcher */}
-        <div className="mt-6 pt-6 border-t border-[#e5dec9] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#5a655e]">
-            <Clock className="h-4 w-4 text-[#b08d57]" />
-            <span>Günlük Oturum Modu</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {(Object.keys(MODE_LABELS) as SessionMode[]).map((mode) => {
-              const active = plan.mode === mode;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  disabled={updatingMode}
-                  onClick={() => handleModeChange(mode)}
-                  className={cn(
-                    "rounded-xl border px-3.5 py-2 text-left transition-all",
-                    active
-                      ? "border-[#1b4332] bg-[#1b4332]/5 ring-1 ring-[#1b4332]"
-                      : "border-[#e5dec9] bg-[#faf8f3] hover:bg-[#f3efe6]"
-                  )}
-                >
-                  <p className="text-xs font-bold text-[#1c241f]">{MODE_LABELS[mode].title}</p>
-                  <p className="text-[11px] text-[#5a655e]">{MODE_LABELS[mode].subtitle}</p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <TodayFocusCard
+        displayName={snapshot.profile.displayName}
+        plan={plan}
+        streakDays={snapshot.currentStreakDays}
+        activePage={activePage}
+      />
 
       {/* Quick Summary Cards */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -287,7 +188,7 @@ export function DashboardClient({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Today's Adaptive Plan */}
         <section className="lg:col-span-7 rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-[#1c241f]">Bugünkü Öğrenme Planı</h2>
               <p className="text-xs text-[#5a655e]">
@@ -295,16 +196,40 @@ export function DashboardClient({
                 {plan.newMaterialSharePercent} Yeni Konu
               </p>
             </div>
-            <span className="rounded-full bg-[#f3efe6] px-3 py-1 text-xs font-semibold text-[#1b4332]">
-              {plan.steps.length} Adım
-            </span>
+            <div
+              role="radiogroup"
+              aria-label="Günlük oturum süresi"
+              className="inline-flex shrink-0 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-0.5"
+            >
+              {(Object.keys(MODE_LABELS) as SessionMode[]).map((mode) => {
+                const active = plan.mode === mode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    title={MODE_LABELS[mode].subtitle}
+                    disabled={updatingMode}
+                    onClick={() => handleModeChange(mode)}
+                    className={cn(
+                      "rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      active ? "bg-[#1b4332] text-[#faf8f3]" : "text-[#5a655e] hover:text-[#1b4332]"
+                    )}
+                  >
+                    {MODE_LABELS[mode].short}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="space-y-3">
-            {plan.steps.map((step) => (
+            {plan.steps.map((step, i) => (
               <Link
                 key={step.id}
                 href={step.href}
+                onClick={() => startSession(toSessionSteps(plan), i)}
                 className="group flex items-start justify-between gap-4 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 hover:border-[#1b4332] hover:bg-white transition-all"
               >
                 <div className="flex items-start gap-3.5">
@@ -424,6 +349,32 @@ export function DashboardClient({
           })}
         </div>
       </section>
+      {/* Ephemeral / Cloud Sync Honest Banner when running in serverless temp SQLite */}
+      {backendStatus.activePersistence === "sqlite_ephemeral_tmp" && (
+        <div className="rounded-2xl border border-[#e3d2ae] bg-[#f7f1e3] px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#4a3b1f]">
+          <div className="flex items-start gap-2.5">
+            <Cloud className="h-4 w-4 text-[#9a7639] shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">
+                {backendStatus.supabaseConfigured
+                  ? "Bulut Senkronizasyonu Hazır — Giriş Bekleniyor"
+                  : "Geçici Sunucu Belleği (/tmp SQLite) Aktif"}
+              </p>
+              <p className="opacity-90 mt-0.5">
+                {backendStatus.supabaseConfigured
+                  ? "Supabase bağlantınız hazır. İlerlemenizi telefon ve masaüstünde kalıcı tutmak için Ayarlar'dan giriş yapın."
+                  : "Bulut ortamında kalıcı kayıt için Ayarlar ekranından Supabase PostgreSQL kurulumunu tamamlayabilirsiniz."}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/settings"
+            className="rounded-xl bg-[#1b4332] px-4 py-2 text-xs font-semibold text-white hover:bg-[#143326] shrink-0 text-center"
+          >
+            Ayarlar / Senkronizasyon
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
