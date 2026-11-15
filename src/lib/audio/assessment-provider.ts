@@ -9,6 +9,7 @@ export interface RecitationEvaluationRequest {
   durationMs: number;
   consentGranted: boolean;
   audioBytes?: Uint8Array;
+  clientTranscript?: string;
 }
 
 export interface RecitationFinding {
@@ -253,10 +254,87 @@ export class ConfigurableHttpAsrProvider implements RecitationAssessmentProvider
   }
 }
 
-export function getActiveAssessmentProvider(): RecitationAssessmentProvider {
-  const httpProvider = new ConfigurableHttpAsrProvider();
-  if (httpProvider.isConfigured()) {
-    return httpProvider;
+/**
+ * Hybrid ASR provider combining optional external HTTP Quranic ASR with client-side
+ * Arabic Web Speech recognition transcripts and deterministic Levenshtein alignment.
+ * Strictly blocks analysis without explicit user consent and always sets requiresHumanReview=true.
+ */
+export class HybridQuranAsrProvider implements RecitationAssessmentProvider {
+  readonly id = "hybrid-quran-asr";
+  readonly displayNameTr =
+    "Hibrit Kur'an ASR (Tarayıcı Konuşma Tanıma + Arapça Hizalama)";
+  readonly supportedScopes: AssessmentScope[] = ["sequence_check"];
+  private readonly httpProvider: ConfigurableHttpAsrProvider;
+
+  constructor(httpProvider = new ConfigurableHttpAsrProvider()) {
+    this.httpProvider = httpProvider;
   }
-  return new LocalComparisonOnlyProvider();
+
+  isConfigured(): boolean {
+    return true;
+  }
+
+  async evaluate(
+    request: RecitationEvaluationRequest
+  ): Promise<RecitationEvaluationResult> {
+    if (!request.consentGranted) {
+      return {
+        providerName: this.id,
+        scope: "sequence_check",
+        status: "consent_required",
+        confidenceScore: null,
+        requiresHumanReview: true,
+        summaryTr:
+          "ASR kelime sırası kontrolü için açık onayınız kapalı. Ses kaydınız yalnızca cihazınızda yerel olarak saklanır.",
+        findings: [
+          {
+            kind: "listen_again_recommended",
+            messageTr:
+              "Kelime sırası analizini kullanmak için ses kaydı onay kutusunu işaretleyebilirsiniz.",
+          },
+        ],
+      };
+    }
+
+    if (
+      this.httpProvider.isConfigured() &&
+      request.audioBytes &&
+      request.audioBytes.byteLength > 0
+    ) {
+      const httpResult = await this.httpProvider.evaluate(request);
+      if (httpResult.status === "completed") {
+        return httpResult;
+      }
+      if (!request.clientTranscript?.trim()) {
+        return httpResult;
+      }
+    }
+
+    const transcript = request.clientTranscript?.trim() ?? "";
+    if (transcript.length > 0) {
+      const alignment = alignAsrTranscript(
+        request.expectedArabicText,
+        transcript,
+        request.verseKey
+      );
+      const pct = Math.round(alignment.wordMatchRatio * 100);
+
+      return {
+        providerName: this.id,
+        scope: "sequence_check",
+        status: "completed",
+        confidenceScore: Number(alignment.wordMatchRatio.toFixed(3)),
+        requiresHumanReview: true,
+        recognizedText: transcript,
+        summaryTr: `Kelime sırası eşleşmesi (Hibrit ASR): %${pct} (${alignment.matchedCount}/${alignment.expectedCount} kelime). Not: Bu analiz yalnızca kelime dizisini denetler, mahreç ve tecvid kalitesini ölçmez.`,
+        findings: alignment.findings,
+      };
+    }
+
+    return new LocalComparisonOnlyProvider().evaluate(request);
+  }
+}
+
+export function getActiveAssessmentProvider(): RecitationAssessmentProvider {
+  return new HybridQuranAsrProvider();
 }

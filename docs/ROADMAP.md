@@ -40,3 +40,8 @@
 - Built structured Teacher Review Package generator (`src/lib/audio/teacher-review.ts`) with a 5-criterion Tajweed checklist and mandatory human-review notice, plus direct `.webm` recording downloads and clipboard/Markdown report copy in `/mushaf` and JSON backup exports in `/settings`.
 - Added `/api/health` diagnostics endpoint, `scripts/setup-cloud-env.mjs` (`pnpm setup:env`), and live health-check controls in `/settings`.
 
+## Phase 7 — Colored Tajweed Overlay, Verse Range Looped Hifz Player & Hybrid ASR Alignment (Completed)
+- Added deterministic Uthmani Colored Tajweed rule analyzer (`src/lib/content/tajweed-analyzer.ts`) covering Kalkale (`qalqalah`), Gunne (`ghunnah`), Med (`madd`), Sâkin Nûn/Mîm (`noon_meem_sakin`), and Kalın Harfler (`tafkhim`) with interactive `Renkli Tecvid Modu` toggle, legend strip, and per-word breakdown in `/mushaf`.
+- Added verse range looped Hifz playback scheduler (`src/lib/audio/range-loop-player.ts`) with start/end verse bounds, `1x–10x` per-verse and full-range repeats, and live step tracking across `/memorization` (`Aralıklı Döngüsel Dinleme`) and `/mushaf` (`Sayfa Döngüsü`).
+- Implemented `HybridQuranAsrProvider` (`src/lib/audio/assessment-provider.ts`) combining optional external HTTP ASR (`QURAN_ASR_API_URL`) with browser Web Speech API (`ar-SA`) and manual transcript Arabic DP alignment via `/api/audio/assess`, gated by explicit consent (`consentGranted`) and preserving `requiresHumanReview: true`.
+

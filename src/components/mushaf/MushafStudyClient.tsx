@@ -23,7 +23,9 @@ import {
   Pause,
   Play,
   Plus,
+  Repeat,
   Search,
+  Sparkles,
   Square,
   Sun,
   Trash2,
@@ -51,7 +53,15 @@ import {
   getReciterAyahAudioUrl,
   getReciterById,
 } from "@/lib/audio/reciters";
+import {
+  buildRangePlaybackQueue,
+  type RangePlaybackStep,
+} from "@/lib/audio/range-loop-player";
 import { buildVerseTeacherReviewPackage } from "@/lib/audio/teacher-review";
+import {
+  TAJWEED_LEGEND,
+  analyzeWordTajweed,
+} from "@/lib/content/tajweed-analyzer";
 import {
   deleteLocalRecordingBlob,
   getLocalRecordingBlob,
@@ -109,6 +119,31 @@ interface LocalAudioBlobEntry {
   durationMs: number;
   createdAt: string;
 }
+
+interface BrowserSpeechRecognitionResultItem {
+  transcript: string;
+}
+
+interface BrowserSpeechRecognitionResult {
+  isFinal: boolean;
+  0: BrowserSpeechRecognitionResultItem;
+}
+
+interface BrowserSpeechRecognitionEvent {
+  results: ArrayLike<BrowserSpeechRecognitionResult>;
+}
+
+interface BrowserSpeechRecognition {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: BrowserSpeechRecognitionEvent) => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+type BrowserSpeechRecognitionCtor = new () => BrowserSpeechRecognition;
 
 function isEnglishFallbackGloss(text: string): boolean {
   return (
@@ -233,6 +268,21 @@ export function MushafStudyClient({
   );
   const [teacherReportStatus, setTeacherReportStatus] = useState<string | null>(null);
 
+  // Phase 7A: Colored Tajweed overlay
+  const [showTajweedColors, setShowTajweedColors] = useState(true);
+
+  // Phase 7B: Page-level looped ayah playback
+  const [pageLoopRepeatCount, setPageLoopRepeatCount] = useState<number>(2);
+  const [isPageLooping, setIsPageLooping] = useState(false);
+  const [pageLoopStep, setPageLoopStep] = useState<RangePlaybackStep | null>(null);
+  const pageLoopCancelRef = useRef<boolean>(false);
+
+  // Phase 7C: Browser Web Speech ar-SA & manual transcript ASR test
+  const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const speechTranscriptRef = useRef<string>("");
+  const [manualTranscript, setManualTranscript] = useState("");
+  const [aligningManual, setAligningManual] = useState(false);
+
   const selectedVerse: CanonicalVerse = useMemo(
     () =>
       allVersesOnPage.find((v) => v.verseKey === selectedVerseKey) ?? allVersesOnPage[0]!,
@@ -323,8 +373,16 @@ export function MushafStudyClient({
   useEffect(() => {
     const urlsRef = createdUrlsRef;
     return () => {
+      pageLoopCancelRef.current = true;
       if (audioRef.current) {
         audioRef.current.pause();
+      }
+      if (speechRecognitionRef.current) {
+        try {
+          speechRecognitionRef.current.stop();
+        } catch {
+          // Ignore cleanup errors
+        }
       }
       urlsRef.current.forEach((u) => URL.revokeObjectURL(u));
     };
@@ -417,6 +475,9 @@ export function MushafStudyClient({
   }
 
   function stopAudio() {
+    pageLoopCancelRef.current = true;
+    setIsPageLooping(false);
+    setPageLoopStep(null);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -425,6 +486,76 @@ export function MushafStudyClient({
     setActiveChapterSurahId(null);
     setActiveAudioVerseKey(null);
     setActiveAudioWordPos(null);
+  }
+
+  async function startPageLoop() {
+    if (isPageLooping) {
+      stopAudio();
+      return;
+    }
+
+    const queue: RangePlaybackStep[] = [];
+    for (const section of pageData.sections) {
+      if (section.verses.length === 0) continue;
+      const sectionQueue = buildRangePlaybackQueue(section.verses, {
+        startVerseNumber: section.verses[0]!.verseNumber,
+        endVerseNumber: section.verses[section.verses.length - 1]!.verseNumber,
+        verseRepeatCount: pageLoopRepeatCount,
+        rangeRepeatCount: 1,
+      });
+      queue.push(...sectionQueue);
+    }
+
+    if (queue.length === 0) return;
+
+    stopAudio();
+    pageLoopCancelRef.current = false;
+    setIsPageLooping(true);
+    setAudioError(null);
+
+    const verseByKey = new Map(allVersesOnPage.map((v) => [v.verseKey, v]));
+
+    for (let idx = 0; idx < queue.length; idx += 1) {
+      if (pageLoopCancelRef.current) break;
+      const step = { ...queue[idx]!, stepIndex: idx, totalSteps: queue.length };
+      const verse = verseByKey.get(step.verseKey);
+      if (!verse) continue;
+      const url = getReciterAyahAudioUrl(verse, reciterId);
+      if (!url) continue;
+
+      setPageLoopStep(step);
+      setPlayingMode("ayah");
+      setActiveAudioVerseKey(verse.verseKey);
+      selectVerse(verse.verseKey);
+
+      const finished = await new Promise<boolean>((resolve) => {
+        if (pageLoopCancelRef.current) {
+          resolve(false);
+          return;
+        }
+        const audio = new Audio(url);
+        audio.playbackRate = playbackSpeed;
+        audioRef.current = audio;
+        audio.onended = () => resolve(true);
+        audio.onerror = () => {
+          setAudioError("Döngü oynatma sırasında ses dosyası yüklenemedi.");
+          resolve(false);
+        };
+        audio.play().catch(() => {
+          setAudioError("Tarayıcı ses oynatmayı engelledi; lütfen tekrar tıklayın.");
+          resolve(false);
+        });
+      });
+
+      if (!finished || pageLoopCancelRef.current) break;
+    }
+
+    if (!pageLoopCancelRef.current) {
+      setPlayingMode("idle");
+      setActiveAudioVerseKey(null);
+    }
+    setIsPageLooping(false);
+    setPageLoopStep(null);
   }
 
   function playUrl(
@@ -589,6 +720,7 @@ export function MushafStudyClient({
   async function startRecording() {
     setRecordingError(null);
     setLastAssessment(null);
+    speechTranscriptRef.current = "";
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setRecordingError("Bu tarayıcı mikrofon kaydını desteklemiyor.");
       return;
@@ -600,12 +732,53 @@ export function MushafStudyClient({
       chunksRef.current = [];
       recordStartRef.current = Date.now();
 
+      // Phase 7C: Parallel Web Speech Arabic transcript capture when user consented
+      if (cloudConsent && typeof window !== "undefined") {
+        const win = window as unknown as {
+          SpeechRecognition?: BrowserSpeechRecognitionCtor;
+          webkitSpeechRecognition?: BrowserSpeechRecognitionCtor;
+        };
+        const SpeechCtor = win.SpeechRecognition ?? win.webkitSpeechRecognition;
+        if (SpeechCtor) {
+          try {
+            const recognition = new SpeechCtor();
+            recognition.lang = "ar-SA";
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.onresult = (event) => {
+              const parts: string[] = [];
+              for (let i = 0; i < event.results.length; i += 1) {
+                const item = event.results[i];
+                if (item?.[0]?.transcript) {
+                  parts.push(item[0].transcript.trim());
+                }
+              }
+              speechTranscriptRef.current = parts.join(" ").trim();
+            };
+            recognition.onerror = () => {};
+            speechRecognitionRef.current = recognition;
+            recognition.start();
+          } catch {
+            speechRecognitionRef.current = null;
+          }
+        }
+      }
+
       recorder.ondataavailable = (ev) => {
         if (ev.data.size > 0) chunksRef.current.push(ev.data);
       };
 
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        if (speechRecognitionRef.current) {
+          try {
+            speechRecognitionRef.current.stop();
+          } catch {
+            // Ignore stop error
+          }
+          speechRecognitionRef.current = null;
+        }
+
         const durationMs = Math.max(500, Date.now() - recordStartRef.current);
         const mime = recorder.mimeType || "audio/webm";
         const blob = new Blob(chunksRef.current, { type: mime });
@@ -633,6 +806,9 @@ export function MushafStudyClient({
         if (cloudConsent) {
           const ext = mime.includes("mp4") ? "m4a" : "webm";
           form.append("audio", blob, `recitation.${ext}`);
+          if (speechTranscriptRef.current.trim()) {
+            form.append("clientTranscript", speechTranscriptRef.current.trim());
+          }
         }
 
         const res = await fetch("/api/audio/assess", {
@@ -657,10 +833,43 @@ export function MushafStudyClient({
   }
 
   function stopRecording() {
+    if (speechRecognitionRef.current) {
+      try {
+        speechRecognitionRef.current.stop();
+      } catch {
+        // Ignore stop error
+      }
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
+  }
+
+  async function handleManualTranscriptAlign(e: React.FormEvent) {
+    e.preventDefault();
+    const cleaned = manualTranscript.trim();
+    if (!cleaned) return;
+    setAligningManual(true);
+    try {
+      const res = await fetch("/api/audio/assess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          verseKey: selectedVerse.verseKey,
+          audioMimeType: "text/plain",
+          durationMs: 1000,
+          consentGranted: cloudConsent,
+          clientTranscript: cleaned,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLastAssessment(data.assessment);
+      }
+    } finally {
+      setAligningManual(false);
+    }
   }
 
   async function deleteRecording(id: string) {
@@ -1006,7 +1215,76 @@ export function MushafStudyClient({
             />
             <span>Okunuş Yardımı</span>
           </label>
+
+          <button
+            type="button"
+            onClick={() => setShowTajweedColors((v) => !v)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-semibold transition-colors",
+              showTajweedColors
+                ? "border-[#b08d57] bg-[#f7f1e3] text-[#6e511e]"
+                : "border-[#e5dec9] bg-[#faf8f3] text-[#3f4a43] hover:bg-[#f3efe6]"
+            )}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>{showTajweedColors ? "Renkli Tecvid: Açık" : "Renkli Tecvid: Kapalı"}</span>
+          </button>
+
+          <div className="inline-flex items-center gap-1.5 rounded-lg border border-[#e5dec9] bg-[#faf8f3] px-2 py-1">
+            <select
+              aria-label="Sayfa tekrar sayısı"
+              value={pageLoopRepeatCount}
+              onChange={(e) => setPageLoopRepeatCount(Number(e.target.value))}
+              className="bg-transparent text-xs font-semibold text-[#1c241f]"
+            >
+              <option value={1}>1x</option>
+              <option value={2}>2x</option>
+              <option value={3}>3x</option>
+            </select>
+            <button
+              type="button"
+              onClick={startPageLoop}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-semibold transition-colors",
+                isPageLooping
+                  ? "bg-red-700 text-white"
+                  : "bg-[#1b4332] text-white hover:bg-[#143326]"
+              )}
+            >
+              <Repeat className="h-3 w-3" />
+              <span>
+                {isPageLooping && pageLoopStep
+                  ? `Durdur (${pageLoopStep.verseKey} · ${pageLoopStep.verseRepeatIndex}/${pageLoopStep.verseRepeatTotal})`
+                  : "Sayfa Döngüsel Dinle"}
+              </span>
+            </button>
+          </div>
         </div>
+
+        {/* Phase 7A: Colored Tajweed Legend Strip */}
+        {showTajweedColors && (
+          <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3.5 py-2.5 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="font-bold text-[#1c241f] mr-1">Renkli Tecvid Rehberi:</span>
+            {TAJWEED_LEGEND.map((rule) => (
+              <span
+                key={rule.category}
+                title={rule.descriptionTr}
+                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold"
+                style={{
+                  borderColor: `${rule.colorHex}40`,
+                  backgroundColor: rule.bgHex,
+                  color: rule.colorHex,
+                }}
+              >
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: rule.colorHex }}
+                />
+                <span>{rule.shortLabelTr}</span>
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Full-Quran Normalized Search Drawer */}
         {searchOpen && (
@@ -1312,14 +1590,30 @@ export function MushafStudyClient({
                               playingMode === "chapter" &&
                               activeAudioVerseKey === verse.verseKey &&
                               activeAudioWordPos === word.position;
+                            const wordTajweed = showTajweedColors
+                              ? analyzeWordTajweed(word.textUthmani)
+                              : [];
+                            const primaryRule = wordTajweed[0];
 
                             return (
                               <button
                                 key={word.location}
                                 type="button"
                                 onClick={() => handleSelectWord(verse, word)}
+                                title={
+                                  wordTajweed.length > 0
+                                    ? wordTajweed.map((r) => r.shortLabelTr).join(" · ")
+                                    : undefined
+                                }
+                                style={
+                                  primaryRule && !isSelectedWord && !isWordHighlightedByAudio
+                                    ? {
+                                        borderBottom: `3px solid ${primaryRule.colorHex}`,
+                                      }
+                                    : undefined
+                                }
                                 className={cn(
-                                  "rounded-lg px-1.5 py-0.5 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#b08d57]",
+                                  "inline-flex flex-col items-center rounded-lg px-1.5 py-0.5 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#b08d57]",
                                   isWordHighlightedByAudio
                                     ? "bg-[#b08d57]/30 text-[#8a6321] dark:text-[#f5d598]"
                                     : isSelectedWord
@@ -1331,7 +1625,18 @@ export function MushafStudyClient({
                                         : "hover:bg-[#ede5d2]"
                                 )}
                               >
-                                {word.textUthmani}
+                                <span>{word.textUthmani}</span>
+                                {wordTajweed.length > 1 && (
+                                  <span className="flex items-center gap-0.5 mt-0.5" aria-hidden="true">
+                                    {wordTajweed.slice(0, 3).map((r) => (
+                                      <span
+                                        key={r.category}
+                                        className="h-1 w-1 rounded-full"
+                                        style={{ backgroundColor: r.colorHex }}
+                                      />
+                                    ))}
+                                  </span>
+                                )}
                               </button>
                             );
                           })}
@@ -1491,6 +1796,43 @@ export function MushafStudyClient({
                   )}
                 </div>
 
+                {/* Phase 7A: Selected Word Tajweed Rules */}
+                {(() => {
+                  const selectedTajweed = analyzeWordTajweed(selectedWord.textUthmani);
+                  return (
+                    <div className="rounded-xl border border-[#ece4cf] bg-[#faf8f3] p-3.5 space-y-2 text-xs">
+                      <span className="font-semibold text-[#1c241f] block">
+                        Kelimedeki Tecvid Kuralları
+                      </span>
+                      {selectedTajweed.length > 0 ? (
+                        <div className="space-y-1.5">
+                          {selectedTajweed.map((rule) => (
+                            <div
+                              key={rule.category}
+                              className="rounded-lg border p-2 space-y-0.5"
+                              style={{
+                                borderColor: `${rule.colorHex}40`,
+                                backgroundColor: rule.bgHex,
+                              }}
+                            >
+                              <p className="font-bold" style={{ color: rule.colorHex }}>
+                                {rule.titleTr}
+                              </p>
+                              <p className="text-[11px] text-[#3f4a43] leading-relaxed">
+                                {rule.descriptionTr}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-[#5a655e]">
+                          Bu kelimede özel vurgulu tecvid işareti bulunmuyor (doğal akışla okunur).
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Add to FSRS Review Deck */}
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -1613,9 +1955,34 @@ export function MushafStudyClient({
                 className="mt-0.5 accent-[#1b4332]"
               />
               <span>
-                Harici Kur&apos;an ASR kelime sırası kontrolü için ses kaydımın sunucuya gönderilmesine açık onay veriyorum (kapalıyken hiçbir ses verisi dışarı gönderilmez).
+                Hibrit Kur&apos;an ASR kelime sırası kontrolü için okuma transkriptinin / ses kaydının analiz edilmesine açık onay veriyorum (kapalıyken hiçbir veri işlenmez).
               </span>
             </label>
+
+            {/* Phase 7C: Optional Quick Arabic Transcript Sequence Alignment */}
+            <form onSubmit={handleManualTranscriptAlign} className="space-y-2 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3">
+              <label className="block text-[11px] font-semibold text-[#1c241f]">
+                Okunan Arapça Metni Hizala / Test Et (Opsiyonel ASR Kontrolü)
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  lang="ar"
+                  dir="rtl"
+                  value={manualTranscript}
+                  onChange={(e) => setManualTranscript(e.target.value)}
+                  placeholder="Okuduğunuz veya dikte ettiğiniz Arapça metni girin..."
+                  className="flex-1 rounded-lg border border-[#e5dec9] bg-white px-3 py-1.5 text-sm font-arabic"
+                />
+                <button
+                  type="submit"
+                  disabled={aligningManual || !manualTranscript.trim()}
+                  className="rounded-lg border border-[#1b4332] bg-[#edf5f0] px-3 py-1.5 text-xs font-semibold text-[#1b4332] hover:bg-[#dcece2] disabled:opacity-50 shrink-0"
+                >
+                  {aligningManual ? "Hizalanıyor..." : "Kelime Sırasını Kontrol Et"}
+                </button>
+              </div>
+            </form>
 
             {recordingError && (
               <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-800 flex items-start gap-2">

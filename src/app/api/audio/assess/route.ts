@@ -11,6 +11,7 @@ const AssessSchema = z.object({
   audioMimeType: z.string().default("audio/webm"),
   durationMs: z.number().int().positive(),
   consentGranted: z.boolean(),
+  clientTranscript: z.string().max(4000).optional(),
 });
 
 const DeleteSchema = z.object({
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
       const rawMime = form.get("audioMimeType");
       const rawDuration = form.get("durationMs");
       const rawConsent = form.get("consentGranted");
+      const rawTranscript = form.get("clientTranscript");
       const rawAudio = form.get("audio");
 
       parsed = AssessSchema.parse({
@@ -40,6 +42,10 @@ export async function POST(req: Request) {
         audioMimeType: typeof rawMime === "string" && rawMime ? rawMime : "audio/webm",
         durationMs: Number(rawDuration),
         consentGranted: rawConsent === "true",
+        clientTranscript:
+          typeof rawTranscript === "string" && rawTranscript.trim()
+            ? rawTranscript.trim()
+            : undefined,
       });
 
       // Enforce explicit user consent on server side before reading/forwarding any audio bytes
@@ -78,6 +84,7 @@ export async function POST(req: Request) {
       durationMs: parsed.durationMs,
       consentGranted: parsed.consentGranted,
       audioBytes: parsed.consentGranted ? audioBytes : undefined,
+      clientTranscript: parsed.consentGranted ? parsed.clientTranscript : undefined,
     });
 
     return NextResponse.json({ record, assessment });

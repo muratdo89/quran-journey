@@ -25,10 +25,14 @@
    - Verify all 6 Qaris resolve valid HTTPS ayah audio URLs (`001001.mp3`, `002255.mp3`) via `getReciterAyahAudioUrl`.
    - Verify `buildVerseTeacherReviewPackage` outputs the 5-criterion Tajweed checklist, learner notes/duration, ASR sequence summary, and mandatory `requiresHumanReview: true` epistemic notice.
    - Verify `runCloudEnvSetup` and `/api/health` readiness diagnostics against canonical corpus totals and Supabase SQL assets.
-7. **TypeScript, Lint, Tracing & Production Build Verification**
+7. **Colored Tajweed, Range Loop Player & Hybrid ASR Tests (`tests/phase7-features.test.ts`)**
+   - Verify `TAJWEED_LEGEND` and deterministic `analyzeWordTajweed` rule matching (`qalqalah`, `ghunnah`, `madd`, `noon_meem_sakin`, `tafkhim`) on Uthmani script words.
+   - Verify `normalizeRangeLoopConfig` boundary/swap normalization and `buildRangePlaybackQueue` step ordering across verse and range repeat loops.
+   - Verify `HybridQuranAsrProvider` explicit consent enforcement (`consent_required`), fallback Web Speech / manual transcript DP alignment (`sequence_check` with `requiresHumanReview: true`), and `unavailable` handling when unconfigured and silent.
+8. **TypeScript, Lint, Tracing & Production Build Verification**
    - `npx tsc --noEmit` (strict TypeScript check).
    - `pnpm lint` and `pnpm build` (including `.nft.json` inspection confirming compressed canonical data files are traced).
-8. **Live Server / End-to-End Smoke Verification**
+9. **Live Server / End-to-End Smoke Verification**
    - Verify live Next.js server rendering across all routes (`/`, `/learn-arabic`, `/mushaf`, `/mushaf?page=2`, `/mushaf?page=604`, `/vocabulary`, `/vocabulary?tab=roots`, `/memorization?surah=2`, `/review`, `/statistics`, `/settings`, `/sw.js`) and API routes (`/api/health`, `/api/state`, `/api/search`, `/api/vocabulary`, `/api/mushaf/offline`).
 
 ---
@@ -48,4 +52,9 @@
 - [x] 6 verified Qaris selectable across `/mushaf` and `/memorization`.
 - [x] Downloadable local recitation audio + copyable/downloadable Turkish Teacher Review Markdown package with 5-point Tajweed checklist and JSON study backup export.
 - [x] `/api/health` diagnostics endpoint, `pnpm setup:env` local/cloud setup check, and interactive `/settings` verification UI.
+
+### Phase 7 (Colored Tajweed, Verse Range Hifz Loops & Hybrid ASR)
+- [x] Toggleable `Renkli Tecvid Modu` with 5-rule legend and Word Inspector rule details in `/mushaf`.
+- [x] Configurable verse range loop (`Aralıklı Döngüsel Dinleme`) in `/memorization` and per-section page loop (`Sayfa Döngüsü`) in `/mushaf`.
+- [x] `HybridQuranAsrProvider` combining external HTTP ASR (`QURAN_ASR_API_URL`), browser Web Speech (`ar-SA`), and manual transcript alignment under explicit consent and `requiresHumanReview: true`.
 

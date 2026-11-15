@@ -31,9 +31,9 @@ export async function getBackendConfigurationStatus(): Promise<BackendConfigurat
   const qfConfigured = Boolean(
     process.env.QF_CLIENT_ID && process.env.QF_CLIENT_SECRET
   );
-  const asrConfigured = Boolean(
-    process.env.QURAN_ASR_API_URL || process.env.OPENAI_API_KEY
-  );
+  // HybridQuranAsrProvider always enables client Web Speech + Arabic Levenshtein sequence checks,
+  // optionally backed by QURAN_ASR_API_URL when configured.
+  const asrConfigured = true;
 
   const activePersistence: BackendConfigurationStatus["activePersistence"] = session
     ? "supabase_postgres"
