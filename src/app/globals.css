@@ -45,3 +45,28 @@ body {
   font-family: var(--font-scheherazade), var(--font-amiri), serif;
   font-feature-settings: "liga" 1, "calt" 1, "mark" 1, "mkmk" 1;
 }
+
+/* Listen-and-repeat: "your turn" countdown bar fills over the pause length */
+@keyframes qj-turn-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.qj-turn-fill {
+  transform-origin: left;
+  animation-name: qj-turn-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qj-turn-fill {
+    animation: none;
+    transform: scaleX(1);
+    opacity: 0.6;
+  }
+}

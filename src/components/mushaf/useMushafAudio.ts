@@ -242,6 +242,7 @@ export function useMushafAudio({
     playSectionChapter,
     playVerse,
     playWord,
+    stopAudio,
   };
 }
 
