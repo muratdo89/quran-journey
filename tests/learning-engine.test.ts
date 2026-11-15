@@ -4,6 +4,8 @@ import {
   calculateIndependentPillarScores,
   createInitialCardRecord,
   evaluatePlacementAssessment,
+  REVIEW_CHOICES,
+  isRetiredCard,
   prioritizeDueCards,
   scheduleCardReview,
   transitionMemorizationState,
@@ -29,6 +31,28 @@ describe("FSRS Scheduler & Prioritization", () => {
     );
     expect(againRes.wasCorrect).toBe(false);
     expect(againRes.updatedCard.lapses).toBe(1);
+  });
+
+  it("schedules learner-picked intervals exactly and retires cards marked as learned", () => {
+    const t0 = new Date("2026-11-14T10:00:00.000Z");
+    const card = createInitialCardRecord("c2", "vocabulary", "1:1:2", "ar_to_tr", t0);
+    const hourMs = 3600000;
+    const cases = [
+      ["1h", hourMs],
+      ["1d", 24 * hourMs],
+      ["1w", 7 * 24 * hourMs],
+      ["1m", 30 * 24 * hourMs],
+    ] as const;
+    for (const [choice, ms] of cases) {
+      const res = scheduleCardReview(card, REVIEW_CHOICES[choice].rating, t0, choice);
+      expect(new Date(res.updatedCard.dueAt).getTime() - t0.getTime()).toBe(ms);
+      expect(res.intervalLabelTr).toBe(REVIEW_CHOICES[choice].labelTr);
+      expect(isRetiredCard(res.updatedCard)).toBe(false);
+    }
+
+    const learned = scheduleCardReview(card, REVIEW_CHOICES.learned.rating, t0, "learned");
+    expect(isRetiredCard(learned.updatedCard)).toBe(true);
+    expect(prioritizeDueCards([learned.updatedCard], new Date("2030-01-01T00:00:00.000Z"))).toHaveLength(0);
   });
 
   it("prioritizes lapsed overdue cards ahead of fresh cards", () => {

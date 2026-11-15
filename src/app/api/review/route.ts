@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getRepository } from "@/lib/db";
-import type { ReviewRating } from "@/lib/learning-engine";
+import { REVIEW_CHOICES, type ReviewChoice, type ReviewRating } from "@/lib/learning-engine";
 
 const SubmitReviewSchema = z.object({
   action: z.literal("submit").optional().default("submit"),
   cardId: z.string().min(1),
-  rating: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+  rating: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).optional(),
+  choice: z.enum(["1h", "1d", "1w", "1m", "learned"]).optional(),
   responseTimeMs: z.number().int().nonnegative().optional(),
 });
 
@@ -46,9 +47,15 @@ export async function POST(req: Request) {
     }
 
     const parsed = SubmitReviewSchema.parse(body);
+    const choice = parsed.choice as ReviewChoice | undefined;
+    const rating = (choice ? REVIEW_CHOICES[choice].rating : parsed.rating) as ReviewRating | undefined;
+    if (!rating) {
+      return NextResponse.json({ error: "Geçersiz tekrar verisi." }, { status: 400 });
+    }
     const result = await repo.submitCardReview({
       cardId: parsed.cardId,
-      rating: parsed.rating as ReviewRating,
+      rating,
+      choice,
       responseTimeMs: parsed.responseTimeMs,
     });
     return NextResponse.json(result);
