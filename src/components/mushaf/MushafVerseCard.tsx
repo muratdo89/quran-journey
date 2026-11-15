@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Bookmark, BookmarkCheck, GitCompareArrows, Square, Volume2 } from "lucide-react";
 import type { CanonicalVerse, CanonicalWord } from "@/lib/content/types";
 import { getTajweedLegend, type TajweedWordAnalysis } from "@/lib/content/tajweed-analyzer";
@@ -33,6 +33,10 @@ interface MushafVerseCardProps {
   mutashabihatCount: number;
   /** Letter-level tajweed per word, or undefined when the overlay is off. */
   tajweed: TajweedWordAnalysis[] | undefined;
+  /** Word positions the listen-and-repeat drill is on in this verse, if any. */
+  drillWordPositions?: number[] | null;
+  /** True while it is the learner's turn to repeat the drill words. */
+  drillIsLearnerTurn?: boolean;
   onSelectVerse: (verseKey: string) => void;
   onSelectWord: (verse: CanonicalVerse, word: CanonicalWord) => void;
   onPlayVerse: (verse: CanonicalVerse) => void;
@@ -50,6 +54,8 @@ export function MushafVerseCard({
   isDifficult,
   mutashabihatCount,
   tajweed,
+  drillWordPositions = null,
+  drillIsLearnerTurn = false,
   onSelectVerse,
   onSelectWord,
   onPlayVerse,
@@ -59,6 +65,17 @@ export function MushafVerseCard({
   const activeTrans = getActiveTranslation(verse, reader.translationId);
   const isVerseAudioPlaying =
     audio.playingMode !== "idle" && audio.activeAudioVerseKey === verse.verseKey;
+  const wordsContainerRef = useRef<HTMLDivElement | null>(null);
+  const firstDrillPosition = drillWordPositions?.[0] ?? null;
+
+  // Keep the drilled word on screen as the drill moves through the page.
+  useEffect(() => {
+    if (firstDrillPosition === null) return;
+    const el = wordsContainerRef.current?.querySelector<HTMLElement>(
+      `[data-word-position="${firstDrillPosition}"]`
+    );
+    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [firstDrillPosition]);
 
   return (
     <article
@@ -149,6 +166,7 @@ export function MushafVerseCard({
 
       {/* Interactive RTL Arabic Words */}
       <div
+        ref={wordsContainerRef}
         lang="ar"
         dir="rtl"
         translate="no"
@@ -164,17 +182,23 @@ export function MushafVerseCard({
             audio.playingMode === "chapter" &&
             audio.activeAudioVerseKey === verse.verseKey &&
             audio.activeAudioWordPos === word.position;
+          const isDrillWord = drillWordPositions?.includes(word.position) ?? false;
           const wordTajweed = tajweed?.[wordIndex];
 
           return (
             <button
               key={word.location}
               type="button"
+              data-word-position={word.position}
               onClick={() => onSelectWord(verse, word)}
               title={tajweedTitle(wordTajweed)}
               className={cn(
                 "inline-flex flex-col items-center rounded-lg px-1.5 py-0.5 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#b08d57]",
-                isWordHighlightedByAudio
+                isDrillWord
+                  ? drillIsLearnerTurn
+                    ? "ring-2 ring-[#b08d57] bg-[#b08d57]/15"
+                    : "bg-[#b08d57]/30 ring-2 ring-[#b08d57]/60"
+                  : isWordHighlightedByAudio
                   ? "bg-[#b08d57]/30 text-[#8a6321] dark:text-[#f5d598]"
                   : isSelectedWord
                     ? darkReader

@@ -4,6 +4,7 @@ import React from "react";
 import {
   CheckCircle2,
   Download,
+  Ear,
   Eye,
   EyeOff,
   Moon,
@@ -25,6 +26,8 @@ interface MushafReaderControlsProps {
   audio: MushafAudio;
   searchOpen: boolean;
   onToggleSearch: () => void;
+  listenRepeatActive: boolean;
+  onToggleListenRepeat: () => void;
 }
 
 /** Action and typography controls: study mark, search, offline, theme, reciter, tajweed, page loop. */
@@ -35,6 +38,8 @@ export function MushafReaderControls({
   audio,
   searchOpen,
   onToggleSearch,
+  listenRepeatActive,
+  onToggleListenRepeat,
 }: MushafReaderControlsProps) {
   const { pageStudied, markingPage, offlineSaved, savingOffline } = pageTools;
   const { isPageLooping, pageLoopStep } = audio;
@@ -225,6 +230,21 @@ export function MushafReaderControls({
           </span>
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={onToggleListenRepeat}
+        title="Seçili kelimeden başlayarak hoca okur, sen tekrar edersin"
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 font-semibold transition-colors",
+          listenRepeatActive
+            ? "bg-red-700 text-white"
+            : "bg-[#b08d57] text-white hover:bg-[#96773f]"
+        )}
+      >
+        <Ear className="h-3.5 w-3.5" />
+        <span>{listenRepeatActive ? "Dinle-Tekrar Et: Bitir" : "Dinle ve Tekrar Et"}</span>
+      </button>
     </div>
   );
 }

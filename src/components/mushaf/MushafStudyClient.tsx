@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type {
   CanonicalSurahMeta,
   CanonicalVerse,
@@ -22,6 +22,7 @@ import { useReaderPreferences } from "./useReaderPreferences";
 import { usePageTools } from "./usePageTools";
 import { useMushafAudio } from "./useMushafAudio";
 import { useRecitationRecorder } from "./useRecitationRecorder";
+import { useListenRepeat } from "./useListenRepeat";
 import { MushafPageNavigator } from "./MushafPageNavigator";
 import { MushafReaderControls } from "./MushafReaderControls";
 import { TajweedLegendStrip } from "./TajweedLegendStrip";
@@ -32,6 +33,7 @@ import { WordInspector } from "./WordInspector";
 import { MutashabihatCard } from "./MutashabihatCard";
 import { RecitationStudio } from "./RecitationStudio";
 import { VerseNoteForm } from "./VerseNoteForm";
+import { ListenRepeatFloatingBar, ListenRepeatPanel } from "./ListenRepeatPanel";
 
 interface MushafStudyClientProps {
   pageData: MushafPageData;
@@ -134,6 +136,45 @@ export function MushafStudyClient({
     playbackSpeed: prefs.playbackSpeed,
     onSelectVerse: selectVerse,
   });
+
+  const listenRepeat = useListenRepeat({
+    allVersesOnPage,
+    reciterId: prefs.reciterId,
+    onStepChange: followDrill,
+  });
+  const { isActive: listenRepeatActive, stop: stopListenRepeat } = listenRepeat;
+
+  // Any other playback (ayah, chapter, word, page loop) ends the drill so two voices never overlap.
+  useEffect(() => {
+    if (audio.playingMode !== "idle" && listenRepeatActive) stopListenRepeat();
+  }, [audio.playingMode, listenRepeatActive, stopListenRepeat]);
+
+  function followDrill(verseKey: string, wordLocation: string | null) {
+    if (verseKey !== selectedVerseKey) selectVerse(verseKey);
+    if (!wordLocation) return;
+    const word = allVersesOnPage
+      .find((v) => v.verseKey === verseKey)
+      ?.words.find((w) => w.location === wordLocation);
+    if (word) setSelectedWord(word);
+  }
+
+  function startListenRepeat() {
+    audio.stopAudio();
+    const startLocation =
+      selectedWord && selectedVerse.words.some((w) => w.location === selectedWord.location)
+        ? selectedWord.location
+        : (selectedVerse.words[0]?.location ?? null);
+    listenRepeat.start(startLocation);
+  }
+
+  function toggleListenRepeat() {
+    if (listenRepeat.isActive) listenRepeat.stop();
+    else startListenRepeat();
+  }
+
+  const drillStep = listenRepeat.currentStep;
+  const drillWordPositions =
+    drillStep?.kind === "words" ? drillStep.words.map((w) => w.position) : null;
 
   // Phase 7A: letter-level Tajweed analysis per verse (cross-word rules need the whole verse)
   const tajweedByVerse = useMemo(() => {
@@ -246,6 +287,8 @@ export function MushafStudyClient({
           audio={audio}
           searchOpen={searchOpen}
           onToggleSearch={() => setSearchOpen((v) => !v)}
+          listenRepeatActive={listenRepeat.isActive}
+          onToggleListenRepeat={toggleListenRepeat}
         />
 
         {prefs.showTajweedColors && <TajweedLegendStrip />}
@@ -303,6 +346,10 @@ export function MushafStudyClient({
                     tajweed={
                       prefs.showTajweedColors ? tajweedByVerse.get(verse.verseKey) : undefined
                     }
+                    drillWordPositions={
+                      drillStep?.verseKey === verse.verseKey ? drillWordPositions : null
+                    }
+                    drillIsLearnerTurn={listenRepeat.phase === "repeat"}
                     onSelectVerse={selectVerse}
                     onSelectWord={handleSelectWord}
                     onPlayVerse={audio.playVerse}
@@ -316,6 +363,18 @@ export function MushafStudyClient({
 
         {/* Right Side: Word Inspector + Mutashabihat + Voice Comparison + Notes */}
         <aside className="lg:col-span-5 space-y-6 lg:sticky lg:top-6">
+          <ListenRepeatPanel
+            listenRepeat={listenRepeat}
+            startWord={
+              selectedWord && selectedVerse.words.some((w) => w.location === selectedWord.location)
+                ? selectedWord
+                : (selectedVerse.words[0] ?? null)
+            }
+            startVerseKey={selectedVerse.verseKey}
+            showTransliteration={prefs.showTransliteration}
+            onStart={startListenRepeat}
+          />
+
           <WordInspector
             selectedWord={selectedWord}
             selectedVerse={selectedVerse}
@@ -357,6 +416,11 @@ export function MushafStudyClient({
           />
         </aside>
       </div>
+
+      <ListenRepeatFloatingBar
+        listenRepeat={listenRepeat}
+        showTransliteration={prefs.showTransliteration}
+      />
     </div>
   );
 }
