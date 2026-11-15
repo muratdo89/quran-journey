@@ -199,7 +199,9 @@ export function MushafVerseCard({
                     ? "ring-2 ring-gold bg-gold/15"
                     : "bg-gold/30 ring-2 ring-gold/60"
                   : isWordHighlightedByAudio
-                  ? "bg-gold/30 text-[#8a6321] dark:text-[#f5d598]"
+                    ? darkReader
+                      ? "bg-[#3b3322] text-[#f5d598] ring-2 ring-[#f5d598]/60"
+                      : "bg-gold-soft text-forest ring-2 ring-gold shadow-sm"
                   : isSelectedWord
                     ? darkReader
                       ? "bg-emerald text-white"

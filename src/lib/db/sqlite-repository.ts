@@ -1,4 +1,20 @@
 import crypto from "node:crypto";
+
+/**
+ * Deterministic vocabulary card id. On serverless hosts each instance may hold its own
+ * temporary SQLite file; stable ids let a review posted to another instance still find
+ * (or recreate) the same card instead of failing with "card not found".
+ */
+export function vocabularyCardId(userId: string, wordLocation: string, direction: string): string {
+  return `vocab:${userId}:${direction}:${wordLocation}`;
+}
+
+function parseVocabularyCardId(
+  cardId: string
+): { userId: string; wordLocation: string; direction: "ar_to_tr" | "tr_to_ar" } | null {
+  const m = /^vocab:(.+):(ar_to_tr|tr_to_ar):(\d+:\d+:\d+)$/.exec(cardId);
+  return m ? { userId: m[1]!, direction: m[2] as "ar_to_tr" | "tr_to_ar", wordLocation: m[3]! } : null;
+}
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -314,7 +330,7 @@ export class SqliteProgressRepository implements ProgressRepository {
           seenArabic.add(w.textUthmani);
           starterCount += 1;
           const card = createInitialCardRecord(
-            crypto.randomUUID(),
+            vocabularyCardId(userId, w.location, "ar_to_tr"),
             "vocabulary",
             w.location,
             "ar_to_tr",
@@ -599,9 +615,21 @@ export class SqliteProgressRepository implements ProgressRepository {
     responseTimeMs?: number;
     userId?: string;
   }) {
-    const row = this.db
-      .prepare("SELECT * FROM learning_cards WHERE id = ? AND user_id = ?")
-      .get(cardId, userId) as Record<string, unknown> | undefined;
+    const selectCard = this.db.prepare("SELECT * FROM learning_cards WHERE id = ? AND user_id = ?");
+    let row = selectCard.get(cardId, userId) as Record<string, unknown> | undefined;
+
+    if (!row) {
+      // Card created on another serverless instance: recreate it from its stable id.
+      const parsed = parseVocabularyCardId(cardId);
+      if (parsed && parsed.userId === userId) {
+        const ensured = await this.ensureVocabularyCard({
+          wordLocation: parsed.wordLocation,
+          direction: parsed.direction,
+          userId,
+        });
+        row = selectCard.get(ensured.id, userId) as Record<string, unknown> | undefined;
+      }
+    }
 
     if (!row) {
       throw new Error("Kart bulunamadı.");
@@ -736,7 +764,7 @@ export class SqliteProgressRepository implements ProgressRepository {
       .run(crypto.randomUUID(), userId, wordLocation);
 
     const card = createInitialCardRecord(
-      crypto.randomUUID(),
+      vocabularyCardId(userId, wordLocation, direction),
       "vocabulary",
       wordLocation,
       direction
@@ -821,7 +849,7 @@ export class SqliteProgressRepository implements ProgressRepository {
       for (const w of toInsert) {
         insertWordProg.run(crypto.randomUUID(), userId, w.location);
         const card = createInitialCardRecord(
-          crypto.randomUUID(),
+          vocabularyCardId(userId, w.location, direction),
           "vocabulary",
           w.location,
           direction,

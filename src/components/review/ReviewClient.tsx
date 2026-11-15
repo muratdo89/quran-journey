@@ -72,7 +72,11 @@ export function ReviewClient({
         setLastFeedback(
           `Kart güncellendi · Bir sonraki tekrar: ${data.intervalLabelTr}`
         );
+      } else {
+        setLastFeedback("Değerlendirme kaydedilemedi. Lütfen tekrar dokun.");
       }
+    } catch {
+      setLastFeedback("Bağlantı sorunu: değerlendirme kaydedilemedi. Lütfen tekrar dokun.");
     } finally {
       setSubmitting(false);
     }
