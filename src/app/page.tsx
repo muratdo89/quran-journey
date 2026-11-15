@@ -1,5 +1,3 @@
-import { ARABIC_READING_MODULES, TAJWEED_LESSONS } from "@/lib/content/arabic-curriculum";
-import { getAvailablePages, getAvailableSurahs } from "@/lib/content/canonical-loader";
 import { getBackendConfigurationStatus, getRepository } from "@/lib/db";
 import { buildDailyLearningPlan } from "@/lib/learning-engine";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
@@ -40,10 +38,6 @@ export default async function DashboardPage() {
       initialSnapshot={snapshot}
       initialPlan={dailyPlan}
       backendStatus={backendStatus}
-      totalSurahs={getAvailableSurahs().length}
-      totalPages={getAvailablePages().length}
-      totalReadingModules={ARABIC_READING_MODULES.length}
-      totalTajweedLessons={TAJWEED_LESSONS.length}
     />
   );
 }
