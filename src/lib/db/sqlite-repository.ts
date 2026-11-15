@@ -36,6 +36,7 @@ import {
   type CardDirection,
   type CardType,
   type MemorizationState,
+  type ReviewChoice,
   type ReviewRating,
   type SessionMode,
   type StoredLearningCard,
@@ -607,11 +608,13 @@ export class SqliteProgressRepository implements ProgressRepository {
   async submitCardReview({
     cardId,
     rating,
+    choice,
     responseTimeMs,
     userId = DEFAULT_USER_ID,
   }: {
     cardId: string;
     rating: ReviewRating;
+    choice?: ReviewChoice;
     responseTimeMs?: number;
     userId?: string;
   }) {
@@ -637,7 +640,7 @@ export class SqliteProgressRepository implements ProgressRepository {
 
     const now = new Date();
     const currentCard = this.mapCardRow(row);
-    const result = scheduleCardReview(currentCard, rating, now);
+    const result = scheduleCardReview(currentCard, rating, now, choice);
 
     this.db
       .prepare(
@@ -691,7 +694,9 @@ export class SqliteProgressRepository implements ProgressRepository {
         (existingWord ? Number(existingWord.times_missed) : 0) + (result.wasCorrect ? 0 : 1);
 
       let nextStatus: WordProgressRecord["status"] = "learning";
-      if (!result.wasCorrect) {
+      if (choice === "learned") {
+        nextStatus = "known";
+      } else if (!result.wasCorrect) {
         nextStatus = timesMissed >= 2 ? "difficult" : "learning";
       } else if (result.updatedCard.reps >= 2 && result.updatedCard.scheduledDays >= 1) {
         nextStatus = "known";

@@ -5,9 +5,8 @@ import Link from "next/link";
 import { CheckCircle2, Eye, RotateCcw, Volume2 } from "lucide-react";
 import type { CanonicalWord } from "@/lib/content/types";
 import {
-  previewIntervals,
   prioritizeDueCards,
-  type ReviewRating,
+  type ReviewChoice,
   type StoredLearningCard,
 } from "@/lib/learning-engine";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -22,6 +21,19 @@ interface ReviewClientProps {
   wordsByLocation: Record<string, WordLookupEntry>;
   isRecoveryMode?: boolean;
 }
+
+const REVIEW_BUTTONS: { choice: ReviewChoice; label: string; hint: string; style: string }[] = [
+  { choice: "1h", label: "1 saat", hint: "Bilemedim", style: "border-red-200 bg-red-50 text-red-900 hover:bg-red-100" },
+  { choice: "1d", label: "Yarın", hint: "Zorlandım", style: "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100" },
+  { choice: "1w", label: "1 hafta", hint: "Hatırladım", style: "border-emerald/30 bg-mint text-forest hover:bg-mint-strong" },
+  { choice: "1m", label: "1 ay", hint: "Çok kolaydı", style: "border-forest/30 bg-mint-strong text-forest hover:bg-mint" },
+  {
+    choice: "learned",
+    label: "Öğrendim",
+    hint: "Artık sorma",
+    style: "col-span-2 sm:col-span-1 border-forest bg-forest text-white hover:bg-forest-deep",
+  },
+];
 
 export function ReviewClient({
   initialCards,
@@ -43,24 +55,19 @@ export function ReviewClient({
   const currentCard = dueQueue[0] ?? null;
   const currentWord = currentCard ? wordsByLocation[currentCard.targetKey] : undefined;
 
-  const intervals = useMemo(() => {
-    if (!currentCard) return null;
-    return previewIntervals(currentCard, new Date());
-  }, [currentCard]);
-
   function playWordAudio(url: string | null | undefined) {
     if (!url) return;
     new Audio(url).play().catch(() => {});
   }
 
-  async function handleRate(rating: ReviewRating) {
+  async function handleRate(choice: ReviewChoice) {
     if (!currentCard) return;
     setSubmitting(true);
     try {
       const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId: currentCard.id, rating }),
+        body: JSON.stringify({ cardId: currentCard.id, choice }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -70,7 +77,9 @@ export function ReviewClient({
         setSessionReviewed((n) => n + 1);
         setSessionXp((x) => x + (data.xpAwarded ?? 0));
         setLastFeedback(
-          `Kart güncellendi · Bir sonraki tekrar: ${data.intervalLabelTr}`
+          choice === "learned"
+            ? "Kart öğrenildi olarak işaretlendi, artık sorulmayacak."
+            : `Kart güncellendi · Bir sonraki tekrar: ${data.intervalLabelTr}`
         );
       } else {
         setLastFeedback("Değerlendirme kaydedilemedi. Lütfen tekrar dokun.");
@@ -91,7 +100,7 @@ export function ReviewClient({
             title="Tekrar Kartları"
             description={isRecoveryMode
               ? "Toparlanma modu: Yalnızca en öncelikli 6 kart seçildi."
-              : "Cevabı görmeden önce zihninizden hatırlamaya çalışın; ardından dürüstçe değerlendirin."}
+              : "Cevabı görmeden önce zihninizden hatırlamaya çalışın; ardından ne zaman tekrar görmek istediğinizi seçin."}
             related={[{ href: "/", label: "Bugünkü plan" }]}
           />
         </div>
@@ -199,26 +208,22 @@ export function ReviewClient({
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {[
-                  { rating: 1 as ReviewRating, label: "Tekrar", style: "border-red-200 bg-red-50 text-red-900 hover:bg-red-100" },
-                  { rating: 2 as ReviewRating, label: "Zor", style: "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100" },
-                  { rating: 3 as ReviewRating, label: "İyi", style: "border-emerald/30 bg-mint text-forest hover:bg-mint-strong" },
-                  { rating: 4 as ReviewRating, label: "Kolay", style: "bg-forest text-white hover:bg-forest-deep" },
-                ].map((btn) => (
-                  <button
-                    key={btn.rating}
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => handleRate(btn.rating)}
-                    className={`rounded-xl border px-3 py-3 text-center transition-colors ${btn.style}`}
-                  >
-                    <span className="block text-xs font-bold">{btn.label}</span>
-                    <span className="block text-[11px] opacity-80 mt-0.5">
-                      {intervals?.[btn.rating]}
-                    </span>
-                  </button>
-                ))}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted">Bu kelimeyi ne zaman tekrar görmek istersin?</p>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  {REVIEW_BUTTONS.map((btn) => (
+                    <button
+                      key={btn.choice}
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => handleRate(btn.choice)}
+                      className={`rounded-xl border px-3 py-3 text-center transition-colors disabled:opacity-60 ${btn.style}`}
+                    >
+                      <span className="block text-sm font-bold">{btn.label}</span>
+                      <span className="block text-[11px] opacity-80 mt-0.5">{btn.hint}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}

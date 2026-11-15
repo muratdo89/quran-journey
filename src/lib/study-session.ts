@@ -21,8 +21,11 @@ export interface ActiveSession {
   /** YYYY-MM-DD the session was started (sessions expire at day change). */
   day: string;
   steps: SessionStep[];
+  /** First step not yet done (steps.length when everything is done). */
   index: number;
   startedAt: number;
+  /** Ids of steps the learner has opened (or finished, for the warm-up). */
+  done?: string[];
 }
 
 export interface LastStudyLocation {
@@ -97,25 +100,59 @@ export function useLastStudy(): LastStudyLocation | null {
   return useSyncExternalStore(subscribe, () => parsed<LastStudyLocation>(LAST_KEY), () => null);
 }
 
-/** Starts today's session (or restarts it at `startIndex`) and returns the href to open. */
+function hrefPath(href: string): string {
+  return href.split("?")[0] || "/";
+}
+
+function firstOpenIndex(steps: SessionStep[], done: string[]): number {
+  const i = steps.findIndex((st) => !done.includes(st.id));
+  return i === -1 ? steps.length : i;
+}
+
+function writeSession(session: ActiveSession) {
+  writeRaw(SESSION_KEY, JSON.stringify(session));
+}
+
+/**
+ * Opens step `startIndex` of today's plan (starting the session if needed) and returns its
+ * href. Steps already done today stay done, so the learner can pick any box in any order.
+ */
 export function startSession(steps: SessionStep[], startIndex = 0): string {
   const index = Math.min(Math.max(0, startIndex), steps.length - 1);
-  const session: ActiveSession = { day: todayKey(), steps, index, startedAt: Date.now() };
-  writeRaw(SESSION_KEY, JSON.stringify(session));
+  const prev = getSession();
+  const sameSteps =
+    !!prev && prev.steps.length === steps.length && prev.steps.every((st, i) => st.id === steps[i].id);
+  const done = sameSteps ? (prev.done ?? []) : [];
+  writeSession({ day: todayKey(), steps, index, startedAt: sameSteps ? prev.startedAt : Date.now(), done });
   return steps[index].href;
 }
 
-/** Moves to the next step. Returns its href, or null when the session is finished. */
+/** Marks the current step done and returns the next open step's href, or null when all are done. */
 export function advanceSession(): string | null {
   const s = getSession();
   if (!s) return null;
-  if (s.index + 1 >= s.steps.length) {
-    writeRaw(SESSION_KEY, JSON.stringify({ ...s, index: s.steps.length }));
-    return null;
-  }
-  const next = { ...s, index: s.index + 1 };
-  writeRaw(SESSION_KEY, JSON.stringify(next));
-  return next.steps[next.index].href;
+  const current = s.steps[Math.min(s.index, s.steps.length - 1)];
+  const done = Array.from(new Set([...(s.done ?? []), current.id]));
+  const index = firstOpenIndex(s.steps, done);
+  writeSession({ ...s, done, index });
+  return index < s.steps.length ? s.steps[index].href : null;
+}
+
+/**
+ * Opening a study page counts as doing that step of today's plan. The warm-up is the
+ * exception: it only counts once finished (it calls advanceSession itself).
+ */
+export function markStepVisited(pathname: string) {
+  const s = getSession();
+  if (!s || pathname === "/" || pathname === "/warmup") return;
+  const hits = s.steps.filter((st) => hrefPath(st.href) === pathname).map((st) => st.id);
+  if (hits.length === 0 || hits.every((id) => s.done?.includes(id))) return;
+  const done = Array.from(new Set([...(s.done ?? []), ...hits]));
+  writeSession({ ...s, done, index: firstOpenIndex(s.steps, done) });
+}
+
+export function isStepDone(s: ActiveSession | null, stepId: string): boolean {
+  return !!s?.done?.includes(stepId);
 }
 
 export function endSession() {

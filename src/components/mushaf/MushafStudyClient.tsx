@@ -17,7 +17,7 @@ import type {
 } from "@/lib/db/types";
 import { analyzeVerseTajweed, type TajweedWordAnalysis } from "@/lib/content/tajweed-analyzer";
 import { cn } from "@/lib/utils";
-import type { RootOccurrencePreview } from "./shared";
+import { persistPreferences, type RootOccurrencePreview } from "./shared";
 import { useReaderPreferences } from "./useReaderPreferences";
 import { usePageTools } from "./usePageTools";
 import { useMushafAudio } from "./useMushafAudio";
@@ -25,7 +25,6 @@ import { useRecitationRecorder } from "./useRecitationRecorder";
 import { useListenRepeat } from "./useListenRepeat";
 import { MushafPageNavigator } from "./MushafPageNavigator";
 import { MushafReaderControls } from "./MushafReaderControls";
-import { TajweedLegendStrip } from "./TajweedLegendStrip";
 import { MushafSearchPanel } from "./MushafSearchPanel";
 import { MushafSurahHeader } from "./MushafSurahHeader";
 import { MushafVerseCard } from "./MushafVerseCard";
@@ -84,6 +83,8 @@ export function MushafStudyClient({
   const [selectedVerseKey, setSelectedVerseKey] = useState<string>(
     initialSelectedVerse?.verseKey ?? "1:1"
   );
+  // The mobile peek bar only appears after the learner taps a word, not for the preselected one.
+  const [wordTapped, setWordTapped] = useState(false);
   const [selectedWord, setSelectedWord] = useState<CanonicalWord | null>(
     initialSelectedVerse?.words[0] ?? null
   );
@@ -143,6 +144,11 @@ export function MushafStudyClient({
     onStepChange: followDrill,
   });
   const { isActive: listenRepeatActive, stop: stopListenRepeat } = listenRepeat;
+
+  // The page being read becomes "today's page": the daily plan, warm-up and "Kaldığın yer" follow it.
+  useEffect(() => {
+    persistPreferences({ currentPageNumber: pageData.pageNumber });
+  }, [pageData.pageNumber]);
 
   // Any other playback (ayah, chapter, word, page loop) ends the drill so two voices never overlap.
   useEffect(() => {
@@ -221,6 +227,7 @@ export function MushafStudyClient({
   function handleSelectWord(verse: CanonicalVerse, word: CanonicalWord) {
     selectVerse(verse.verseKey);
     setSelectedWord(word);
+    setWordTapped(true);
     setCardMessage(null);
   }
 
@@ -306,12 +313,6 @@ export function MushafStudyClient({
           listenRepeatActive={listenRepeat.isActive}
           onToggleListenRepeat={toggleListenRepeat}
         />
-
-        {prefs.showTajweedColors && (
-          <div className="hidden lg:block">
-            <TajweedLegendStrip />
-          </div>
-        )}
 
         <MushafSearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
 
@@ -443,7 +444,7 @@ export function MushafStudyClient({
       <WordPeekBar
         word={selectedWord}
         verseKey={selectedVerse.verseKey}
-        hidden={listenRepeat.isActive}
+        hidden={listenRepeat.isActive || (!wordTapped && audio.playingMode !== "chapter")}
         onPlayWord={audio.playWord}
       />
 

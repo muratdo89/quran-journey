@@ -12,6 +12,30 @@ export type CardType = "vocabulary" | "verse" | "reading_concept" | "tajweed";
 export type CardDirection = "ar_to_tr" | "tr_to_ar" | "recall" | "recognition";
 export type ReviewRating = 1 | 2 | 3 | 4;
 
+/**
+ * Learner-chosen next review time. Each choice still feeds FSRS a grade (so stability and
+ * difficulty keep learning), but the due date is exactly what the learner picked.
+ * "learned" retires the card: it is pushed ~10 years out and no longer shows in reviews.
+ */
+export type ReviewChoice = "1h" | "1d" | "1w" | "1m" | "learned";
+
+export const REVIEW_CHOICES: Record<
+  ReviewChoice,
+  { rating: ReviewRating; minutes: number; labelTr: string }
+> = {
+  "1h": { rating: 1, minutes: 60, labelTr: "1 saat sonra" },
+  "1d": { rating: 2, minutes: 60 * 24, labelTr: "Yarın" },
+  "1w": { rating: 3, minutes: 60 * 24 * 7, labelTr: "1 hafta sonra" },
+  "1m": { rating: 4, minutes: 60 * 24 * 30, labelTr: "1 ay sonra" },
+  learned: { rating: 4, minutes: 60 * 24 * 3650, labelTr: "Öğrenildi, artık sorulmayacak" },
+};
+
+export const RETIRED_AFTER_DAYS = 3000;
+
+export function isRetiredCard(card: Pick<StoredLearningCard, "scheduledDays">): boolean {
+  return card.scheduledDays >= RETIRED_AFTER_DAYS;
+}
+
 export interface StoredLearningCard {
   id: string;
   cardType: CardType;
@@ -134,12 +158,18 @@ export function previewIntervals(
 export function scheduleCardReview(
   stored: StoredLearningCard,
   rating: ReviewRating,
-  now: Date = new Date()
+  now: Date = new Date(),
+  choice?: ReviewChoice
 ): ReviewScheduleResult {
   const card = toFsrsCard(stored);
   const grade = ratingToGrade(rating);
   const nextOutcome = fsrsEngine.next(card, now, grade);
   const nextCard = nextOutcome.card;
+  if (choice) {
+    const picked = REVIEW_CHOICES[choice];
+    nextCard.due = new Date(now.getTime() + picked.minutes * 60000);
+    nextCard.scheduled_days = Math.floor(picked.minutes / (60 * 24));
+  }
 
   const updatedCard: StoredLearningCard = {
     ...stored,
@@ -165,7 +195,7 @@ export function scheduleCardReview(
     wasCorrect: rating >= 2,
     previousState: stored.fsrsState,
     nextState: nextCard.state,
-    intervalLabelTr: formatIntervalTurkish(nextCard.due, now),
+    intervalLabelTr: choice ? REVIEW_CHOICES[choice].labelTr : formatIntervalTurkish(nextCard.due, now),
   };
 }
 

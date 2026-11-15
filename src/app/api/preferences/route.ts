@@ -1,28 +1,21 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { getRepository } from "@/lib/db";
-
-const PrefsSchema = z.object({
-  displayName: z.string().min(1).max(60).optional(),
-  arabicFontSize: z.number().int().min(20).max(56).optional(),
-  arabicLineHeight: z.number().min(1.5).max(3.0).optional(),
-  themeMode: z.enum(["light", "dark"]).optional(),
-  showTranslationDefault: z.boolean().optional(),
-  showTransliteration: z.boolean().optional(),
-  preferredReciterId: z.number().int().optional(),
-  preferredTranslationId: z.number().int().optional(),
-  playbackSpeed: z.number().min(0.5).max(1.5).optional(),
-  cloudAiAudioConsent: z.boolean().optional(),
-  sessionMode: z.enum(["normal", "intensive", "recovery"]).optional(),
-  dailyTargetMinutes: z.number().int().min(3).max(120).optional(),
-  currentPageNumber: z.number().int().min(1).max(604).optional(),
-});
+import { PREFS_COOKIE, PrefsSchema, mergePrefsCookie } from "@/lib/db/prefs-cookie";
 
 export async function PATCH(req: Request) {
   try {
     const parsed = PrefsSchema.parse(await req.json());
     const repo = await getRepository();
     await repo.updatePreferences(parsed);
+    const cookieStore = await cookies();
+    cookieStore.set(PREFS_COOKIE, mergePrefsCookie(cookieStore.get(PREFS_COOKIE)?.value, parsed), {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      httpOnly: true,
+    });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof z.ZodError) {

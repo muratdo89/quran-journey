@@ -43,6 +43,7 @@ export default async function MemorizationPage({
       mutashabihatMap={mutashabihatMap}
       initialVerseProgress={snapshot.verseProgress}
       initialVerseKey={params.verse}
+      initialReciterId={snapshot.preferences.preferredReciterId}
     />
   );
 }

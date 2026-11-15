@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  ChevronDown,
   ArrowDown,
   ArrowUp,
   CheckCircle2,
@@ -26,6 +27,7 @@ import type {
 } from "@/lib/content/types";
 import type { VerseProgressRecord } from "@/lib/db/types";
 import { QURAN_RECITERS, getReciterAyahAudioUrl } from "@/lib/audio/reciters";
+import { persistPreferences } from "@/components/mushaf/shared";
 import {
   buildRangePlaybackQueue,
   type RangePlaybackStep,
@@ -41,6 +43,7 @@ interface MemorizationClientProps {
   mutashabihatMap: Record<string, MutashabihatMatch[]>;
   initialVerseProgress: VerseProgressRecord[];
   initialVerseKey?: string;
+  initialReciterId?: number;
 }
 
 type PracticeMode = "hide_all" | "cloze" | "next_verse" | "order_test";
@@ -70,6 +73,7 @@ export function MemorizationClient({
   mutashabihatMap,
   initialVerseProgress,
   initialVerseKey,
+  initialReciterId,
 }: MemorizationClientProps) {
   const router = useRouter();
   const [verseProgress, setVerseProgress] = useState<Record<string, VerseProgressRecord>>(() => {
@@ -99,7 +103,10 @@ export function MemorizationClient({
   const [revealedCloze, setRevealedCloze] = useState<Set<number>>(() => new Set());
   const [nextVerseRevealed, setNextVerseRevealed] = useState(false);
   const [showMutashabihat, setShowMutashabihat] = useState(false);
-  const [selectedReciterId, setSelectedReciterId] = useState<number>(QURAN_RECITERS[0]!.id);
+  const [showLoop, setShowLoop] = useState(false);
+  const [selectedReciterId, setSelectedReciterId] = useState<number>(
+    QURAN_RECITERS.some((r) => r.id === initialReciterId) ? initialReciterId! : QURAN_RECITERS[0]!.id
+  );
   const [loopAudio, setLoopAudio] = useState(false);
   const [savingOutcome, setSavingOutcome] = useState(false);
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
@@ -326,7 +333,7 @@ export function MemorizationClient({
           <PageHeader
             eyebrow="Ezber"
             title="Ezber Stüdyosu"
-            description={<>Tüm Kur&apos;an ({availableSurahs.length} Sure) için kelime gizleme, boşluk tamamlama, rastgele devam, sıralama ve Müteşâbihât kontrolü.</>}
+            description="Ayeti seç, dinle, sonra gizleyip kendin oku."
             related={[{ href: "/mushaf", label: "Mushaf" }]}
           />
         </div>
@@ -385,106 +392,6 @@ export function MemorizationClient({
         </div>
       </div>
 
-      {/* Phase 7B: Verse Range Looped Hifz Player */}
-      <section className="rounded-2xl border border-line bg-surface p-4 sm:p-5 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-bold text-ink flex items-center gap-1.5">
-              <Repeat className="h-4 w-4 text-forest" />
-              <span>Aralıklı Döngüsel Dinleme (Hıfz Oynatıcısı)</span>
-            </h2>
-            <p className="text-xs text-muted">
-              Seçili ayet aralığını belirlediğiniz tekrar sayısı ve kâri ile kesintisiz dinleyerek kulak ezberi yapın.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={startRangeLoop}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-colors shrink-0",
-              isRangePlaying
-                ? "bg-red-700 text-white hover:bg-red-800"
-                : "bg-forest text-white hover:bg-forest-deep"
-            )}
-          >
-            {isRangePlaying ? (
-              <>
-                <Square className="h-3.5 w-3.5" />
-                <span>Döngüyü Durdur</span>
-              </>
-            ) : (
-              <>
-                <Play className="h-3.5 w-3.5" />
-                <span>Döngüyü Başlat</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <label className="space-y-1">
-            <span className="font-semibold text-muted block">Başlangıç Ayeti</span>
-            <input
-              type="number"
-              min={verses[0]!.verseNumber}
-              max={verses[verses.length - 1]!.verseNumber}
-              value={rangeStart}
-              onChange={(e) => setRangeStart(Number(e.target.value))}
-              className="w-full rounded-xl border border-line bg-parchment px-3 py-1.5 font-semibold text-ink"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="font-semibold text-muted block">Bitiş Ayeti</span>
-            <input
-              type="number"
-              min={verses[0]!.verseNumber}
-              max={verses[verses.length - 1]!.verseNumber}
-              value={rangeEnd}
-              onChange={(e) => setRangeEnd(Number(e.target.value))}
-              className="w-full rounded-xl border border-line bg-parchment px-3 py-1.5 font-semibold text-ink"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="font-semibold text-muted block">Ayet Tekrarı</span>
-            <select
-              aria-label="Ayet tekrarı seç"
-              value={verseRepeatCount}
-              onChange={(e) => setVerseRepeatCount(Number(e.target.value))}
-              className="w-full rounded-xl border border-line bg-parchment px-3 py-1.5 font-semibold text-ink"
-            >
-              <option value={1}>1x</option>
-              <option value={2}>2x</option>
-              <option value={3}>3x</option>
-              <option value={5}>5x</option>
-            </select>
-          </label>
-          <label className="space-y-1">
-            <span className="font-semibold text-muted block">Set Turu</span>
-            <select
-              aria-label="Set turu seç"
-              value={rangeRepeatCount}
-              onChange={(e) => setRangeRepeatCount(Number(e.target.value))}
-              className="w-full rounded-xl border border-line bg-parchment px-3 py-1.5 font-semibold text-ink"
-            >
-              <option value={1}>1 Tur</option>
-              <option value={2}>2 Tur</option>
-              <option value={3}>3 Tur</option>
-            </select>
-          </label>
-        </div>
-
-        {isRangePlaying && rangeStep && (
-          <div className="rounded-xl border border-emerald/30 bg-mint px-3.5 py-2 text-xs font-semibold text-forest">
-            Oynatılıyor: Ayet {rangeStep.verseKey} · Tekrar {rangeStep.verseRepeatIndex}/
-            {rangeStep.verseRepeatTotal} · Tur {rangeStep.rangeRoundIndex}/
-            {rangeStep.rangeRoundTotal} ({rangeStep.stepIndex + 1}/{rangeStep.totalSteps})
-          </div>
-        )}
-
-        {rangeAudioError && (
-          <p className="text-xs font-semibold text-amber-900">{rangeAudioError}</p>
-        )}
-      </section>
 
       {/* Long-Surah 10-Verse Range Selector when > 20 verses */}
       {verses.length > 20 && (
@@ -631,27 +538,15 @@ export function MemorizationClient({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => playVerseAudio(selectedVerse, 7)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-sand px-3 py-2 text-xs font-semibold text-forest hover:bg-line"
-              >
-                <Volume2 className="h-3.5 w-3.5" />
-                <span>Afâsî Dinle</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => playVerseAudio(selectedVerse, 12)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-sand px-3 py-2 text-xs font-semibold text-forest hover:bg-line"
-              >
-                <Volume2 className="h-3.5 w-3.5" />
-                <span>Husarî (Muallim)</span>
-              </button>
               <div className="flex max-w-full flex-wrap items-center gap-1.5 rounded-xl border border-line bg-parchment p-1">
                 <select
                   aria-label="Ezber kârisi seç"
                   value={selectedReciterId}
-                  onChange={(e) => setSelectedReciterId(Number(e.target.value))}
+                  onChange={(e) => {
+                    const id = Number(e.target.value);
+                    setSelectedReciterId(id);
+                    persistPreferences({ preferredReciterId: id });
+                  }}
                   className="min-w-0 max-w-full flex-1 rounded-lg bg-transparent px-2 py-1 text-xs font-semibold text-ink"
                 >
                   {QURAN_RECITERS.map((r) => (
@@ -666,7 +561,7 @@ export function MemorizationClient({
                   className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-forest px-2.5 py-1 text-xs font-semibold text-white hover:bg-forest-deep"
                 >
                   <Volume2 className="h-3 w-3" />
-                  <span>Seçili Kâriyi Dinle</span>
+                  <span>Dinle</span>
                 </button>
               </div>
               <button
@@ -1003,6 +898,121 @@ export function MemorizationClient({
           )}
         </section>
       )}
+
+      {/* Phase 7B: Verse Range Looped Hifz Player */}
+      <section className="rounded-2xl border border-line bg-surface p-4 sm:p-5 space-y-3">
+        <button
+          type="button"
+          onClick={() => setShowLoop((v) => !v)}
+          aria-expanded={showLoop || isRangePlaying}
+          className={cn("w-full items-center justify-between gap-2 text-left", showLoop || isRangePlaying ? "hidden" : "flex")}
+        >
+          <span className="flex items-center gap-1.5 text-sm font-bold text-ink">
+            <Repeat className="h-4 w-4 text-forest" />
+            Aralıklı döngüsel dinleme
+          </span>
+          <ChevronDown className="h-4 w-4 text-muted" />
+        </button>
+        {(showLoop || isRangePlaying) && (<>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold text-ink flex items-center gap-1.5">
+              <Repeat className="h-4 w-4 text-forest" />
+              <span>Aralıklı Döngüsel Dinleme (Hıfz Oynatıcısı)</span>
+            </h2>
+            <p className="text-xs text-muted">
+              Seçili ayet aralığını belirlediğiniz tekrar sayısı ve kâri ile kesintisiz dinleyerek kulak ezberi yapın.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={startRangeLoop}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-colors shrink-0",
+              isRangePlaying
+                ? "bg-red-700 text-white hover:bg-red-800"
+                : "bg-forest text-white hover:bg-forest-deep"
+            )}
+          >
+            {isRangePlaying ? (
+              <>
+                <Square className="h-3.5 w-3.5" />
+                <span>Döngüyü Durdur</span>
+              </>
+            ) : (
+              <>
+                <Play className="h-3.5 w-3.5" />
+                <span>Döngüyü Başlat</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <label className="space-y-1">
+            <span className="font-semibold text-muted block">Başlangıç Ayeti</span>
+            <input
+              type="number"
+              min={verses[0]!.verseNumber}
+              max={verses[verses.length - 1]!.verseNumber}
+              value={rangeStart}
+              onChange={(e) => setRangeStart(Number(e.target.value))}
+              className="w-full rounded-xl border border-line bg-parchment px-3 py-1.5 font-semibold text-ink"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="font-semibold text-muted block">Bitiş Ayeti</span>
+            <input
+              type="number"
+              min={verses[0]!.verseNumber}
+              max={verses[verses.length - 1]!.verseNumber}
+              value={rangeEnd}
+              onChange={(e) => setRangeEnd(Number(e.target.value))}
+              className="w-full rounded-xl border border-line bg-parchment px-3 py-1.5 font-semibold text-ink"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="font-semibold text-muted block">Ayet Tekrarı</span>
+            <select
+              aria-label="Ayet tekrarı seç"
+              value={verseRepeatCount}
+              onChange={(e) => setVerseRepeatCount(Number(e.target.value))}
+              className="w-full rounded-xl border border-line bg-parchment px-3 py-1.5 font-semibold text-ink"
+            >
+              <option value={1}>1x</option>
+              <option value={2}>2x</option>
+              <option value={3}>3x</option>
+              <option value={5}>5x</option>
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="font-semibold text-muted block">Set Turu</span>
+            <select
+              aria-label="Set turu seç"
+              value={rangeRepeatCount}
+              onChange={(e) => setRangeRepeatCount(Number(e.target.value))}
+              className="w-full rounded-xl border border-line bg-parchment px-3 py-1.5 font-semibold text-ink"
+            >
+              <option value={1}>1 Tur</option>
+              <option value={2}>2 Tur</option>
+              <option value={3}>3 Tur</option>
+            </select>
+          </label>
+        </div>
+
+        {isRangePlaying && rangeStep && (
+          <div className="rounded-xl border border-emerald/30 bg-mint px-3.5 py-2 text-xs font-semibold text-forest">
+            Oynatılıyor: Ayet {rangeStep.verseKey} · Tekrar {rangeStep.verseRepeatIndex}/
+            {rangeStep.verseRepeatTotal} · Tur {rangeStep.rangeRoundIndex}/
+            {rangeStep.rangeRoundTotal} ({rangeStep.stepIndex + 1}/{rangeStep.totalSteps})
+          </div>
+        )}
+
+        {rangeAudioError && (
+          <p className="text-xs font-semibold text-amber-900">{rangeAudioError}</p>
+        )}
+      </>)}
+      </section>
     </div>
   );
 }

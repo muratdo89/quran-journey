@@ -3,6 +3,7 @@ import type {
   CardType,
   MemorizationState,
   PillarMasteryScores,
+  ReviewChoice,
   ReviewRating,
   SessionMode,
   StoredLearningCard,
@@ -136,6 +137,7 @@ export interface ProgressRepository {
   submitCardReview(params: {
     cardId: string;
     rating: ReviewRating;
+    choice?: ReviewChoice;
     responseTimeMs?: number;
     userId?: string;
   }): Promise<{

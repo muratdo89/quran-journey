@@ -54,7 +54,9 @@ export function getActiveTranslation(verse: CanonicalVerse, translationId: numbe
   return verse.translations.find((t) => t.resourceId === translationId) ?? verse.translations[0];
 }
 
-export async function persistPreferences(patch: Partial<UserPreferencesRecord>) {
+export async function persistPreferences(
+  patch: Partial<UserPreferencesRecord> & { currentPageNumber?: number }
+) {
   await fetch("/api/preferences", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

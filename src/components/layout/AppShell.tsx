@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LastStudyTracker, StudySessionBar } from "@/components/layout/StudySessionBar";
+import { LastStudyTracker } from "@/components/layout/LastStudyTracker";
 
 interface NavItem {
   href: string;
@@ -209,7 +209,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      <StudySessionBar />
 
       {/* Mobile Bottom Quick Nav */}
       <nav
