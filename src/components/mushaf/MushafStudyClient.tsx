@@ -60,7 +60,9 @@ import {
 import { buildVerseTeacherReviewPackage } from "@/lib/audio/teacher-review";
 import {
   TAJWEED_LEGEND,
-  analyzeWordTajweed,
+  analyzeVerseTajweed,
+  getTajweedLegend,
+  type TajweedWordAnalysis,
 } from "@/lib/content/tajweed-analyzer";
 import {
   deleteLocalRecordingBlob,
@@ -288,6 +290,18 @@ export function MushafStudyClient({
       allVersesOnPage.find((v) => v.verseKey === selectedVerseKey) ?? allVersesOnPage[0]!,
     [allVersesOnPage, selectedVerseKey]
   );
+
+  // Phase 7A: letter-level Tajweed analysis per verse (cross-word rules need the whole verse)
+  const tajweedByVerse = useMemo(() => {
+    const map = new Map<string, TajweedWordAnalysis[]>();
+    for (const verse of allVersesOnPage) {
+      map.set(
+        verse.verseKey,
+        analyzeVerseTajweed(verse.words.map((w) => w.textUthmani))
+      );
+    }
+    return map;
+  }, [allVersesOnPage]);
 
   const pageIndex = pageData.availablePages.indexOf(pageData.pageNumber);
   const prevPage = pageIndex > 0 ? pageData.availablePages[pageIndex - 1] : null;
@@ -1283,6 +1297,11 @@ export function MushafStudyClient({
                 <span>{rule.shortLabelTr}</span>
               </span>
             ))}
+            <span className="basis-full text-[10px] text-[#6d7871] leading-snug">
+              Otomatik işaretleme (Hafs, vasl okuyuş; ayet sonunda durak kabul edilir). Râ ve
+              Lafzatullah kalınlığı ile ayet içi vakıf tercihleri renklendirilmez; kesin tecvid için
+              hocanızla teyit edin.
+            </span>
           </div>
         )}
 
@@ -1584,16 +1603,19 @@ export function MushafStudyClient({
                             lineHeight: lineHeight,
                           }}
                         >
-                          {verse.words.map((word) => {
+                          {verse.words.map((word, wordIndex) => {
                             const isSelectedWord = selectedWord?.location === word.location;
                             const isWordHighlightedByAudio =
                               playingMode === "chapter" &&
                               activeAudioVerseKey === verse.verseKey &&
                               activeAudioWordPos === word.position;
                             const wordTajweed = showTajweedColors
-                              ? analyzeWordTajweed(word.textUthmani)
-                              : [];
-                            const primaryRule = wordTajweed[0];
+                              ? tajweedByVerse.get(verse.verseKey)?.[wordIndex]
+                              : undefined;
+                            const colorLetters =
+                              !!wordTajweed && !isSelectedWord && !isWordHighlightedByAudio;
+                            const highlightedRules =
+                              wordTajweed?.rules.filter((r) => r.highlighted) ?? [];
 
                             return (
                               <button
@@ -1601,15 +1623,8 @@ export function MushafStudyClient({
                                 type="button"
                                 onClick={() => handleSelectWord(verse, word)}
                                 title={
-                                  wordTajweed.length > 0
-                                    ? wordTajweed.map((r) => r.shortLabelTr).join(" · ")
-                                    : undefined
-                                }
-                                style={
-                                  primaryRule && !isSelectedWord && !isWordHighlightedByAudio
-                                    ? {
-                                        borderBottom: `3px solid ${primaryRule.colorHex}`,
-                                      }
+                                  highlightedRules.length > 0
+                                    ? highlightedRules.map((r) => r.titleTr).join(" · ")
                                     : undefined
                                 }
                                 className={cn(
@@ -1625,17 +1640,27 @@ export function MushafStudyClient({
                                         : "hover:bg-[#ede5d2]"
                                 )}
                               >
-                                <span>{word.textUthmani}</span>
-                                {wordTajweed.length > 1 && (
-                                  <span className="flex items-center gap-0.5 mt-0.5" aria-hidden="true">
-                                    {wordTajweed.slice(0, 3).map((r) => (
-                                      <span
-                                        key={r.category}
-                                        className="h-1 w-1 rounded-full"
-                                        style={{ backgroundColor: r.colorHex }}
-                                      />
-                                    ))}
+                                {colorLetters ? (
+                                  <span>
+                                    {wordTajweed.segments.map((seg, segIndex) =>
+                                      seg.category ? (
+                                        <span
+                                          key={segIndex}
+                                          style={{
+                                            color: darkReader
+                                              ? getTajweedLegend(seg.category).colorHexDark
+                                              : getTajweedLegend(seg.category).colorHex,
+                                          }}
+                                        >
+                                          {seg.text}
+                                        </span>
+                                      ) : (
+                                        <React.Fragment key={segIndex}>{seg.text}</React.Fragment>
+                                      )
+                                    )}
                                   </span>
+                                ) : (
+                                  <span>{word.textUthmani}</span>
                                 )}
                               </button>
                             );
@@ -1798,7 +1823,11 @@ export function MushafStudyClient({
 
                 {/* Phase 7A: Selected Word Tajweed Rules */}
                 {(() => {
-                  const selectedTajweed = analyzeWordTajweed(selectedWord.textUthmani);
+                  const selectedWordIndex = selectedVerse.words.findIndex(
+                    (w) => w.location === selectedWord.location
+                  );
+                  const selectedTajweed =
+                    tajweedByVerse.get(selectedVerse.verseKey)?.[selectedWordIndex]?.rules ?? [];
                   return (
                     <div className="rounded-xl border border-[#ece4cf] bg-[#faf8f3] p-3.5 space-y-2 text-xs">
                       <span className="font-semibold text-[#1c241f] block">
@@ -1806,23 +1835,32 @@ export function MushafStudyClient({
                       </span>
                       {selectedTajweed.length > 0 ? (
                         <div className="space-y-1.5">
-                          {selectedTajweed.map((rule) => (
+                          {selectedTajweed.map((rule) => {
+                            const legend = getTajweedLegend(rule.category);
+                            const colorHex = rule.highlighted ? legend.colorHex : "#4b5563";
+                            return (
                             <div
-                              key={rule.category}
+                              key={rule.id}
                               className="rounded-lg border p-2 space-y-0.5"
                               style={{
-                                borderColor: `${rule.colorHex}40`,
-                                backgroundColor: rule.bgHex,
+                                borderColor: `${colorHex}40`,
+                                backgroundColor: rule.highlighted ? legend.bgHex : "#ffffff",
                               }}
                             >
-                              <p className="font-bold" style={{ color: rule.colorHex }}>
+                              <p className="font-bold" style={{ color: colorHex }}>
                                 {rule.titleTr}
+                                {!rule.highlighted && (
+                                  <span className="ml-1.5 font-normal text-[10px] text-[#6d7871]">
+                                    (renklendirilmez)
+                                  </span>
+                                )}
                               </p>
                               <p className="text-[11px] text-[#3f4a43] leading-relaxed">
                                 {rule.descriptionTr}
                               </p>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-[11px] text-[#5a655e]">
