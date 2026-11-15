@@ -84,7 +84,7 @@ export function MushafVerseCard({
         isSelected
           ? darkReader
             ? "border-[#4b8a68] bg-[#1b2720]"
-            : "border-[#1b4332]/40 bg-[#f6f9f7]"
+            : "border-forest/40 bg-[#f6f9f7]"
           : darkReader
             ? "border-[#28352d] bg-transparent"
             : "border-[#ece4cf] bg-transparent"
@@ -99,10 +99,10 @@ export function MushafVerseCard({
             className={cn(
               "font-mono text-xs font-bold px-2.5 py-1 rounded-lg",
               isSelected
-                ? "bg-[#1b4332] text-white"
+                ? "bg-forest text-white"
                 : darkReader
                   ? "bg-[#24322a] text-[#d5dfd9]"
-                  : "bg-[#f3efe6] text-[#1b4332]"
+                  : "bg-sand text-forest"
             )}
           >
             {verse.verseKey}
@@ -116,7 +116,7 @@ export function MushafVerseCard({
             <button
               type="button"
               onClick={() => onSelectVerse(verse.verseKey)}
-              className="inline-flex items-center gap-1 rounded-md bg-[#f7f1e3] text-[#8d682c] px-2 py-0.5 text-[11px] font-semibold"
+              className="inline-flex items-center gap-1 rounded-md bg-gold-soft text-gold-ink px-2 py-0.5 text-[11px] font-semibold"
             >
               <GitCompareArrows className="h-3 w-3" />
               <span>{mutashabihatCount} Müteşâbih</span>
@@ -132,10 +132,10 @@ export function MushafVerseCard({
             className={cn(
               "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
               isVerseAudioPlaying
-                ? "bg-[#1b4332] text-white"
+                ? "bg-forest text-white"
                 : darkReader
                   ? "bg-[#24322a] text-[#e7e2d6] hover:bg-[#2f4137]"
-                  : "bg-[#f3efe6] text-[#1b4332] hover:bg-[#e7decb]"
+                  : "bg-sand text-forest hover:bg-[#e7decb]"
             )}
           >
             {isVerseAudioPlaying ? (
@@ -153,10 +153,10 @@ export function MushafVerseCard({
             className={cn(
               "rounded-lg p-1.5 transition-colors",
               isBookmarked
-                ? "text-[#b08d57]"
+                ? "text-gold"
                 : darkReader
                   ? "text-[#8e9b93] hover:text-white"
-                  : "text-[#6d7871] hover:text-[#1b4332]"
+                  : "text-[#6d7871] hover:text-forest"
             )}
           >
             {isBookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
@@ -193,17 +193,17 @@ export function MushafVerseCard({
               onClick={() => onSelectWord(verse, word)}
               title={tajweedTitle(wordTajweed)}
               className={cn(
-                "inline-flex flex-col items-center rounded-lg px-1.5 py-0.5 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#b08d57]",
+                "inline-flex flex-col items-center rounded-lg px-1.5 py-0.5 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold",
                 isDrillWord
                   ? drillIsLearnerTurn
-                    ? "ring-2 ring-[#b08d57] bg-[#b08d57]/15"
-                    : "bg-[#b08d57]/30 ring-2 ring-[#b08d57]/60"
+                    ? "ring-2 ring-gold bg-gold/15"
+                    : "bg-gold/30 ring-2 ring-gold/60"
                   : isWordHighlightedByAudio
-                  ? "bg-[#b08d57]/30 text-[#8a6321] dark:text-[#f5d598]"
+                  ? "bg-gold/30 text-[#8a6321] dark:text-[#f5d598]"
                   : isSelectedWord
                     ? darkReader
-                      ? "bg-[#2d6a4f] text-white"
-                      : "bg-[#1b4332] text-[#faf8f3]"
+                      ? "bg-emerald text-white"
+                      : "bg-forest text-parchment"
                     : darkReader
                       ? "hover:bg-[#24332b]"
                       : "hover:bg-[#ede5d2]"
@@ -218,7 +218,7 @@ export function MushafVerseCard({
           );
         })}
         <span
-          className="inline-flex items-center justify-center text-[0.58em] font-sans text-[#b08d57] px-1.5 select-none"
+          className="inline-flex items-center justify-center text-[0.58em] font-sans text-gold px-1.5 select-none"
           aria-label={`Ayet ${verse.verseNumber}`}
         >
           ﴿{verse.verseNumber}﴾
@@ -233,7 +233,7 @@ export function MushafVerseCard({
             darkReader ? "border-[#2a3830] text-[#d5dfd9]" : "border-[#e7dfc9] text-[#2e3832]"
           )}
         >
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-[#b08d57] block mb-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-gold block mb-1">
             Ayet Meali · {activeTrans.translatorName}
           </span>
           <p>{activeTrans.text}</p>

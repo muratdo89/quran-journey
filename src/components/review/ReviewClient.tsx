@@ -10,6 +10,7 @@ import {
   type ReviewRating,
   type StoredLearningCard,
 } from "@/lib/learning-engine";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface WordLookupEntry extends CanonicalWord {
   verseKey: string;
@@ -81,29 +82,29 @@ export function ReviewClient({
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-[#1c241f]">
-            Aralıklı Tekrar (FSRS Aktif Hatırlama)
-          </h1>
-          <p className="text-sm text-[#5a655e]">
-            {isRecoveryMode
+          <PageHeader
+            eyebrow="Bugün"
+            title="Tekrar Kartları"
+            description={isRecoveryMode
               ? "Toparlanma modu: Yalnızca en öncelikli 6 kart seçildi."
               : "Cevabı görmeden önce zihninizden hatırlamaya çalışın; ardından dürüstçe değerlendirin."}
-          </p>
+            related={[{ href: "/", label: "Bugünkü plan" }]}
+          />
         </div>
-        <div className="rounded-xl border border-[#e5dec9] bg-white px-4 py-2 text-xs font-semibold text-[#1b4332]">
+        <div className="rounded-xl border border-line bg-surface px-4 py-2 text-xs font-semibold text-forest">
           Kalan: {dueQueue.length} · Tamamlanan: {sessionReviewed} (+{sessionXp} XP)
         </div>
       </div>
 
       {lastFeedback && (
-        <div className="rounded-xl border border-[#2d6a4f]/30 bg-[#edf5f0] px-4 py-2.5 text-xs font-semibold text-[#1b4332]">
+        <div className="rounded-xl border border-emerald/30 bg-mint px-4 py-2.5 text-xs font-semibold text-forest">
           {lastFeedback}
         </div>
       )}
 
       {currentCard && currentWord ? (
-        <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 sm:p-10 space-y-8 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-[#5a655e]">
+        <section className="rounded-2xl border border-line bg-surface p-6 sm:p-10 space-y-8 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-muted">
             <span className="font-mono font-semibold">
               {currentWord.location} ·{" "}
               {currentCard.direction === "ar_to_tr"
@@ -117,24 +118,24 @@ export function ReviewClient({
           <div className="py-6 text-center space-y-4">
             {currentCard.direction === "ar_to_tr" ? (
               <>
-                <p className="text-xs font-medium text-[#5a655e]">
+                <p className="text-xs font-medium text-muted">
                   Bu Kur&apos;an kelimesinin Türkçe anlamını hatırlayın:
                 </p>
                 <p
                   lang="ar"
                   dir="rtl"
                   translate="no"
-                  className="font-arabic text-5xl sm:text-6xl leading-[1.7] sm:leading-[1.7] text-[#1c241f]"
+                  className="font-arabic text-5xl sm:text-6xl leading-[1.7] sm:leading-[1.7] text-ink"
                 >
                   {currentWord.textUthmani}
                 </p>
               </>
             ) : (
               <>
-                <p className="text-xs font-medium text-[#5a655e]">
+                <p className="text-xs font-medium text-muted">
                   Bu Türkçe anlamın Kur&apos;an&apos;daki Arapça karşılığını hatırlayın:
                 </p>
-                <p className="text-2xl sm:text-3xl font-bold text-[#1b4332]">
+                <p className="text-2xl sm:text-3xl font-bold text-forest">
                   {currentWord.translationTr}
                 </p>
               </>
@@ -144,7 +145,7 @@ export function ReviewClient({
               <button
                 type="button"
                 onClick={() => playWordAudio(currentWord.audioUrl)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3.5 py-2 text-xs font-semibold text-[#1b4332] hover:bg-[#f3efe6]"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-parchment px-3.5 py-2 text-xs font-semibold text-forest hover:bg-sand"
               >
                 <Volume2 className="h-3.5 w-3.5" />
                 <span>Telaffuzu Dinle</span>
@@ -157,17 +158,17 @@ export function ReviewClient({
               <button
                 type="button"
                 onClick={() => setRevealed(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#1b4332] px-8 py-3.5 text-sm font-semibold text-white hover:bg-[#143326]"
+                className="inline-flex items-center gap-2 rounded-xl bg-forest px-8 py-3.5 text-sm font-semibold text-white hover:bg-forest-deep"
               >
                 <Eye className="h-4 w-4" />
                 <span>Cevabı Göster</span>
               </button>
             </div>
           ) : (
-            <div className="space-y-6 pt-6 border-t border-[#e5dec9]">
-              <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-5 text-center space-y-2">
+            <div className="space-y-6 pt-6 border-t border-line">
+              <div className="rounded-xl border border-line bg-parchment p-5 text-center space-y-2">
                 {currentCard.direction === "ar_to_tr" ? (
-                  <p className="text-xl font-bold text-[#1b4332]">
+                  <p className="text-xl font-bold text-forest">
                     {currentWord.translationTr}
                   </p>
                 ) : (
@@ -175,20 +176,20 @@ export function ReviewClient({
                     lang="ar"
                     dir="rtl"
                     translate="no"
-                    className="font-arabic text-4xl leading-[1.6] text-[#1b4332]"
+                    className="font-arabic text-4xl leading-[1.6] text-forest"
                   >
                     {currentWord.textUthmani}
                   </p>
                 )}
                 {currentWord.morphology.rootArabic && (
-                  <p className="text-xs text-[#5a655e]">
+                  <p className="text-xs text-muted">
                     Kök:{" "}
                     <span lang="ar" dir="rtl" translate="no" className="font-arabic text-base">
                       {currentWord.morphology.rootArabic}
                     </span>
                   </p>
                 )}
-                <p className="text-xs text-[#5a655e]">
+                <p className="text-xs text-muted">
                   <strong>Ayet bağlamı ({currentWord.verseKey}):</strong>{" "}
                   {currentWord.verseTranslationTr}
                 </p>
@@ -198,8 +199,8 @@ export function ReviewClient({
                 {[
                   { rating: 1 as ReviewRating, label: "Tekrar", style: "border-red-200 bg-red-50 text-red-900 hover:bg-red-100" },
                   { rating: 2 as ReviewRating, label: "Zor", style: "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100" },
-                  { rating: 3 as ReviewRating, label: "İyi", style: "border-[#2d6a4f]/30 bg-[#edf5f0] text-[#1b4332] hover:bg-[#dcece2]" },
-                  { rating: 4 as ReviewRating, label: "Kolay", style: "bg-[#1b4332] text-white hover:bg-[#143326]" },
+                  { rating: 3 as ReviewRating, label: "İyi", style: "border-emerald/30 bg-mint text-forest hover:bg-mint-strong" },
+                  { rating: 4 as ReviewRating, label: "Kolay", style: "bg-forest text-white hover:bg-forest-deep" },
                 ].map((btn) => (
                   <button
                     key={btn.rating}
@@ -219,25 +220,25 @@ export function ReviewClient({
           )}
         </section>
       ) : (
-        <section className="rounded-2xl border border-[#e5dec9] bg-white p-8 text-center space-y-4">
-          <CheckCircle2 className="h-10 w-10 text-[#2d6a4f] mx-auto" />
-          <h2 className="text-lg font-bold text-[#1c241f]">
+        <section className="rounded-2xl border border-line bg-surface p-8 text-center space-y-4">
+          <CheckCircle2 className="h-10 w-10 text-emerald mx-auto" />
+          <h2 className="font-display text-xl font-semibold tracking-tight text-ink">
             Şu an bekleyen tekrar kartınız kalmadı
           </h2>
-          <p className="text-sm text-[#5a655e] max-w-md mx-auto">
+          <p className="text-sm text-muted max-w-md mx-auto">
             FSRS algoritması kartlarınızı bir sonraki optimal unutma eşiğine göre zamanladı. Kelime Hazinesi&apos;nden yeni kartlar ekleyebilir veya Mushaf çalışmasına geçebilirsiniz.
           </p>
           <div className="flex justify-center gap-3 pt-2">
             <Link
               href="/vocabulary"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#1b4332] px-5 py-2.5 text-xs font-semibold text-white"
+              className="inline-flex items-center gap-2 rounded-xl bg-forest px-5 py-2.5 text-xs font-semibold text-white"
             >
               <RotateCcw className="h-3.5 w-3.5" />
               <span>Kelime Hazinesinden Kart Ekle</span>
             </Link>
             <Link
               href="/mushaf"
-              className="inline-flex items-center gap-2 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-5 py-2.5 text-xs font-semibold text-[#1c241f]"
+              className="inline-flex items-center gap-2 rounded-xl border border-line bg-parchment px-5 py-2.5 text-xs font-semibold text-ink"
             >
               <span>Mushaf&apos;a Dön</span>
             </Link>

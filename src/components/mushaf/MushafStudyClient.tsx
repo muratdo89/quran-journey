@@ -277,7 +277,7 @@ export function MushafStudyClient({
   return (
     <div className="space-y-6">
       {/* Page & Surah Navigator + Toolbar */}
-      <div className="rounded-2xl border border-[#e5dec9] bg-white p-4 sm:p-5 flex flex-col gap-4">
+      <div className="rounded-2xl border border-line bg-surface p-4 sm:p-5 flex flex-col gap-4">
         <MushafPageNavigator pageData={pageData} availableSurahs={availableSurahs} />
 
         <MushafReaderControls
@@ -291,12 +291,16 @@ export function MushafStudyClient({
           onToggleListenRepeat={toggleListenRepeat}
         />
 
-        {prefs.showTajweedColors && <TajweedLegendStrip />}
+        {prefs.showTajweedColors && (
+          <div className="hidden lg:block">
+            <TajweedLegendStrip />
+          </div>
+        )}
 
         <MushafSearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
 
         {pageTools.offlineMsg && (
-          <div className="rounded-xl bg-[#edf5f0] border border-[#2d6a4f]/30 px-3 py-2 text-xs text-[#1b4332]">
+          <div className="rounded-xl bg-mint border border-emerald/30 px-3 py-2 text-xs text-forest">
             {pageTools.offlineMsg}
           </div>
         )}
@@ -314,8 +318,8 @@ export function MushafStudyClient({
           className={cn(
             "lg:col-span-7 rounded-2xl border p-5 sm:p-8 transition-colors space-y-8",
             darkReader
-              ? "border-[#2f3d35] bg-[#141c17] text-[#f3efe6]"
-              : "border-[#dfD5BC] bg-[#fffdf7] text-[#1c241f]"
+              ? "border-[#2f3d35] bg-[#141c17] text-sand"
+              : "border-[#dfD5BC] bg-surface text-ink"
           )}
         >
           {pageData.sections.map((section) => (

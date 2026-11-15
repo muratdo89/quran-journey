@@ -4,8 +4,8 @@ import { TAJWEED_LEGEND } from "@/lib/content/tajweed-analyzer";
 /** Phase 7A: color legend for the colored Tajweed overlay, with its known limits. */
 export function TajweedLegendStrip() {
   return (
-    <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3.5 py-2.5 flex flex-wrap items-center gap-2 text-[11px]">
-      <span className="font-bold text-[#1c241f] mr-1">Renkli Tecvid Rehberi:</span>
+    <div className="rounded-xl border border-line bg-parchment px-3.5 py-2.5 flex flex-wrap items-center gap-2 text-[11px]">
+      <span className="font-bold text-ink mr-1">Renkli Tecvid Rehberi:</span>
       {TAJWEED_LEGEND.map((rule) => (
         <span
           key={rule.category}

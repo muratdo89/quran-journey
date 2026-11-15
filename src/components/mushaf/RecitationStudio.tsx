@@ -35,17 +35,17 @@ export function RecitationStudio({
   } = recorder;
 
   return (
-    <div className="rounded-2xl border border-[#e5dec9] bg-white p-5 sm:p-6 space-y-4">
+    <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-bold text-[#1c241f]">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
             Sesli Okuma ve Karşılaştırma ({verseKey})
           </h2>
-          <p className="text-xs text-[#5a655e]">
+          <p className="text-xs text-muted">
             Kendi okumanızı tarayıcıda kalıcı saklayıp referans kâri ile dinleyin
           </p>
         </div>
-        <Mic className="h-4 w-4 text-[#1b4332]" />
+        <Mic className="h-4 w-4 text-forest" />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -53,7 +53,7 @@ export function RecitationStudio({
           <button
             type="button"
             onClick={recorder.startRecording}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1b4332] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#143326]"
+            className="inline-flex items-center gap-2 rounded-xl bg-forest px-4 py-2.5 text-xs font-semibold text-white hover:bg-forest-deep"
           >
             <Mic className="h-3.5 w-3.5" />
             <span>Okumamı Kaydet</span>
@@ -72,19 +72,19 @@ export function RecitationStudio({
         <button
           type="button"
           onClick={onPlayReference}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3.5 py-2.5 text-xs font-semibold text-[#1b4332] hover:bg-[#f3efe6]"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-parchment px-3.5 py-2.5 text-xs font-semibold text-forest hover:bg-sand"
         >
           <Volume2 className="h-3.5 w-3.5" />
           <span>Referansı Dinle</span>
         </button>
       </div>
 
-      <label className="flex items-start gap-2 text-[11px] text-[#5a655e] cursor-pointer">
+      <label className="flex items-start gap-2 text-[11px] text-muted cursor-pointer">
         <input
           type="checkbox"
           checked={cloudConsent}
           onChange={(e) => onCloudConsentChange(e.target.checked)}
-          className="mt-0.5 accent-[#1b4332]"
+          className="mt-0.5 accent-forest"
         />
         <span>
           Hibrit Kur&apos;an ASR kelime sırası kontrolü için okuma transkriptinin / ses kaydının analiz edilmesine açık onay veriyorum (kapalıyken hiçbir veri işlenmez).
@@ -97,9 +97,9 @@ export function RecitationStudio({
           e.preventDefault();
           recorder.alignManualTranscript();
         }}
-        className="space-y-2 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3"
+        className="space-y-2 rounded-xl border border-line bg-parchment p-3"
       >
-        <label className="block text-[11px] font-semibold text-[#1c241f]">
+        <label className="block text-[11px] font-semibold text-ink">
           Okunan Arapça Metni Hizala / Test Et (Opsiyonel ASR Kontrolü)
         </label>
         <div className="flex flex-wrap gap-2">
@@ -110,12 +110,12 @@ export function RecitationStudio({
             value={manualTranscript}
             onChange={(e) => recorder.setManualTranscript(e.target.value)}
             placeholder="Okuduğunuz veya dikte ettiğiniz Arapça metni girin..."
-            className="min-w-0 flex-[1_1_12rem] rounded-lg border border-[#e5dec9] bg-white px-3 py-1.5 text-sm font-arabic"
+            className="min-w-0 flex-[1_1_12rem] rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-arabic"
           />
           <button
             type="submit"
             disabled={aligningManual || !manualTranscript.trim()}
-            className="rounded-lg border border-[#1b4332] bg-[#edf5f0] px-3 py-1.5 text-xs font-semibold text-[#1b4332] hover:bg-[#dcece2] disabled:opacity-50 shrink-0"
+            className="rounded-lg border border-forest bg-mint px-3 py-1.5 text-xs font-semibold text-forest hover:bg-mint-strong disabled:opacity-50 shrink-0"
           >
             {aligningManual ? "Hizalanıyor..." : "Kelime Sırasını Kontrol Et"}
           </button>
@@ -131,9 +131,9 @@ export function RecitationStudio({
 
       {verseLocalRecordings.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-[#1c241f]">Bu Ayet İçin Kayıtlarınız</p>
+          <p className="text-xs font-semibold text-ink">Bu Ayet İçin Kayıtlarınız</p>
           {verseLocalRecordings.map((rec) => (
-            <div key={rec.id} className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-2.5 space-y-2">
+            <div key={rec.id} className="rounded-xl border border-line bg-parchment p-2.5 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <audio controls src={rec.objectUrl} className="h-8 w-full" />
                 <button
@@ -145,11 +145,11 @@ export function RecitationStudio({
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[#e5dec9]/70">
+              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-line/70">
                 <a
                   href={rec.objectUrl}
                   download={`quran-journey-${rec.verseKey.replace(":", "-")}.webm`}
-                  className="inline-flex items-center gap-1 rounded-lg border border-[#e5dec9] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1b4332] hover:bg-[#f3efe6]"
+                  className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold text-forest hover:bg-sand"
                 >
                   <Download className="h-3 w-3" />
                   <span>Ses İndir</span>
@@ -157,7 +157,7 @@ export function RecitationStudio({
                 <button
                   type="button"
                   onClick={() => onCopyTeacherReport(rec)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-[#b08d57] bg-[#f7f1e3] px-2.5 py-1 text-[11px] font-semibold text-[#6e511e] hover:bg-[#efe4ca]"
+                  className="inline-flex items-center gap-1 rounded-lg border border-gold bg-gold-soft px-2.5 py-1 text-[11px] font-semibold text-gold-deep hover:bg-[#efe4ca]"
                 >
                   <Copy className="h-3 w-3" />
                   <span>Hoca Raporu Kopyala</span>
@@ -166,7 +166,7 @@ export function RecitationStudio({
             </div>
           ))}
           {teacherReportStatus && (
-            <p className="text-[11px] font-semibold text-[#2d6a4f] flex items-center gap-1.5">
+            <p className="text-[11px] font-semibold text-emerald flex items-center gap-1.5">
               <Check className="h-3.5 w-3.5" />
               <span>{teacherReportStatus}</span>
             </p>
@@ -175,14 +175,14 @@ export function RecitationStudio({
       )}
 
       {lastAssessment && (
-        <div className="rounded-xl border border-[#e3d2ae] bg-[#f7f1e3] p-3.5 text-xs text-[#4a3b1f] space-y-1.5">
+        <div className="rounded-xl border border-gold-line bg-gold-soft p-3.5 text-xs text-gold-text space-y-1.5">
           <div className="flex items-center gap-1.5 font-semibold">
-            <Info className="h-4 w-4 text-[#9a7639]" />
+            <Info className="h-4 w-4 text-gold-ink" />
             <span>Değerlendirme Durumu (Şeffaf Bildirim)</span>
           </div>
           <p className="leading-relaxed">{lastAssessment.summaryTr}</p>
           {lastAssessment.recognizedText && (
-            <p lang="ar" dir="rtl" translate="no" className="font-arabic text-xl bg-white/80 rounded-lg px-2.5 py-1.5 text-right text-[#1c241f]">
+            <p lang="ar" dir="rtl" translate="no" className="font-arabic text-xl bg-surface/80 rounded-lg px-2.5 py-1.5 text-right text-ink">
               {lastAssessment.recognizedText}
             </p>
           )}
@@ -195,7 +195,7 @@ export function RecitationStudio({
       )}
 
       {serverRecordingCount > 0 && (
-        <p className="text-[11px] text-[#5a655e]">
+        <p className="text-[11px] text-muted">
           Toplam kaydedilen çalışma kaydı geçmişi: {serverRecordingCount} kayıt.
         </p>
       )}

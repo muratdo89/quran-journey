@@ -25,17 +25,17 @@ export function MushafSurahHeader({
       <div
         className={cn(
           "rounded-xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3",
-          darkReader ? "border-[#384a3f] bg-[#1b2620]" : "border-[#e5dec9] bg-[#f7f1e3]/70"
+          darkReader ? "border-[#384a3f] bg-[#1b2620]" : "border-line bg-gold-soft/70"
         )}
       >
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-bold text-[#b08d57]">
+            <span className="font-mono text-xs font-bold text-gold">
               {section.surah.id}. Sure
             </span>
             <span className="text-sm font-bold">{section.surah.nameTurkish} Suresi</span>
           </div>
-          <p className={cn("text-[11px] mt-0.5", darkReader ? "text-[#b6c2ba]" : "text-[#5a655e]")}>
+          <p className={cn("text-[11px] mt-0.5", darkReader ? "text-[#b6c2ba]" : "text-muted")}>
             {section.surah.revelationPlace === "makkah" ? "Mekkî" : "Medenî"} ·{" "}
             {section.surah.versesCount} Ayet · Sayfa {pageNumber}
           </p>
@@ -46,7 +46,7 @@ export function MushafSurahHeader({
             lang="ar"
             dir="rtl"
             translate="no"
-            className="font-arabic text-2xl font-bold text-[#b08d57]"
+            className="font-arabic text-2xl font-bold text-gold"
           >
             سُورَةُ {section.surah.nameArabic}
           </span>
@@ -54,7 +54,7 @@ export function MushafSurahHeader({
             <button
               type="button"
               onClick={onPlayChapter}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#1b4332] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#143326]"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-forest px-3 py-1.5 text-xs font-semibold text-white hover:bg-forest-deep"
             >
               {isChapterPlaying ? (
                 <>
@@ -78,7 +78,7 @@ export function MushafSurahHeader({
           lang="ar"
           dir="rtl"
           translate="no"
-          className="font-arabic text-2xl sm:text-3xl text-center text-[#b08d57] py-1"
+          className="font-arabic text-2xl sm:text-3xl text-center text-gold py-1"
         >
           بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
         </p>

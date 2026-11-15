@@ -19,6 +19,7 @@ import {
 } from "@/lib/content/arabic-curriculum";
 import type { PlacementEvaluation } from "@/lib/learning-engine";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface LearnArabicClientProps {
   initialPlacementCompleted: boolean;
@@ -159,23 +160,23 @@ export function LearnArabicClient({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#1c241f]">
-            Arapça Okuma ve Tecvid Müfredatı
-          </h1>
-          <p className="text-sm text-[#5a655e]">
-            28 harf şekilleri, harekeler, bağlantı kuralları ve 8 aşamalı Kur&apos;an tecvidi.
-          </p>
+          <PageHeader
+            eyebrow="Kelimeler"
+            title="Arapça Okuma ve Tecvid"
+            description={<>28 harf şekilleri, harekeler, bağlantı kuralları ve 8 aşamalı Kur&apos;an tecvidi.</>}
+            related={[{ href: "/vocabulary", label: "Kelime Hazinesi" }]}
+          />
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-[#e5dec9] bg-white p-1">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-surface p-1">
           <button
             type="button"
             onClick={() => setActiveTab("reading")}
             className={cn(
               "rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors",
               activeTab === "reading"
-                ? "bg-[#1b4332] text-white"
-                : "text-[#5a655e] hover:text-[#1c241f]"
+                ? "bg-forest text-white"
+                : "text-muted hover:text-ink"
             )}
           >
             Dersler ({ARABIC_READING_MODULES.length})
@@ -186,8 +187,8 @@ export function LearnArabicClient({
             className={cn(
               "rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors",
               activeTab === "alphabet"
-                ? "bg-[#1b4332] text-white"
-                : "text-[#5a655e] hover:text-[#1c241f]"
+                ? "bg-forest text-white"
+                : "text-muted hover:text-ink"
             )}
           >
             28 Harf Tablosu
@@ -198,8 +199,8 @@ export function LearnArabicClient({
             className={cn(
               "rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors",
               activeTab === "tajweed"
-                ? "bg-[#1b4332] text-white"
-                : "text-[#5a655e] hover:text-[#1c241f]"
+                ? "bg-forest text-white"
+                : "text-muted hover:text-ink"
             )}
           >
             Tecvid ({TAJWEED_LESSONS.length})
@@ -210,19 +211,19 @@ export function LearnArabicClient({
       {activeTab === "reading" && (
         <>
           {/* Placement Status / Retake Card */}
-          <section className="rounded-2xl border border-[#e5dec9] bg-white p-5 sm:p-6">
+          <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-xl bg-[#f3efe6] flex items-center justify-center shrink-0">
-                  <GraduationCap className="h-5 w-5 text-[#1b4332]" />
+                <div className="h-10 w-10 rounded-xl bg-sand flex items-center justify-center shrink-0">
+                  <GraduationCap className="h-5 w-5 text-forest" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-[#1c241f]">
+                  <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
                     {placementMeta.completed
                       ? `Seviye Değerlendirmesi: ${placementMeta.level} (%${placementMeta.score ?? 0})`
                       : "Başlangıç Seviye Değerlendirmesi"}
                   </h2>
-                  <p className="text-xs text-[#5a655e] mt-0.5">
+                  <p className="text-xs text-muted mt-0.5">
                     {evaluation?.summaryTr ??
                       "Zaten bildiğiniz harf ve harekeleri tekrarlamak zorunda kalmamak için 6 soruluk hızlı değerlendirmeyi tamamlayın."}
                   </p>
@@ -231,7 +232,7 @@ export function LearnArabicClient({
               <button
                 type="button"
                 onClick={() => setShowPlacement((v) => !v)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#1b4332] px-4 py-2 text-xs font-semibold text-[#1b4332] hover:bg-[#1b4332]/5 shrink-0"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-forest px-4 py-2 text-xs font-semibold text-forest hover:bg-forest/5 shrink-0"
               >
                 <RefreshCcw className="h-3.5 w-3.5" />
                 <span>
@@ -247,28 +248,28 @@ export function LearnArabicClient({
             {showPlacement && (
               <form
                 onSubmit={handleSubmitPlacement}
-                className="mt-6 pt-6 border-t border-[#e5dec9] space-y-5"
+                className="mt-6 pt-6 border-t border-line space-y-5"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {PLACEMENT_QUESTIONS.map((q, idx) => (
                     <div
                       key={q.id}
-                      className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 space-y-3"
+                      className="rounded-xl border border-line bg-parchment p-4 space-y-3"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-[#1b4332]">
+                        <span className="text-xs font-bold text-forest">
                           Soru {idx + 1}
                         </span>
                         <span
                           lang="ar"
                           dir="rtl"
                           translate="no"
-                          className="font-arabic text-3xl text-[#1c241f]"
+                          className="font-arabic text-3xl text-ink"
                         >
                           {q.arabicSample}
                         </span>
                       </div>
-                      <p className="text-xs font-medium text-[#1c241f]">{q.promptTr}</p>
+                      <p className="text-xs font-medium text-ink">{q.promptTr}</p>
                       <div className="space-y-1.5">
                         {q.options.map((opt) => (
                           <label
@@ -276,8 +277,8 @@ export function LearnArabicClient({
                             className={cn(
                               "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs cursor-pointer transition-colors",
                               answers[q.id] === opt.id
-                                ? "border-[#1b4332] bg-white font-semibold"
-                                : "border-[#e5dec9] bg-white/60 hover:bg-white"
+                                ? "border-forest bg-surface font-semibold"
+                                : "border-line bg-surface/60 hover:bg-surface"
                             )}
                           >
                             <input
@@ -288,7 +289,7 @@ export function LearnArabicClient({
                               onChange={() =>
                                 setAnswers((prev) => ({ ...prev, [q.id]: opt.id }))
                               }
-                              className="accent-[#1b4332]"
+                              className="accent-forest"
                             />
                             <span>{opt.label}</span>
                           </label>
@@ -304,7 +305,7 @@ export function LearnArabicClient({
                     submittingPlacement ||
                     Object.keys(answers).length < PLACEMENT_QUESTIONS.length
                   }
-                  className="rounded-xl bg-[#1b4332] px-6 py-3 text-xs font-semibold text-white hover:bg-[#143326] disabled:opacity-50"
+                  className="rounded-xl bg-forest px-6 py-3 text-xs font-semibold text-white hover:bg-forest-deep disabled:opacity-50"
                 >
                   {submittingPlacement
                     ? "Analiz Ediliyor..."
@@ -329,25 +330,25 @@ export function LearnArabicClient({
                     className={cn(
                       "w-full text-left rounded-xl border p-3.5 transition-all flex items-start justify-between gap-2",
                       active
-                        ? "border-[#1b4332] bg-white ring-1 ring-[#1b4332]"
-                        : "border-[#e5dec9] bg-white/70 hover:bg-white"
+                        ? "border-forest bg-surface ring-1 ring-forest"
+                        : "border-line bg-surface/70 hover:bg-surface"
                     )}
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[11px] font-bold text-[#5a655e]">
+                        <span className="font-mono text-[11px] font-bold text-muted">
                           {String(mod.order).padStart(2, "0")}
                         </span>
                         {recommended && (
-                          <span className="rounded bg-[#f7f1e3] px-1.5 py-0.5 text-[10px] font-bold text-[#8d682c]">
+                          <span className="rounded bg-gold-soft px-1.5 py-0.5 text-[10px] font-bold text-gold-ink">
                             Öncelikli
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-xs font-bold text-[#1c241f]">{mod.titleTr}</p>
+                      <p className="mt-1 text-xs font-bold text-ink">{mod.titleTr}</p>
                     </div>
                     {done ? (
-                      <CheckCircle2 className="h-4 w-4 text-[#2d6a4f] shrink-0 mt-1" />
+                      <CheckCircle2 className="h-4 w-4 text-emerald shrink-0 mt-1" />
                     ) : (
                       <ChevronRight className="h-4 w-4 text-[#8e9b93] shrink-0 mt-1" />
                     )}
@@ -356,20 +357,20 @@ export function LearnArabicClient({
               })}
             </aside>
 
-            <section className="lg:col-span-8 rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-6">
+            <section className="lg:col-span-8 rounded-2xl border border-line bg-surface p-6 space-y-6">
               <div>
-                <span className="text-xs font-semibold text-[#b08d57]">
+                <span className="text-xs font-semibold text-gold">
                   Modül {activeModule.order} / {ARABIC_READING_MODULES.length}
                 </span>
-                <h2 className="mt-1 text-xl font-bold text-[#1c241f]">
+                <h2 className="mt-1 text-xl font-bold text-ink">
                   {activeModule.titleTr}
                 </h2>
-                <p className="text-sm text-[#5a655e]">{activeModule.subtitleTr}</p>
+                <p className="text-sm text-muted">{activeModule.subtitleTr}</p>
               </div>
 
               <div className="space-y-3 text-sm text-[#2e3832] leading-relaxed">
                 <p>{activeModule.explanationTr}</p>
-                <div className="rounded-xl border border-[#e3d2ae] bg-[#f7f1e3] p-4 text-xs text-[#4a3b1f]">
+                <div className="rounded-xl border border-gold-line bg-gold-soft p-4 text-xs text-gold-text">
                   <strong className="block mb-1">Sık Yapılan Okuma Hatası:</strong>
                   {activeModule.commonMistakeTr}
                 </div>
@@ -377,26 +378,26 @@ export function LearnArabicClient({
 
               {/* Examples with Verified Audio */}
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-[#1c241f]">
+                <h3 className="text-sm font-bold text-ink">
                   Arapça Örnekler (Doğrulanmış Mushaf Yazımıyla)
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {activeModule.examples.map((ex, i) => (
                     <div
                       key={i}
-                      className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 flex flex-col justify-between gap-2"
+                      className="rounded-xl border border-line bg-parchment p-4 flex flex-col justify-between gap-2"
                     >
                       <div className="space-y-2">
                         <p
                           lang="ar"
                           dir="rtl"
                           translate="no"
-                          className="font-arabic text-3xl text-center text-[#1c241f] py-1"
+                          className="font-arabic text-3xl text-center text-ink py-1"
                         >
                           {ex.arabic}
                         </p>
-                        <p className="text-xs font-bold text-[#1b4332]">{ex.labelTr}</p>
-                        <p className="text-[11px] text-[#5a655e] leading-relaxed">
+                        <p className="text-xs font-bold text-forest">{ex.labelTr}</p>
+                        <p className="text-[11px] text-muted leading-relaxed">
                           {ex.noteTr}
                         </p>
                       </div>
@@ -405,7 +406,7 @@ export function LearnArabicClient({
                         <button
                           type="button"
                           onClick={() => playSampleAudio(ex.audioUrl)}
-                          className="mt-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#edf5f0] px-2.5 py-1.5 text-[11px] font-semibold text-[#1b4332] hover:bg-[#dcece2]"
+                          className="mt-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-mint px-2.5 py-1.5 text-[11px] font-semibold text-forest hover:bg-mint-strong"
                         >
                           <Volume2 className="h-3.5 w-3.5" />
                           <span>Dinle ({ex.isQuranicRef})</span>
@@ -417,9 +418,9 @@ export function LearnArabicClient({
               </div>
 
               {/* Mini Mastery Check */}
-              <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-5 space-y-3">
+              <div className="rounded-xl border border-line bg-parchment p-5 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1b4332]">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-forest">
                     <HelpCircle className="h-4 w-4" />
                     Hızlı Kavrama Kontrolü
                   </span>
@@ -427,12 +428,12 @@ export function LearnArabicClient({
                     lang="ar"
                     dir="rtl"
                     translate="no"
-                    className="font-arabic text-2xl text-[#1c241f]"
+                    className="font-arabic text-2xl text-ink"
                   >
                     {activeModule.miniCheck.arabicPrompt}
                   </span>
                 </div>
-                <p className="text-xs font-medium text-[#1c241f]">
+                <p className="text-xs font-medium text-ink">
                   {activeModule.miniCheck.promptTr}
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -455,9 +456,9 @@ export function LearnArabicClient({
                           "rounded-xl border px-3 py-2.5 text-xs font-medium text-left transition-all",
                           picked
                             ? opt.isCorrect
-                              ? "border-[#2d6a4f] bg-[#edf5f0] text-[#1b4332] font-bold"
+                              ? "border-emerald bg-mint text-forest font-bold"
                               : "border-red-300 bg-red-50 text-red-900"
-                            : "border-[#e5dec9] bg-white hover:bg-[#f3efe6]"
+                            : "border-line bg-surface hover:bg-sand"
                         )}
                       >
                         {opt.labelTr}
@@ -469,7 +470,7 @@ export function LearnArabicClient({
                   <p
                     className={cn(
                       "text-xs font-semibold",
-                      quizOptionObj.isCorrect ? "text-[#2d6a4f]" : "text-red-700"
+                      quizOptionObj.isCorrect ? "text-emerald" : "text-red-700"
                     )}
                   >
                     {quizOptionObj.isCorrect
@@ -485,16 +486,16 @@ export function LearnArabicClient({
 
       {activeTab === "alphabet" && (
         <section className="space-y-4">
-          <div className="rounded-2xl border border-[#e5dec9] bg-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="rounded-2xl border border-line bg-surface p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-xl bg-[#f3efe6] flex items-center justify-center shrink-0">
-                <BookOpen className="h-5 w-5 text-[#1b4332]" />
+              <div className="h-10 w-10 rounded-xl bg-sand flex items-center justify-center shrink-0">
+                <BookOpen className="h-5 w-5 text-forest" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-[#1c241f]">
+                <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
                   28 Harf Elif-Bâ ve Kur&apos;an Örnekleri Rehberi
                 </h2>
-                <p className="text-xs text-[#5a655e] mt-0.5">
+                <p className="text-xs text-muted mt-0.5">
                   Her harfin yalın, başta, ortada ve sonda biçimlerini görün; örnek Kur&apos;an kelimesinin doğrulanmış telaffuzunu dinleyin.
                 </p>
               </div>
@@ -516,8 +517,8 @@ export function LearnArabicClient({
                   className={cn(
                     "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
                     letterFilter === f.id
-                      ? "bg-[#1b4332] text-white"
-                      : "border border-[#e5dec9] bg-[#faf8f3] text-[#1c241f]"
+                      ? "bg-forest text-white"
+                      : "border border-line bg-parchment text-ink"
                   )}
                 >
                   {f.label}
@@ -530,17 +531,17 @@ export function LearnArabicClient({
             {filteredLetters.map((letter) => (
               <article
                 key={letter.order}
-                className="rounded-2xl border border-[#e5dec9] bg-white p-5 flex flex-col justify-between gap-4"
+                className="rounded-2xl border border-line bg-surface p-5 flex flex-col justify-between gap-4"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="font-mono text-[11px] font-bold text-[#5a655e]">
+                      <span className="font-mono text-[11px] font-bold text-muted">
                         #{letter.order}
                       </span>
-                      <h3 className="text-base font-bold text-[#1c241f]">{letter.nameTr}</h3>
+                      <h3 className="text-base font-bold text-ink">{letter.nameTr}</h3>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        <span className="rounded-full bg-[#edf5f0] px-2 py-0.5 text-[10px] font-semibold text-[#1b4332] capitalize">
+                        <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-semibold text-forest capitalize">
                           {letter.soundCategory}
                         </span>
                         {letter.nonConnecting && (
@@ -555,27 +556,27 @@ export function LearnArabicClient({
                       lang="ar"
                       dir="rtl"
                       translate="no"
-                      className="font-arabic text-5xl text-[#1b4332] leading-none pt-1"
+                      className="font-arabic text-5xl text-forest leading-none pt-1"
                     >
                       {letter.isolated}
                     </span>
                   </div>
 
                   {/* 4 Forms Strip (RTL) */}
-                  <div className="grid grid-cols-4 gap-1.5 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-2 text-center">
+                  <div className="grid grid-cols-4 gap-1.5 rounded-xl border border-line bg-parchment p-2 text-center">
                     {[
                       { label: "Sonda", val: letter.final },
                       { label: "Ortada", val: letter.medial },
                       { label: "Başta", val: letter.initial },
                       { label: "Yalın", val: letter.isolated },
                     ].map((form) => (
-                      <div key={form.label} className="rounded-lg bg-white p-1.5">
-                        <span className="block text-[10px] text-[#5a655e]">{form.label}</span>
+                      <div key={form.label} className="rounded-lg bg-surface p-1.5">
+                        <span className="block text-[10px] text-muted">{form.label}</span>
                         <span
                           lang="ar"
                           dir="rtl"
                           translate="no"
-                          className="font-arabic text-2xl text-[#1c241f]"
+                          className="font-arabic text-2xl text-ink"
                         >
                           {form.val}
                         </span>
@@ -583,15 +584,15 @@ export function LearnArabicClient({
                     ))}
                   </div>
 
-                  <p className="text-xs text-[#3f4a43] leading-relaxed">{letter.makhrajTipTr}</p>
+                  <p className="text-xs text-ink-soft leading-relaxed">{letter.makhrajTipTr}</p>
                 </div>
 
-                <div className="rounded-xl border border-[#ece4cf] bg-[#faf8f3] p-3 flex items-center justify-between gap-2">
+                <div className="rounded-xl border border-[#ece4cf] bg-parchment p-3 flex items-center justify-between gap-2">
                   <div>
-                    <span className="text-[10px] font-mono text-[#5a655e] block">
+                    <span className="text-[10px] font-mono text-muted block">
                       Örnek ({letter.exampleWordLocation})
                     </span>
-                    <span className="text-xs font-semibold text-[#1b4332]">
+                    <span className="text-xs font-semibold text-forest">
                       {letter.exampleMeaningTr}
                     </span>
                   </div>
@@ -600,7 +601,7 @@ export function LearnArabicClient({
                       lang="ar"
                       dir="rtl"
                       translate="no"
-                      className="font-arabic text-2xl text-[#1c241f]"
+                      className="font-arabic text-2xl text-ink"
                     >
                       {letter.exampleArabic}
                     </span>
@@ -608,7 +609,7 @@ export function LearnArabicClient({
                       type="button"
                       onClick={() => playSampleAudio(letter.exampleAudioUrl)}
                       aria-label={`${letter.nameTr} harfini örnek kelimede dinle`}
-                      className="rounded-lg bg-[#1b4332] p-2 text-white hover:bg-[#143326]"
+                      className="rounded-lg bg-forest p-2 text-white hover:bg-forest-deep"
                     >
                       <Volume2 className="h-3.5 w-3.5" />
                     </button>
@@ -622,7 +623,7 @@ export function LearnArabicClient({
 
       {activeTab === "tajweed" && (
         <section className="space-y-4">
-          <div className="rounded-2xl border border-[#e3d2ae] bg-[#f7f1e3] p-4 text-xs text-[#4a3b1f]">
+          <div className="rounded-2xl border border-gold-line bg-gold-soft p-4 text-xs text-gold-text">
             <strong>Pedagojik İlke:</strong> Bir kelimeyi doğru tanımak ile mahreç/tecvid kalitesini uygulamak farklı aşamalardır. Her kuralı önce dinleyerek ayırt edin, ardından Mushaf ekranında kendi sesinizi kaydedip kâri ile karşılaştırın.
           </div>
 
@@ -632,15 +633,15 @@ export function LearnArabicClient({
               return (
                 <article
                   key={lesson.slug}
-                  className="rounded-2xl border border-[#e5dec9] bg-white p-6 flex flex-col justify-between gap-4"
+                  className="rounded-2xl border border-line bg-surface p-6 flex flex-col justify-between gap-4"
                 >
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <span className="text-[11px] font-semibold text-[#b08d57]">
+                        <span className="text-[11px] font-semibold text-gold">
                           {lesson.categoryTr} · Seviye {lesson.difficulty}
                         </span>
-                        <h2 className="mt-0.5 text-base font-bold text-[#1c241f]">
+                        <h2 className="mt-0.5 text-base font-bold text-ink">
                           {lesson.nameTr}
                         </h2>
                       </div>
@@ -648,20 +649,20 @@ export function LearnArabicClient({
                         lang="ar"
                         dir="rtl"
                         translate="no"
-                        className="font-arabic text-xl text-[#1b4332]"
+                        className="font-arabic text-xl text-forest"
                       >
                         {lesson.nameArabic}
                       </span>
                     </div>
 
-                    <p className="text-xs text-[#3f4a43] leading-relaxed">
+                    <p className="text-xs text-ink-soft leading-relaxed">
                       {lesson.summaryTr}
                     </p>
 
                     {lesson.fatihaExample && (
-                      <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3.5 space-y-2">
+                      <div className="rounded-xl border border-line bg-parchment p-3.5 space-y-2">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-[11px] font-semibold text-[#1b4332]">
+                          <span className="font-mono text-[11px] font-semibold text-forest">
                             Kur&apos;an Örneği ({lesson.fatihaExample.verseKey})
                           </span>
                           <div className="flex items-center gap-2">
@@ -669,7 +670,7 @@ export function LearnArabicClient({
                               lang="ar"
                               dir="rtl"
                               translate="no"
-                              className="font-arabic text-2xl text-[#1c241f]"
+                              className="font-arabic text-2xl text-ink"
                             >
                               {lesson.fatihaExample.arabic}
                             </span>
@@ -678,21 +679,21 @@ export function LearnArabicClient({
                                 type="button"
                                 onClick={() => playSampleAudio(lesson.fatihaExample?.audioUrl)}
                                 aria-label={`${lesson.nameTr} örneğini dinle`}
-                                className="rounded-lg bg-[#1b4332] p-1.5 text-white hover:bg-[#143326]"
+                                className="rounded-lg bg-forest p-1.5 text-white hover:bg-forest-deep"
                               >
                                 <Volume2 className="h-3.5 w-3.5" />
                               </button>
                             )}
                           </div>
                         </div>
-                        <p className="text-[11px] text-[#5a655e]">
+                        <p className="text-[11px] text-muted">
                           {lesson.fatihaExample.explanationTr}
                         </p>
                       </div>
                     )}
 
-                    <div className="flex items-start gap-2 text-[11px] text-[#5a655e]">
-                      <Volume2 className="h-3.5 w-3.5 text-[#2d6a4f] shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-2 text-[11px] text-muted">
+                      <Volume2 className="h-3.5 w-3.5 text-emerald shrink-0 mt-0.5" />
                       <span>{lesson.listenDiscriminationTipTr}</span>
                     </div>
                   </div>
@@ -703,8 +704,8 @@ export function LearnArabicClient({
                     className={cn(
                       "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-colors",
                       practiced
-                        ? "bg-[#edf5f0] text-[#1b4332] border border-[#2d6a4f]/40"
-                        : "bg-[#1b4332] text-white hover:bg-[#143326]"
+                        ? "bg-mint text-forest border border-emerald/40"
+                        : "bg-forest text-white hover:bg-forest-deep"
                     )}
                   >
                     <Sparkles className="h-3.5 w-3.5" />

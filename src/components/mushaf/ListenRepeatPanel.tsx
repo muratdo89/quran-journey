@@ -34,34 +34,34 @@ export function ListenRepeatPanel({
   return (
     <div
       id="dinle-tekrar-et"
-      className="rounded-2xl border border-[#e5dec9] bg-white p-5 sm:p-6 space-y-4 scroll-mt-6"
+      className="rounded-2xl border border-line bg-surface p-5 sm:p-6 space-y-4 scroll-mt-6"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-bold text-[#1c241f]">Dinle ve Tekrar Et</h2>
-          <p className="text-xs text-[#5a655e]">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink">Dinle ve Tekrar Et</h2>
+          <p className="text-xs text-muted">
             Hoca kelimeyi yavaşça okur, sonra susar; sıra sende. Okuduğunu takip ederek tekrar et.
           </p>
         </div>
-        <Ear className="h-4 w-4 shrink-0 text-[#1b4332]" />
+        <Ear className="h-4 w-4 shrink-0 text-forest" />
       </div>
 
       {isActive ? (
         <ListenRepeatNowPlaying listenRepeat={listenRepeat} showTransliteration={showTransliteration} />
       ) : (
         <>
-          <div className="rounded-xl border border-[#ece4cf] bg-[#faf8f3] px-3.5 py-2.5 flex items-center justify-between gap-3">
-            <div className="text-xs text-[#3f4a43]">
-              <span className="block text-[11px] text-[#5a655e]">Başlangıç</span>
+          <div className="rounded-xl border border-[#ece4cf] bg-parchment px-3.5 py-2.5 flex items-center justify-between gap-3">
+            <div className="text-xs text-ink-soft">
+              <span className="block text-[11px] text-muted">Başlangıç</span>
               <span className="font-semibold">
                 {startWord ? `${startVerseKey} · ${startWord.position}. kelime` : startVerseKey}
               </span>
-              <span className="block text-[11px] text-[#5a655e]">
+              <span className="block text-[11px] text-muted">
                 Değiştirmek için sayfada bir kelimeye dokun.
               </span>
             </div>
             {startWord && (
-              <span lang="ar" dir="rtl" translate="no" className="font-arabic text-3xl text-[#1c241f]">
+              <span lang="ar" dir="rtl" translate="no" className="font-arabic text-3xl text-ink">
                 {startWord.textUthmani}
               </span>
             )}
@@ -126,12 +126,12 @@ export function ListenRepeatPanel({
                 Sayfa sonuna kadar
               </Chip>
             </OptionRow>
-            <label className="flex items-center gap-2 text-[#3f4a43] cursor-pointer">
+            <label className="flex items-center gap-2 text-ink-soft cursor-pointer">
               <input
                 type="checkbox"
                 checked={settings.playFullVerse}
                 onChange={(e) => updateSettings({ playFullVerse: e.target.checked })}
-                className="h-4 w-4 accent-[#1b4332]"
+                className="h-4 w-4 accent-forest"
               />
               <span>Ayet bitince tamamını seçili kâriden bir kez dinle</span>
             </label>
@@ -140,13 +140,13 @@ export function ListenRepeatPanel({
           <button
             type="button"
             onClick={onStart}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#1b4332] px-4 py-3 text-sm font-semibold text-white hover:bg-[#143326]"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-forest px-4 py-3 text-sm font-semibold text-white hover:bg-forest-deep"
           >
             <Play className="h-4 w-4" />
             <span>Başlat</span>
           </button>
 
-          <p className="text-[11px] leading-relaxed text-[#5a655e]">
+          <p className="text-[11px] leading-relaxed text-muted">
             Kelime sesleri Quran.com&apos;un kelime kelime kaydından gelir; gerçek insan sesidir,
             yapay ses kullanılmaz. Kelime kaydı seçili kâriden bağımsızdır.
           </p>
@@ -203,10 +203,10 @@ export function ListenRepeatNowPlaying({
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold",
             phase === "repeat"
-              ? "bg-[#b08d57] text-white"
+              ? "bg-gold text-white"
               : isPaused
-                ? "bg-[#f3efe6] text-[#5a655e]"
-                : "bg-[#1b4332] text-white"
+                ? "bg-sand text-muted"
+                : "bg-forest text-white"
           )}
         >
           {phase === "repeat" ? (
@@ -216,7 +216,7 @@ export function ListenRepeatNowPlaying({
           )}
           {phaseLabel}
         </span>
-        <span className="text-[#5a655e]">
+        <span className="text-muted">
           {wordsStep
             ? `${currentStep.verseKey} · ${wordsStep.groupNumber}/${wordsStep.groupTotal}` +
               (wordsStep.repeatTotal > 1
@@ -232,22 +232,22 @@ export function ListenRepeatNowPlaying({
           dir="rtl"
           translate="no"
           className={cn(
-            "font-arabic text-[#1c241f]",
+            "font-arabic text-ink",
             compact ? "text-3xl leading-[1.5]" : "text-5xl leading-[1.6]"
           )}
         >
           {arabic}
         </p>
         {showTransliteration && transliteration && (
-          <p className="mt-1 text-xs font-mono text-[#5a655e]">{transliteration}</p>
+          <p className="mt-1 text-xs font-mono text-muted">{transliteration}</p>
         )}
       </div>
 
-      <div className="h-1.5 rounded-full bg-[#f3efe6] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-sand overflow-hidden">
         {phase === "repeat" && (
           <div
             key={stepIndex}
-            className="qj-turn-fill h-full w-full bg-[#b08d57]"
+            className="qj-turn-fill h-full w-full bg-gold"
             style={{ animationDuration: `${pauseMs}ms` }}
           />
         )}
@@ -260,7 +260,7 @@ export function ListenRepeatNowPlaying({
         <button
           type="button"
           onClick={isPaused ? listenRepeat.resume : listenRepeat.pause}
-          className="inline-flex items-center gap-2 rounded-xl bg-[#1b4332] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#143326]"
+          className="inline-flex items-center gap-2 rounded-xl bg-forest px-4 py-2.5 text-sm font-semibold text-white hover:bg-forest-deep"
         >
           {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
           <span>{isPaused ? "Devam" : "Duraklat"}</span>
@@ -286,7 +286,7 @@ export function ListenRepeatFloatingBar({
 }) {
   if (!listenRepeat.isActive) return null;
   return (
-    <div className="lg:hidden fixed inset-x-3 bottom-20 z-30 rounded-2xl border border-[#e5dec9] bg-white/95 backdrop-blur p-3 shadow-lg">
+    <div className="lg:hidden fixed inset-x-3 bottom-20 z-30 rounded-2xl border border-line bg-surface/95 backdrop-blur p-3 shadow-lg">
       <ListenRepeatNowPlaying
         listenRepeat={listenRepeat}
         showTransliteration={showTransliteration}
@@ -299,7 +299,7 @@ export function ListenRepeatFloatingBar({
 function OptionRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-      <span className="w-24 shrink-0 font-medium text-[#3f4a43]">{label}</span>
+      <span className="w-24 shrink-0 font-medium text-ink-soft">{label}</span>
       <div className="flex flex-wrap gap-1.5">{children}</div>
     </div>
   );
@@ -322,8 +322,8 @@ function Chip({
       className={cn(
         "rounded-lg border px-2.5 py-1.5 font-medium transition-colors",
         active
-          ? "border-[#1b4332] bg-[#1b4332] text-white"
-          : "border-[#e5dec9] bg-[#faf8f3] text-[#1c241f] hover:bg-[#f3efe6]"
+          ? "border-forest bg-forest text-white"
+          : "border-line bg-parchment text-ink hover:bg-sand"
       )}
     >
       {children}
@@ -346,7 +346,7 @@ function IconButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-2.5 text-[#1b4332] hover:bg-[#f3efe6]"
+      className="rounded-xl border border-line bg-parchment p-2.5 text-forest hover:bg-sand"
     >
       {children}
     </button>

@@ -58,10 +58,10 @@ export function StudySessionBar() {
       aria-label="Bugünkü çalışma oturumu"
       className={cn(
         "fixed inset-x-0 z-30 px-3",
-        "bottom-[calc(3.75rem+env(safe-area-inset-bottom))] lg:bottom-4 lg:left-64"
+        "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] lg:bottom-4 lg:left-64"
       )}
     >
-      <div className="mx-auto flex max-w-2xl items-center gap-3 rounded-2xl border border-[#1b4332]/15 bg-[#1b4332] px-3 py-2.5 text-[#faf8f3] shadow-lg shadow-[#1b4332]/20">
+      <div className="mx-auto flex max-w-2xl items-center gap-3 rounded-2xl border border-forest/15 bg-forest px-3 py-2.5 text-parchment shadow-lg shadow-forest/20">
         {finished ? (
           <>
             <CheckCircle2 className="h-5 w-5 shrink-0 text-[#d9c08f]" />
@@ -71,7 +71,7 @@ export function StudySessionBar() {
             <Link
               href="/"
               onClick={() => endSession()}
-              className="shrink-0 rounded-xl bg-[#faf8f3] px-3 py-1.5 text-xs font-bold text-[#1b4332]"
+              className="shrink-0 rounded-xl bg-parchment px-3 py-1.5 text-xs font-bold text-forest"
             >
               Panele dön
             </Link>
@@ -84,13 +84,13 @@ export function StudySessionBar() {
                   key={s.id}
                   className={cn(
                     "h-1.5 w-4 rounded-full",
-                    i < session.index ? "bg-[#d9c08f]" : i === session.index ? "bg-[#faf8f3]" : "bg-[#faf8f3]/25"
+                    i < session.index ? "bg-[#d9c08f]" : i === session.index ? "bg-parchment" : "bg-parchment/25"
                   )}
                 />
               ))}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-medium text-[#faf8f3]/70">
+              <p className="text-[11px] font-medium text-parchment/70">
                 Adım {session.index + 1}/{total} · ~{step.estimatedMinutes} dk
               </p>
               <p className="truncate text-sm font-semibold">{step.titleTr}</p>
@@ -98,7 +98,7 @@ export function StudySessionBar() {
             <button
               type="button"
               onClick={handleNext}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#faf8f3] px-3 py-2 text-xs font-bold text-[#1b4332] hover:bg-white"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-parchment px-3 py-2 text-xs font-bold text-forest hover:bg-surface"
             >
               <span>{isLast ? "Bitir" : "Sıradaki"}</span>
               {isLast ? <CheckCircle2 className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
@@ -109,7 +109,7 @@ export function StudySessionBar() {
           type="button"
           onClick={() => endSession()}
           aria-label="Oturumu kapat"
-          className="shrink-0 rounded-lg p-1 text-[#faf8f3]/60 hover:text-[#faf8f3]"
+          className="shrink-0 rounded-lg p-1 text-parchment/60 hover:text-parchment"
         >
           <X className="h-4 w-4" />
         </button>

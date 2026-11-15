@@ -1,37 +1,70 @@
 @import "tailwindcss" source("../");
 
 :root {
-  --bg-ivory: #faf8f3;
-  --bg-parchment: #f3efe6;
-  --surface-card: #ffffff;
-  --border-sand: #e5dec9;
-  --text-ink: #1c241f;
-  --text-muted: #5a655e;
-  --accent-forest: #1b4332;
-  --accent-forest-hover: #143326;
-  --accent-emerald: #2d6a4f;
-  --accent-gold: #b08d57;
-  --accent-gold-soft: #f7f1e3;
+  /* "Sakin Mushaf" palette: mushaf paper ground, deep forest ink, gold hairlines */
+  --qj-parchment: #f5f0e4; /* page ground */
+  --qj-surface: #fffdf8; /* cards, paper */
+  --qj-sidebar: #efe8d8;
+  --qj-sand: #efe8d8; /* subtle fills */
+  --qj-sand-strong: #e6dcc6;
+  --qj-track: #ebe3d1;
+  --qj-line: #e4d9bf;
+  --qj-ink: #1f2a23;
+  --qj-ink-soft: #3d4740;
+  --qj-muted: #645f50;
+  --qj-forest: #1b4332;
+  --qj-forest-deep: #143326;
+  --qj-emerald: #2d6a4f;
+  --qj-mint: #e7f0e9;
+  --qj-mint-strong: #d6e7db;
+  --qj-gold: #b08d57;
+  --qj-gold-soft: #f5ecd8;
+  --qj-gold-line: #e3d2ae;
+  --qj-gold-ink: #8d682c;
+  --qj-gold-deep: #6e511e;
+  --qj-gold-text: #4a3b1f;
 }
 
 @theme inline {
-  --color-background: var(--bg-ivory);
-  --color-foreground: var(--text-ink);
+  --color-background: var(--qj-parchment);
+  --color-foreground: var(--qj-ink);
+  --color-parchment: var(--qj-parchment);
+  --color-surface: var(--qj-surface);
+  --color-sidebar: var(--qj-sidebar);
+  --color-sand: var(--qj-sand);
+  --color-sand-strong: var(--qj-sand-strong);
+  --color-track: var(--qj-track);
+  --color-line: var(--qj-line);
+  --color-ink: var(--qj-ink);
+  --color-ink-soft: var(--qj-ink-soft);
+  --color-muted: var(--qj-muted);
+  --color-forest: var(--qj-forest);
+  --color-forest-deep: var(--qj-forest-deep);
+  --color-emerald: var(--qj-emerald);
+  --color-mint: var(--qj-mint);
+  --color-mint-strong: var(--qj-mint-strong);
+  --color-gold: var(--qj-gold);
+  --color-gold-soft: var(--qj-gold-soft);
+  --color-gold-line: var(--qj-gold-line);
+  --color-gold-ink: var(--qj-gold-ink);
+  --color-gold-deep: var(--qj-gold-deep);
+  --color-gold-text: var(--qj-gold-text);
   --font-sans: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-newsreader), Georgia, "Times New Roman", serif;
   --font-arabic: var(--font-amiri), var(--font-scheherazade), serif;
   --font-arabic-naskh: var(--font-scheherazade), var(--font-amiri), serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
 }
 
 html {
-  background-color: var(--bg-ivory);
-  color: var(--text-ink);
+  background-color: var(--qj-parchment);
+  color: var(--qj-ink);
   scroll-behavior: smooth;
 }
 
 body {
-  background-color: var(--bg-ivory);
-  color: var(--text-ink);
+  background-color: var(--qj-parchment);
+  color: var(--qj-ink);
   font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }

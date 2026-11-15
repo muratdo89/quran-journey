@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Amiri, JetBrains_Mono, Plus_Jakarta_Sans, Scheherazade_New } from "next/font/google";
+import { Amiri, JetBrains_Mono, Newsreader, Plus_Jakarta_Sans, Scheherazade_New } from "next/font/google";
 import { AppShell } from "@/components/layout/AppShell";
 import "./globals.css";
 
@@ -7,6 +7,12 @@ const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin", "latin-ext"],
   variable: "--font-jakarta",
   weight: ["400", "500", "600", "700"],
+});
+
+const newsreader = Newsreader({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-newsreader",
+  weight: ["500", "600"],
 });
 
 const amiri = Amiri({
@@ -39,7 +45,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   viewportFit: "cover",
-  themeColor: "#faf8f3",
+  themeColor: "#f5f0e4",
 };
 
 export default function RootLayout({
@@ -50,9 +56,9 @@ export default function RootLayout({
   return (
     <html
       lang="tr"
-      className={`${plusJakarta.variable} ${amiri.variable} ${scheherazade.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${plusJakarta.variable} ${newsreader.variable} ${amiri.variable} ${scheherazade.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[#faf8f3] text-[#1c241f]">
+      <body className="min-h-full bg-parchment text-ink">
         <AppShell>{children}</AppShell>
       </body>
     </html>

@@ -21,6 +21,7 @@ import type {
   UserPreferencesRecord,
   UserProfileRecord,
 } from "@/lib/db/types";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface SettingsClientProps {
   profile: UserProfileRecord;
@@ -292,34 +293,34 @@ export function SettingsClient({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#1c241f]">
-          Profil, Ayarlar ve Kaynak Doğrulama
-        </h1>
-        <p className="text-sm text-[#5a655e]">
-          Kişisel öğrenme hedefleri, Supabase bulut oturumu, nazik hatırlatıcı ve doğrulanmış kaynak lisansları.
-        </p>
+        <PageHeader
+          eyebrow="Ben"
+          title="Profil ve Ayarlar"
+          description={<>Kişisel öğrenme hedefleri, Supabase bulut oturumu, nazik hatırlatıcı ve doğrulanmış kaynak lisansları.</>}
+          related={[{ href: "/statistics", label: "İstatistikler" }]}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Profile & Preferences Form */}
         <form
           onSubmit={handleSave}
-          className="lg:col-span-6 rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4"
+          className="lg:col-span-6 rounded-2xl border border-line bg-surface p-6 space-y-4"
         >
-          <h2 className="text-base font-bold text-[#1c241f]">Kişisel Tercihler</h2>
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink">Kişisel Tercihler</h2>
 
           <label className="block space-y-1.5 text-xs">
-            <span className="font-semibold text-[#1c241f]">Hitap Edilecek İsim</span>
+            <span className="font-semibold text-ink">Hitap Edilecek İsim</span>
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3.5 py-2.5 text-sm"
+              className="w-full rounded-xl border border-line bg-parchment px-3.5 py-2.5 text-sm"
             />
           </label>
 
           <label className="block space-y-1.5 text-xs">
-            <span className="font-semibold text-[#1c241f]">
+            <span className="font-semibold text-ink">
               Günlük Hedef Süre ({dailyMinutes} dakika)
             </span>
             <input
@@ -329,27 +330,27 @@ export function SettingsClient({
               step={5}
               value={dailyMinutes}
               onChange={(e) => setDailyMinutes(Number(e.target.value))}
-              className="w-full accent-[#1b4332]"
+              className="w-full accent-forest"
             />
           </label>
 
-          <label className="flex items-start gap-2.5 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3.5 text-xs cursor-pointer">
+          <label className="flex items-start gap-2.5 rounded-xl border border-line bg-parchment p-3.5 text-xs cursor-pointer">
             <input
               type="checkbox"
               checked={cloudConsent}
               onChange={(e) => setCloudConsent(e.target.checked)}
-              className="mt-0.5 accent-[#1b4332]"
+              className="mt-0.5 accent-forest"
             />
-            <span className="text-[#3f4a43] leading-relaxed">
+            <span className="text-ink-soft leading-relaxed">
               Yapılandırılmış sunucu tarafı Kur&apos;an ASR kelime sırası kontrolü için ses kayıtlarımın açık onayımla gönderilmesine izin veriyorum (kapalıyken hiçbir ses dosyası harici servise aktarılmaz).
             </span>
           </label>
 
           {/* Gentle Browser Reminder */}
-          <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3.5 space-y-2.5 text-xs">
+          <div className="rounded-xl border border-line bg-parchment p-3.5 space-y-2.5 text-xs">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-semibold text-[#1c241f] flex items-center gap-1.5">
-                <Bell className="h-3.5 w-3.5 text-[#1b4332]" />
+              <span className="font-semibold text-ink flex items-center gap-1.5">
+                <Bell className="h-3.5 w-3.5 text-forest" />
                 <span>Nazik Çalışma Hatırlatıcısı</span>
               </span>
               <div className="flex items-center gap-2">
@@ -363,34 +364,34 @@ export function SettingsClient({
                       window.dispatchEvent(new Event(REMINDER_EVENT));
                     }
                   }}
-                  className="rounded-lg border border-[#e5dec9] bg-white px-2 py-1 text-xs"
+                  className="rounded-lg border border-line bg-surface px-2 py-1 text-xs"
                 />
                 <button
                   type="button"
                   onClick={() => toggleReminder(!reminderEnabled)}
                   className={
                     reminderEnabled
-                      ? "rounded-lg bg-[#1b4332] px-3 py-1 font-semibold text-white"
-                      : "rounded-lg border border-[#1b4332] bg-white px-3 py-1 font-semibold text-[#1b4332]"
+                      ? "rounded-lg bg-forest px-3 py-1 font-semibold text-white"
+                      : "rounded-lg border border-forest bg-surface px-3 py-1 font-semibold text-forest"
                   }
                 >
                   {reminderEnabled ? "Açık" : "Etkinleştir"}
                 </button>
               </div>
             </div>
-            {reminderStatusTr && <p className="text-[11px] text-[#2d6a4f]">{reminderStatusTr}</p>}
+            {reminderStatusTr && <p className="text-[11px] text-emerald">{reminderStatusTr}</p>}
           </div>
 
           <div className="flex items-center gap-3">
             <button
               type="submit"
               disabled={saving}
-              className="rounded-xl bg-[#1b4332] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#143326]"
+              className="rounded-xl bg-forest px-5 py-2.5 text-xs font-semibold text-white hover:bg-forest-deep"
             >
               {saving ? "Kaydediliyor..." : "Ayarları Kaydet"}
             </button>
             {savedMsg && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#2d6a4f]">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald">
                 <Check className="h-3.5 w-3.5" />
                 Kaydedildi
               </span>
@@ -399,33 +400,33 @@ export function SettingsClient({
         </form>
 
         {/* Backend & Integration Status */}
-        <section className="lg:col-span-6 rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
-          <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
-            <Database className="h-4 w-4 text-[#1b4332]" />
+        <section className="lg:col-span-6 rounded-2xl border border-line bg-surface p-6 space-y-4">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink flex items-center gap-2">
+            <Database className="h-4 w-4 text-forest" />
             <span>Veritabanı ve Entegrasyon Durumu</span>
           </h2>
 
           <div className="space-y-2.5 text-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 rounded-xl border border-line bg-parchment p-3">
               <span className="font-semibold">Aktif Kalıcı Depolama</span>
               <span
                 className={
                   backendStatus.activePersistence === "sqlite_ephemeral_tmp"
                     ? "rounded-full bg-amber-100 px-2.5 py-0.5 font-semibold text-amber-900"
-                    : "rounded-full bg-[#edf5f0] px-2.5 py-0.5 font-semibold text-[#1b4332]"
+                    : "rounded-full bg-mint px-2.5 py-0.5 font-semibold text-forest"
                 }
               >
                 {persistenceLabel}
               </span>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3">
+            <div className="flex items-center justify-between rounded-xl border border-line bg-parchment p-3">
               <span className="font-semibold">Supabase PostgreSQL &amp; Auth</span>
               <span
                 className={
                   backendStatus.supabaseConfigured
-                    ? "rounded-full bg-[#edf5f0] px-2.5 py-0.5 font-semibold text-[#1b4332]"
-                    : "rounded-full bg-[#f7f1e3] px-2.5 py-0.5 font-semibold text-[#8d682c]"
+                    ? "rounded-full bg-mint px-2.5 py-0.5 font-semibold text-forest"
+                    : "rounded-full bg-gold-soft px-2.5 py-0.5 font-semibold text-gold-ink"
                 }
               >
                 {backendStatus.supabaseConfigured
@@ -436,20 +437,20 @@ export function SettingsClient({
               </span>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3">
+            <div className="flex items-center justify-between rounded-xl border border-line bg-parchment p-3">
               <span className="font-semibold">Doğrulanmış Mushaf Kapsamı</span>
-              <span className="rounded-full bg-[#edf5f0] px-2.5 py-0.5 font-semibold text-[#1b4332]">
+              <span className="rounded-full bg-mint px-2.5 py-0.5 font-semibold text-forest">
                 Tam Kur&apos;an (114 Sure · 604 Sayfa · 6.236 Ayet)
               </span>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3">
+            <div className="flex items-center justify-between rounded-xl border border-line bg-parchment p-3">
               <span className="font-semibold">Kur&apos;an ASR / Kelime Sırası Kontrolü</span>
               <span
                 className={
                   backendStatus.asrProviderConfigured
-                    ? "rounded-full bg-[#edf5f0] px-2.5 py-0.5 font-semibold text-[#1b4332]"
-                    : "rounded-full bg-[#f7f1e3] px-2.5 py-0.5 font-semibold text-[#8d682c]"
+                    ? "rounded-full bg-mint px-2.5 py-0.5 font-semibold text-forest"
+                    : "rounded-full bg-gold-soft px-2.5 py-0.5 font-semibold text-gold-ink"
                 }
               >
                 {backendStatus.asrProviderConfigured
@@ -465,12 +466,12 @@ export function SettingsClient({
             </div>
           )}
 
-          <div className="pt-2 border-t border-[#e5dec9] space-y-2.5">
+          <div className="pt-2 border-t border-line space-y-2.5">
             <button
               type="button"
               disabled={healthChecking}
               onClick={handleHealthCheck}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#1b4332] bg-[#edf5f0] px-4 py-2 text-xs font-semibold text-[#1b4332] hover:bg-[#dcece2] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl border border-forest bg-mint px-4 py-2 text-xs font-semibold text-forest hover:bg-mint-strong disabled:opacity-60"
             >
               <Activity className="h-3.5 w-3.5" />
               <span>
@@ -485,7 +486,7 @@ export function SettingsClient({
             )}
 
             {healthReport && (
-              <div className="rounded-xl border border-[#2d6a4f]/30 bg-[#edf5f0] p-3 text-[11px] text-[#1b4332] space-y-1">
+              <div className="rounded-xl border border-emerald/30 bg-mint p-3 text-[11px] text-forest space-y-1">
                 <p className="font-bold">
                   Sistem Sağlığı: {healthReport.ok ? "Çalışır ve Doğrulandı" : "Sorun Bildirildi"}
                 </p>
@@ -507,22 +508,22 @@ export function SettingsClient({
       </div>
 
       {/* Supabase Cloud Account Sync Section */}
-      <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
+      <section className="rounded-2xl border border-line bg-surface p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
-              <Cloud className="h-4 w-4 text-[#1b4332]" />
+            <h2 className="font-display text-lg font-semibold tracking-tight text-ink flex items-center gap-2">
+              <Cloud className="h-4 w-4 text-forest" />
               <span>Supabase Bulut Senkronizasyonu (Telefon &amp; Masaüstü)</span>
             </h2>
-            <p className="text-xs text-[#5a655e] mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               İlerlemenizi kişisel Supabase PostgreSQL veritabanınızda güvenle tutar.
             </p>
           </div>
         </div>
 
         {!backendStatus.supabaseConfigured ? (
-          <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 text-xs text-[#3f4a43] space-y-2 leading-relaxed">
-            <p className="font-semibold text-[#1c241f]">
+          <div className="rounded-xl border border-line bg-parchment p-4 text-xs text-ink-soft space-y-2 leading-relaxed">
+            <p className="font-semibold text-ink">
               Bilgisayarsız (Telefon Tarayıcısından) 2 Adımlı Bulut Kurulumu:
             </p>
             <ol className="list-decimal list-inside space-y-1">
@@ -542,12 +543,12 @@ export function SettingsClient({
             </ol>
           </div>
         ) : backendStatus.supabaseAuthenticatedUserEmail ? (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-[#2d6a4f]/30 bg-[#edf5f0] p-4 text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-emerald/30 bg-mint p-4 text-xs">
             <div>
-              <p className="font-bold text-[#1b4332]">
+              <p className="font-bold text-forest">
                 Bulut Hesabı Aktif: {backendStatus.supabaseAuthenticatedUserEmail}
               </p>
-              <p className="text-[#3f4a43] mt-0.5">
+              <p className="text-ink-soft mt-0.5">
                 Tüm kelime kartlarınız, FSRS aralıkları, ezber durumları ve ayet notları PostgreSQL üzerine yazılıyor.
               </p>
             </div>
@@ -555,7 +556,7 @@ export function SettingsClient({
               type="button"
               disabled={authLoading}
               onClick={handleSignOut}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#1b4332] bg-white px-4 py-2 font-semibold text-[#1b4332] hover:bg-[#faf8f3] shrink-0"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-forest bg-surface px-4 py-2 font-semibold text-forest hover:bg-parchment shrink-0"
             >
               <LogOut className="h-3.5 w-3.5" />
               <span>Oturumu Kapat</span>
@@ -569,8 +570,8 @@ export function SettingsClient({
                 onClick={() => setAuthMode("signin")}
                 className={`rounded-xl px-4 py-2 text-xs font-semibold ${
                   authMode === "signin"
-                    ? "bg-[#1b4332] text-white"
-                    : "border border-[#e5dec9] bg-[#faf8f3] text-[#1c241f]"
+                    ? "bg-forest text-white"
+                    : "border border-line bg-parchment text-ink"
                 }`}
               >
                 Giriş Yap
@@ -580,8 +581,8 @@ export function SettingsClient({
                 onClick={() => setAuthMode("signup")}
                 className={`rounded-xl px-4 py-2 text-xs font-semibold ${
                   authMode === "signup"
-                    ? "bg-[#1b4332] text-white"
-                    : "border border-[#e5dec9] bg-[#faf8f3] text-[#1c241f]"
+                    ? "bg-forest text-white"
+                    : "border border-line bg-parchment text-ink"
                 }`}
               >
                 Yeni Hesap Oluştur
@@ -595,7 +596,7 @@ export function SettingsClient({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="E-posta adresiniz"
-                className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3.5 py-2.5 text-sm"
+                className="rounded-xl border border-line bg-parchment px-3.5 py-2.5 text-sm"
               />
               <input
                 type="password"
@@ -604,14 +605,14 @@ export function SettingsClient({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Parola (en az 6 karakter)"
-                className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3.5 py-2.5 text-sm"
+                className="rounded-xl border border-line bg-parchment px-3.5 py-2.5 text-sm"
               />
             </div>
 
             <button
               type="submit"
               disabled={authLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#1b4332] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#143326] disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-forest px-5 py-2.5 text-xs font-semibold text-white hover:bg-forest-deep disabled:opacity-50"
             >
               {authMode === "signin" ? (
                 <LogIn className="h-3.5 w-3.5" />
@@ -630,7 +631,7 @@ export function SettingsClient({
             {authMessage && (
               <p
                 className={`text-xs font-semibold ${
-                  authMessage.type === "ok" ? "text-[#2d6a4f]" : "text-red-700"
+                  authMessage.type === "ok" ? "text-emerald" : "text-red-700"
                 }`}
               >
                 {authMessage.text}
@@ -641,14 +642,14 @@ export function SettingsClient({
       </section>
 
       {/* Study Backup & Teacher Summary Export Section */}
-      <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-3">
+      <section className="rounded-2xl border border-line bg-surface p-6 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
-              <Download className="h-4 w-4 text-[#1b4332]" />
+            <h2 className="font-display text-lg font-semibold tracking-tight text-ink flex items-center gap-2">
+              <Download className="h-4 w-4 text-forest" />
               <span>Çalışma Yedeği ve Hoca İnceleme Özeti Dışa Aktarma</span>
             </h2>
-            <p className="text-xs text-[#5a655e] mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Tüm ezber durumlarınızı, zor işaretli ayetlerinizi, FSRS kart özetinizi ve ayet notlarınızı JSON yedeği olarak indirin.
             </p>
           </div>
@@ -656,14 +657,14 @@ export function SettingsClient({
             type="button"
             disabled={exportingBackup}
             onClick={handleExportBackup}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1b4332] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#143326] disabled:opacity-60 shrink-0"
+            className="inline-flex items-center gap-2 rounded-xl bg-forest px-4 py-2.5 text-xs font-semibold text-white hover:bg-forest-deep disabled:opacity-60 shrink-0"
           >
             <Download className="h-3.5 w-3.5" />
             <span>{exportingBackup ? "Hazırlanıyor..." : "Yedek ve Özeti İndir (.json)"}</span>
           </button>
         </div>
         {exportStatusTr && (
-          <p className="text-xs font-semibold text-[#2d6a4f] flex items-center gap-1.5">
+          <p className="text-xs font-semibold text-emerald flex items-center gap-1.5">
             <Check className="h-3.5 w-3.5" />
             <span>{exportStatusTr}</span>
           </p>
@@ -671,13 +672,13 @@ export function SettingsClient({
       </section>
 
       {/* Verified Source & Licensing Manifest */}
-      <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
+      <section className="rounded-2xl border border-line bg-surface p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-[#1b4332]" />
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-forest" />
             <span>Doğrulanmış İçerik Kaynakları ve Lisans Bildirimi</span>
           </h2>
-          <span className="font-mono text-[11px] text-[#5a655e]">
+          <span className="font-mono text-[11px] text-muted">
             Tam Kur&apos;an Meta SHA-256:{" "}
             {manifest.datasets["quran-meta"]?.sha256.slice(0, 16) ??
               manifest.datasets["surah-1-fatiha"]?.sha256.slice(0, 16)}
@@ -689,17 +690,17 @@ export function SettingsClient({
           {manifest.sources.map((src) => (
             <article
               key={src.id}
-              className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 space-y-2 text-xs"
+              className="rounded-xl border border-line bg-parchment p-4 space-y-2 text-xs"
             >
-              <p className="font-bold text-[#1b4332]">{src.provider}</p>
-              <p className="font-medium text-[#1c241f]">{src.resource}</p>
-              <p className="text-[11px] text-[#5a655e]">
+              <p className="font-bold text-forest">{src.provider}</p>
+              <p className="font-medium text-ink">{src.resource}</p>
+              <p className="text-[11px] text-muted">
                 <strong>Lisans:</strong> {src.license}
               </p>
-              <p className="text-[11px] text-[#5a655e]">
+              <p className="text-[11px] text-muted">
                 <strong>Kısıtlama:</strong> {src.usageRestrictions}
               </p>
-              <p className="text-[11px] text-[#5a655e] break-all">
+              <p className="text-[11px] text-muted break-all">
                 <strong>Kaynak:</strong> {src.url}
               </p>
             </article>

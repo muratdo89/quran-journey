@@ -18,6 +18,7 @@ import {
   buildJuzProgressGrid,
   MEMORIZATION_STATE_LABELS_TR,
 } from "@/lib/learning-engine";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -115,10 +116,12 @@ export default async function StatisticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#1c241f]">İstatistikler, Hata Analizi ve Cüz Haritası</h1>
-        <p className="text-sm text-[#5a655e]">
-          Yalnızca doğrulanmış aktif hatırlama, FSRS unutma (lapse) örüntüleri, okuma tamamlama ve ezber testlerinden üretilen dürüst ölçümler ({totalReviews} tekrar).
-        </p>
+        <PageHeader
+          eyebrow="Ben"
+          title="İstatistikler"
+          description={<>Yalnızca doğrulanmış aktif hatırlama, FSRS unutma (lapse) örüntüleri, okuma tamamlama ve ezber testlerinden üretilen dürüst ölçümler ({totalReviews} tekrar).</>}
+          related={[{ href: "/settings", label: "Profil ve Ayarlar" }]}
+        />
       </div>
 
       {/* Top Real Metrics */}
@@ -128,35 +131,35 @@ export default async function StatisticsPage() {
           return (
             <div
               key={m.label}
-              className="rounded-2xl border border-[#e5dec9] bg-white p-5 space-y-2"
+              className="rounded-2xl border border-line bg-surface p-5 space-y-2"
             >
-              <div className="flex items-center justify-between text-xs font-medium text-[#5a655e]">
+              <div className="flex items-center justify-between text-xs font-medium text-muted">
                 <span>{m.label}</span>
-                <Icon className="h-4 w-4 text-[#1b4332]" />
+                <Icon className="h-4 w-4 text-forest" />
               </div>
-              <p className="text-xl font-bold text-[#1c241f]">{m.value}</p>
+              <p className="text-xl font-bold text-ink">{m.value}</p>
             </div>
           );
         })}
       </section>
 
       {/* Phase 5: Longitudinal Error-Pattern Analytics */}
-      <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
+      <section className="rounded-2xl border border-line bg-surface p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-[#b08d57]" />
+            <h2 className="font-display text-lg font-semibold tracking-tight text-ink flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-gold" />
               <span>Hata Örüntüsü Analizi ve Öncelikli Öneriler</span>
             </h2>
-            <p className="text-xs text-[#5a655e]">
+            <p className="text-xs text-muted">
               FSRS kart düşüşleri, kaçırılan kökler, okuma boşlukları ve zayıflayan ezberler taranarak oluşturulur.
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="rounded-lg bg-[#faf8f3] border border-[#e5dec9] px-2.5 py-1 font-semibold">
+            <span className="rounded-lg bg-parchment border border-line px-2.5 py-1 font-semibold">
               Lapse Kart: {errorReport.lapsedCardsCount}
             </span>
-            <span className="rounded-lg bg-[#faf8f3] border border-[#e5dec9] px-2.5 py-1 font-semibold">
+            <span className="rounded-lg bg-parchment border border-line px-2.5 py-1 font-semibold">
               Tekrar Bekleyen Ayet: {errorReport.revisionVersesCount}
             </span>
           </div>
@@ -170,26 +173,26 @@ export default async function StatisticsPage() {
                 ins.severity === "high"
                   ? "rounded-xl border border-amber-300 bg-amber-50/70 p-4 space-y-2"
                   : ins.severity === "medium"
-                    ? "rounded-xl border border-[#e3d2ae] bg-[#f7f1e3]/70 p-4 space-y-2"
-                    : "rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-4 space-y-2"
+                    ? "rounded-xl border border-gold-line bg-gold-soft/70 p-4 space-y-2"
+                    : "rounded-xl border border-line bg-parchment p-4 space-y-2"
               }
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8d682c]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-gold-ink">
                   {ins.categoryTr}
                 </span>
                 {ins.severity === "high" ? (
                   <AlertTriangle className="h-3.5 w-3.5 text-amber-700" />
                 ) : (
-                  <Info className="h-3.5 w-3.5 text-[#1b4332]" />
+                  <Info className="h-3.5 w-3.5 text-forest" />
                 )}
               </div>
-              <h3 className="text-sm font-bold text-[#1c241f]">{ins.titleTr}</h3>
-              <p className="text-xs text-[#3f4a43] leading-relaxed">{ins.detailTr}</p>
+              <h3 className="text-sm font-bold text-ink">{ins.titleTr}</h3>
+              <p className="text-xs text-ink-soft leading-relaxed">{ins.detailTr}</p>
               <div className="pt-1">
                 <Link
                   href={ins.actionHref}
-                  className="inline-flex items-center rounded-lg bg-[#1b4332] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#143326]"
+                  className="inline-flex items-center rounded-lg bg-forest px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-forest-deep"
                 >
                   {ins.actionLabelTr}
                 </Link>
@@ -199,8 +202,8 @@ export default async function StatisticsPage() {
         </div>
 
         {errorReport.topMissedRoots.length > 0 && (
-          <div className="pt-3 border-t border-[#e5dec9] space-y-2">
-            <p className="text-xs font-semibold text-[#1c241f]">
+          <div className="pt-3 border-t border-line space-y-2">
+            <p className="text-xs font-semibold text-ink">
               En Sık Hata Yapılan Kelime Kökleri:
             </p>
             <div className="flex flex-wrap gap-2">
@@ -208,12 +211,12 @@ export default async function StatisticsPage() {
                 <Link
                   key={bucket.rootArabic}
                   href={`/vocabulary?root=${encodeURIComponent(bucket.rootArabic)}`}
-                  className="inline-flex items-center gap-2 rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3 py-1.5 text-xs hover:border-[#1b4332]"
+                  className="inline-flex items-center gap-2 rounded-xl border border-line bg-parchment px-3 py-1.5 text-xs hover:border-forest"
                 >
-                  <span lang="ar" dir="rtl" translate="no" className="font-arabic text-base font-bold text-[#1b4332]">
+                  <span lang="ar" dir="rtl" translate="no" className="font-arabic text-base font-bold text-forest">
                     {bucket.rootArabic}
                   </span>
-                  <span className="text-[#5a655e]">{bucket.missedCount} hata</span>
+                  <span className="text-muted">{bucket.missedCount} hata</span>
                 </Link>
               ))}
             </div>
@@ -222,18 +225,18 @@ export default async function StatisticsPage() {
       </section>
 
       {/* 30-Juz / 604-Page Madinah Mushaf Coverage Map */}
-      <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
+      <section className="rounded-2xl border border-line bg-surface p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
-              <Compass className="h-4 w-4 text-[#1b4332]" />
+            <h2 className="font-display text-lg font-semibold tracking-tight text-ink flex items-center gap-2">
+              <Compass className="h-4 w-4 text-forest" />
               <span>30 Cüz / 604 Sayfa Medine Mushafı Haritası</span>
             </h2>
-            <p className="text-xs text-[#5a655e]">
+            <p className="text-xs text-muted">
               Her cüz kartına tıklayarak doğrudan o cüzün başlangıç Mushaf sayfasına gidebilirsiniz.
             </p>
           </div>
-          <span className="text-xs font-semibold text-[#1b4332]">
+          <span className="text-xs font-semibold text-forest">
             {snapshot.pageProgress.length} / 604 sayfa çalışıldı
           </span>
         </div>
@@ -248,24 +251,24 @@ export default async function StatisticsPage() {
                 href={`/mushaf?page=${juz.startPage}`}
                 className={
                   isComplete
-                    ? "rounded-xl border border-[#2d6a4f] bg-[#edf5f0] p-3 text-xs transition-colors"
+                    ? "rounded-xl border border-emerald bg-mint p-3 text-xs transition-colors"
                     : hasStudy
-                      ? "rounded-xl border border-[#b08d57] bg-[#f7f1e3]/70 p-3 text-xs transition-colors hover:bg-[#f7f1e3]"
-                      : "rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3 text-xs transition-colors hover:border-[#1b4332]"
+                      ? "rounded-xl border border-gold bg-gold-soft/70 p-3 text-xs transition-colors hover:bg-gold-soft"
+                      : "rounded-xl border border-line bg-parchment p-3 text-xs transition-colors hover:border-forest"
                 }
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#1c241f]">{juz.juzNumber}. Cüz</span>
-                  <span className="font-mono text-[10px] text-[#5a655e]">
+                  <span className="font-bold text-ink">{juz.juzNumber}. Cüz</span>
+                  <span className="font-mono text-[10px] text-muted">
                     {juz.startPage}–{juz.endPage}
                   </span>
                 </div>
-                <p className="mt-1.5 text-[11px] text-[#5a655e]">
+                <p className="mt-1.5 text-[11px] text-muted">
                   {juz.studiedPages}/{juz.totalPages} sayfa
                 </p>
-                <div className="mt-1.5 h-1.5 rounded-full bg-[#e5dec9] overflow-hidden">
+                <div className="mt-1.5 h-1.5 rounded-full bg-line overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-[#1b4332]"
+                    className="h-full rounded-full bg-forest"
                     style={{
                       width: `${Math.round((juz.studiedPages / juz.totalPages) * 100)}%`,
                     }}
@@ -279,8 +282,8 @@ export default async function StatisticsPage() {
 
       {/* 5 Independent Dimensions + Verse Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
-          <h2 className="text-base font-bold text-[#1c241f]">
+        <section className="rounded-2xl border border-line bg-surface p-6 space-y-4">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
             5 Bağımsız Beceri Puanı
           </h2>
           <div className="space-y-3.5">
@@ -294,11 +297,11 @@ export default async function StatisticsPage() {
               <div key={item.name}>
                 <div className="flex justify-between text-xs font-semibold mb-1">
                   <span>{item.name}</span>
-                  <span className="font-mono text-[#1b4332]">%{item.val}</span>
+                  <span className="font-mono text-forest">%{item.val}</span>
                 </div>
-                <div className="h-2 rounded-full bg-[#efeae0] overflow-hidden">
+                <div className="h-2 rounded-full bg-track overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-[#1b4332]"
+                    className="h-full rounded-full bg-forest"
                     style={{ width: `${Math.max(2, item.val)}%` }}
                   />
                 </div>
@@ -307,29 +310,29 @@ export default async function StatisticsPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
-          <h2 className="text-base font-bold text-[#1c241f]">
+        <section className="rounded-2xl border border-line bg-surface p-6 space-y-4">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
             Ayet ve Sayfa Bazlı Hıfz Dağılımı ({snapshot.verseProgress.length} Ayet)
           </h2>
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
             {snapshot.verseProgress.map((vp) => (
               <div
                 key={vp.verseKey}
-                className="flex items-center justify-between rounded-xl border border-[#e5dec9] bg-[#faf8f3] px-3.5 py-2.5 text-xs"
+                className="flex items-center justify-between rounded-xl border border-line bg-parchment px-3.5 py-2.5 text-xs"
               >
-                <span className="font-mono font-bold text-[#1b4332]">{vp.verseKey}</span>
-                <span className="font-medium text-[#1c241f]">
+                <span className="font-mono font-bold text-forest">{vp.verseKey}</span>
+                <span className="font-medium text-ink">
                   {MEMORIZATION_STATE_LABELS_TR[vp.memorizationState]}
                 </span>
-                <span className="text-[#5a655e]">
+                <span className="text-muted">
                   Kavrama: %{vp.comprehensionScore}
                 </span>
               </div>
             ))}
           </div>
           {snapshot.pageProgress.length > 0 && (
-            <div className="pt-3 border-t border-[#e5dec9]">
-              <p className="text-xs font-semibold text-[#1c241f] mb-1.5">
+            <div className="pt-3 border-t border-line">
+              <p className="text-xs font-semibold text-ink mb-1.5">
                 Çalışılan Mushaf Sayfaları ({snapshot.pageProgress.length}/{totalAvailablePages})
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -337,7 +340,7 @@ export default async function StatisticsPage() {
                   <Link
                     key={pp.pageNumber}
                     href={`/mushaf?page=${pp.pageNumber}`}
-                    className="rounded-lg bg-[#edf5f0] border border-[#2d6a4f]/25 px-2.5 py-1 text-[11px] font-semibold text-[#1b4332] hover:border-[#1b4332]"
+                    className="rounded-lg bg-mint border border-emerald/25 px-2.5 py-1 text-[11px] font-semibold text-forest hover:border-forest"
                   >
                     Sayfa {pp.pageNumber} ({pp.memorizedVersesCount}/{pp.studiedVersesCount} ezber)
                   </Link>
@@ -350,9 +353,9 @@ export default async function StatisticsPage() {
 
       {/* Activity History & Achievements */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
-          <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-[#1b4332]" />
+        <section className="rounded-2xl border border-line bg-surface p-6 space-y-4">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-forest" />
             <span>Son Çalışma Günlüğü</span>
           </h2>
           {snapshot.activityHistory.length > 0 ? (
@@ -360,25 +363,25 @@ export default async function StatisticsPage() {
               {snapshot.activityHistory.slice(0, 10).map((day) => (
                 <div
                   key={day.activityDate}
-                  className="flex items-center justify-between rounded-xl bg-[#faf8f3] border border-[#e5dec9] px-3.5 py-2 text-xs"
+                  className="flex items-center justify-between rounded-xl bg-parchment border border-line px-3.5 py-2 text-xs"
                 >
                   <span className="font-mono font-semibold">{day.activityDate}</span>
                   <span>{day.minutesStudied} dk</span>
                   <span>{day.reviewsCompleted} tekrar</span>
-                  <span className="font-semibold text-[#1b4332]">+{day.xpEarned} XP</span>
+                  <span className="font-semibold text-forest">+{day.xpEarned} XP</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-[#5a655e]">
+            <p className="text-xs text-muted">
               Henüz kayıtlı çalışma oturumu yok. Tekrar veya ezber oturumu tamamladığınızda gerçek çalışma günlüğünüz burada oluşur.
             </p>
           )}
         </section>
 
-        <section className="rounded-2xl border border-[#e5dec9] bg-white p-6 space-y-4">
-          <h2 className="text-base font-bold text-[#1c241f] flex items-center gap-2">
-            <Award className="h-4 w-4 text-[#b08d57]" />
+        <section className="rounded-2xl border border-line bg-surface p-6 space-y-4">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink flex items-center gap-2">
+            <Award className="h-4 w-4 text-gold" />
             <span>Kazanılan Kilometre Taşları & Zorlanılan Kelimeler</span>
           </h2>
 
@@ -387,7 +390,7 @@ export default async function StatisticsPage() {
               {snapshot.achievements.map((ach) => (
                 <span
                   key={ach.badgeCode}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[#f7f1e3] border border-[#e3d2ae] px-3 py-1 text-xs font-semibold text-[#6e511e]"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-gold-soft border border-gold-line px-3 py-1 text-xs font-semibold text-gold-deep"
                 >
                   <Award className="h-3.5 w-3.5" />
                   {ach.titleTr}
@@ -395,13 +398,13 @@ export default async function StatisticsPage() {
               ))}
             </div>
           ) : (
-            <p className="text-xs text-[#5a655e]">
+            <p className="text-xs text-muted">
               İlk aktif hatırlama, seviye değerlendirmesi veya ses kaydınızı tamamladığınızda kilometre taşları açılır.
             </p>
           )}
 
-          <div className="pt-3 border-t border-[#e5dec9]">
-            <p className="text-xs font-semibold text-[#1c241f] mb-1.5">
+          <div className="pt-3 border-t border-line">
+            <p className="text-xs font-semibold text-ink mb-1.5">
               Tekrar Gerektiren Zorlanılan Kelimeler ({difficultWords.length})
             </p>
             {difficultWords.length > 0 ? (
@@ -416,7 +419,7 @@ export default async function StatisticsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-[#5a655e]">
+              <p className="text-xs text-muted">
                 Şu an tekrar tekrar hata yapılan kelime yok.
               </p>
             )}
