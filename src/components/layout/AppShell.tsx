@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LastStudyTracker } from "@/components/layout/LastStudyTracker";
+import { installSharedAudioUnlock } from "@/lib/audio/shared-player";
 
 interface NavItem {
   href: string;
@@ -117,6 +118,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     () => (typeof navigator !== "undefined" ? !navigator.onLine : false),
     () => false
   );
+
+  // First tap anywhere unlocks the shared audio element, so recitation that continues
+  // after a pause or timer (listen-and-repeat, loops, warm-up) isn't blocked on phones.
+  useEffect(() => {
+    installSharedAudioUnlock();
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

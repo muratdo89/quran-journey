@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { playSharedClip } from "@/lib/audio/shared-player";
 import {
   Check,
   ChevronLeft,
@@ -182,7 +183,7 @@ export function VocabularyClient({
 
   function playWord(url: string | null) {
     if (!url) return;
-    new Audio(url).play().catch(() => {});
+    playSharedClip(url);
   }
 
   async function addCard(wordLocation: string, direction: "ar_to_tr" | "tr_to_ar") {

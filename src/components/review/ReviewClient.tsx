@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import { playSharedClip } from "@/lib/audio/shared-player";
 import { CheckCircle2, Eye, RotateCcw, Volume2 } from "lucide-react";
 import type { CanonicalWord } from "@/lib/content/types";
 import {
@@ -57,7 +58,7 @@ export function ReviewClient({
 
   function playWordAudio(url: string | null | undefined) {
     if (!url) return;
-    new Audio(url).play().catch(() => {});
+    playSharedClip(url);
   }
 
   async function handleRate(choice: ReviewChoice) {

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { CanonicalVerse } from "@/lib/content/types";
 import { getReciterAyahAudioUrl } from "@/lib/audio/reciters";
+import { playSharedClip, type ClipHandle } from "@/lib/audio/shared-player";
 import {
   DEFAULT_LISTEN_REPEAT_SETTINGS,
   buildListenRepeatQueue,
@@ -85,7 +86,7 @@ export function useListenRepeat({ allVersesOnPage, reciterId, onStepChange }: Us
   const [error, setError] = useState<string | null>(null);
 
   const runIdRef = useRef(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const clipRef = useRef<ClipHandle | null>(null);
   const cancelWaitRef = useRef<(() => void) | null>(null);
   // The running drill reads the latest settings/callback, so changes apply from the next step.
   const settingsRef = useRef(settings);
@@ -99,12 +100,8 @@ export function useListenRepeat({ allVersesOnPage, reciterId, onStepChange }: Us
     runIdRef.current += 1;
     cancelWaitRef.current?.();
     cancelWaitRef.current = null;
-    if (audioRef.current) {
-      audioRef.current.onended = null;
-      audioRef.current.onerror = null;
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    clipRef.current?.stop();
+    clipRef.current = null;
   }, []);
 
   useEffect(() => cancelCurrent, [cancelCurrent]);
@@ -119,35 +116,19 @@ export function useListenRepeat({ allVersesOnPage, reciterId, onStepChange }: Us
    * Resolves with how long the learner heard the clip (ms, after the speed change),
    * or null when it was cancelled or failed.
    */
-  function playClip(url: string, rate: number, runId: number): Promise<number | null> {
-    return new Promise((resolve) => {
-      if (runId !== runIdRef.current) {
-        resolve(null);
-        return;
-      }
-      const audio = new Audio(url);
-      audio.preservesPitch = true;
-      audio.playbackRate = rate;
-      audioRef.current = audio;
-      cancelWaitRef.current = () => resolve(null);
-      audio.onended = () => {
-        if (runId !== runIdRef.current) return resolve(null);
-        const seconds = Number.isFinite(audio.duration) ? audio.duration : 0;
-        resolve((seconds * 1000) / rate);
-      };
-      audio.onerror = () => {
-        if (runId === runIdRef.current) {
-          setError("Kelime sesi yüklenemedi. İnternet bağlantınızı kontrol edin.");
-        }
-        resolve(null);
-      };
-      audio.play().catch(() => {
-        if (runId === runIdRef.current) {
-          setError("Tarayıcı ses oynatmayı engelledi; lütfen Devam'a tekrar dokunun.");
-        }
-        resolve(null);
-      });
-    });
+  async function playClip(url: string, rate: number, runId: number): Promise<number | null> {
+    if (runId !== runIdRef.current) return null;
+    // Always the same (tap-unlocked) audio element: a new Audio() created after the
+    // "your turn" pause is blocked by mobile Safari's autoplay rules.
+    const clip = playSharedClip(url, { rate });
+    clipRef.current = clip;
+    const result = await clip.done;
+    if (clipRef.current === clip) clipRef.current = null;
+    if (runId !== runIdRef.current) return null;
+    if (result.status === "ended") return result.heardMs;
+    if (result.status === "blocked") setError("Tarayıcı sesi engelledi; Devam'a bir kez dokunun.");
+    if (result.status === "error") setError("Kelime sesi yüklenemedi. İnternet bağlantınızı kontrol edin.");
+    return null;
   }
 
   function wait(ms: number, runId: number): Promise<boolean> {
@@ -204,7 +185,6 @@ export function useListenRepeat({ allVersesOnPage, reciterId, onStepChange }: Us
     }
 
     if (runId === runIdRef.current) {
-      audioRef.current = null;
       setPhase("idle");
       setQueue([]);
       setStepIndex(0);

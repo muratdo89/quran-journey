@@ -32,6 +32,7 @@ import {
   buildRangePlaybackQueue,
   type RangePlaybackStep,
 } from "@/lib/audio/range-loop-player";
+import { AUDIO_BLOCKED_MESSAGE, playSharedClip, type ClipHandle } from "@/lib/audio/shared-player";
 import { MEMORIZATION_STATE_LABELS_TR } from "@/lib/learning-engine";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -110,7 +111,8 @@ export function MemorizationClient({
   const [loopAudio, setLoopAudio] = useState(false);
   const [savingOutcome, setSavingOutcome] = useState(false);
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Handle on the shared, tap-unlocked audio element (see shared-player.ts).
+  const clipRef = useRef<ClipHandle | null>(null);
 
   // Phase 7B: Verse Range Looped Hifz Player
   const [rangeStart, setRangeStart] = useState<number>(verses[0]!.verseNumber);
@@ -132,9 +134,7 @@ export function MemorizationClient({
   useEffect(() => {
     return () => {
       rangeCancelRef.current = true;
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      clipRef.current?.stop();
     };
   }, []);
 
@@ -203,10 +203,8 @@ export function MemorizationClient({
     rangeCancelRef.current = true;
     setIsRangePlaying(false);
     setRangeStep(null);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
+    clipRef.current?.stop();
+    clipRef.current = null;
   }
 
   async function startRangeLoop() {
@@ -240,23 +238,14 @@ export function MemorizationClient({
       setRangeStep(step);
       selectVerse(verse.verseKey);
 
-      const ok = await new Promise<boolean>((resolve) => {
-        if (rangeCancelRef.current) {
-          resolve(false);
-          return;
-        }
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onended = () => resolve(true);
-        audio.onerror = () => {
-          setRangeAudioError("Döngü sırasında ayet sesi yüklenemedi.");
-          resolve(false);
-        };
-        audio.play().catch(() => {
-          setRangeAudioError("Tarayıcı ses oynatmayı engelledi; lütfen tekrar tıklayın.");
-          resolve(false);
-        });
-      });
+      if (rangeCancelRef.current) break;
+      // The next verse starts after an await, so it must reuse the unlocked shared element.
+      const clip = playSharedClip(url);
+      clipRef.current = clip;
+      const result = await clip.done;
+      if (result.status === "error") setRangeAudioError("Döngü sırasında ayet sesi yüklenemedi.");
+      if (result.status === "blocked") setRangeAudioError(AUDIO_BLOCKED_MESSAGE);
+      const ok = result.status === "ended";
 
       if (!ok || rangeCancelRef.current) break;
     }
@@ -271,13 +260,7 @@ export function MemorizationClient({
     setRangeStep(null);
     const url = getReciterAyahAudioUrl(verse, reciterIdOverride ?? selectedReciterId);
     if (!url) return;
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    const audio = new Audio(url);
-    audio.loop = loopAudio;
-    audioRef.current = audio;
-    audio.play().catch(() => {});
+    clipRef.current = playSharedClip(url, { loop: loopAudio });
   }
 
   async function recordRecallOutcome(
