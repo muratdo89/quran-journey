@@ -347,7 +347,7 @@ export function SettingsClient({
 
           {/* Gentle Browser Reminder */}
           <div className="rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-3.5 space-y-2.5 text-xs">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-semibold text-[#1c241f] flex items-center gap-1.5">
                 <Bell className="h-3.5 w-3.5 text-[#1b4332]" />
                 <span>Nazik Çalışma Hatırlatıcısı</span>

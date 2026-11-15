@@ -646,12 +646,12 @@ export function MemorizationClient({
                 <Volume2 className="h-3.5 w-3.5" />
                 <span>Husarî (Muallim)</span>
               </button>
-              <div className="inline-flex items-center gap-1.5 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-1">
+              <div className="flex max-w-full flex-wrap items-center gap-1.5 rounded-xl border border-[#e5dec9] bg-[#faf8f3] p-1">
                 <select
                   aria-label="Ezber kârisi seç"
                   value={selectedReciterId}
                   onChange={(e) => setSelectedReciterId(Number(e.target.value))}
-                  className="rounded-lg bg-transparent px-2 py-1 text-xs font-semibold text-[#1c241f]"
+                  className="min-w-0 max-w-full flex-1 rounded-lg bg-transparent px-2 py-1 text-xs font-semibold text-[#1c241f]"
                 >
                   {QURAN_RECITERS.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -662,7 +662,7 @@ export function MemorizationClient({
                 <button
                   type="button"
                   onClick={() => playVerseAudio(selectedVerse, selectedReciterId)}
-                  className="inline-flex items-center gap-1 rounded-lg bg-[#1b4332] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#143326]"
+                  className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-[#1b4332] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#143326]"
                 >
                   <Volume2 className="h-3 w-3" />
                   <span>Seçili Kâriyi Dinle</span>

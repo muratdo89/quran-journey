@@ -129,13 +129,13 @@ export function MushafReaderControls({
         </select>
       </label>
 
-      <label className="flex items-center gap-2">
-        <span className="font-medium">Kâri:</span>
+      <label className="flex min-w-0 max-w-full items-center gap-2">
+        <span className="font-medium shrink-0">Kâri:</span>
         <select
           aria-label="Kâri seç"
           value={prefs.reciterId}
           onChange={(e) => prefs.setReciterId(Number(e.target.value))}
-          className="rounded-lg border border-[#e5dec9] bg-[#faf8f3] px-2 py-1"
+          className="min-w-0 max-w-full flex-1 rounded-lg border border-[#e5dec9] bg-[#faf8f3] px-2 py-1"
         >
           {QURAN_RECITERS.map((r) => (
             <option key={r.id} value={r.id}>

@@ -124,7 +124,7 @@ export function ReviewClient({
                   lang="ar"
                   dir="rtl"
                   translate="no"
-                  className="font-arabic text-5xl sm:text-6xl text-[#1c241f]"
+                  className="font-arabic text-5xl sm:text-6xl leading-[1.7] sm:leading-[1.7] text-[#1c241f]"
                 >
                   {currentWord.textUthmani}
                 </p>
@@ -175,7 +175,7 @@ export function ReviewClient({
                     lang="ar"
                     dir="rtl"
                     translate="no"
-                    className="font-arabic text-4xl text-[#1b4332]"
+                    className="font-arabic text-4xl leading-[1.6] text-[#1b4332]"
                   >
                     {currentWord.textUthmani}
                   </p>

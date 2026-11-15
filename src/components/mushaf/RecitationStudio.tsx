@@ -102,7 +102,7 @@ export function RecitationStudio({
         <label className="block text-[11px] font-semibold text-[#1c241f]">
           Okunan Arapça Metni Hizala / Test Et (Opsiyonel ASR Kontrolü)
         </label>
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             type="text"
             lang="ar"
@@ -110,7 +110,7 @@ export function RecitationStudio({
             value={manualTranscript}
             onChange={(e) => recorder.setManualTranscript(e.target.value)}
             placeholder="Okuduğunuz veya dikte ettiğiniz Arapça metni girin..."
-            className="flex-1 rounded-lg border border-[#e5dec9] bg-white px-3 py-1.5 text-sm font-arabic"
+            className="min-w-0 flex-[1_1_12rem] rounded-lg border border-[#e5dec9] bg-white px-3 py-1.5 text-sm font-arabic"
           />
           <button
             type="submit"

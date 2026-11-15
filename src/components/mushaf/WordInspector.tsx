@@ -64,7 +64,7 @@ export function WordInspector({
               )}
             </div>
             <div className="text-right">
-              <p lang="ar" dir="rtl" translate="no" className="font-arabic text-4xl text-[#1c241f]">
+              <p lang="ar" dir="rtl" translate="no" className="font-arabic text-4xl leading-[1.6] text-[#1c241f]">
                 {selectedWord.textUthmani}
               </p>
               {selectedWord.audioUrl && (
