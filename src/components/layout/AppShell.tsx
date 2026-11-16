@@ -31,7 +31,7 @@ interface NavItem {
 
 /** Five primary destinations: what the learner opens daily. */
 const PRIMARY_NAV: NavItem[] = [
-  { href: "/", label: "Bugün", icon: Sunrise, alsoActiveOn: ["/review"] },
+  { href: "/", label: "Bugün", icon: Sunrise, alsoActiveOn: ["/review", "/hifz"] },
   { href: "/mushaf", label: "Mushaf", icon: BookOpenText },
   { href: "/memorization", label: "Ezber", icon: Brain },
   { href: "/vocabulary", label: "Kelimeler", icon: Languages, alsoActiveOn: ["/learn-arabic"] },
