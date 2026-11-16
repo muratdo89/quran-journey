@@ -8,6 +8,7 @@ import type { Warmup, WarmupRound, WarmupWord } from "@/lib/content/warmup";
 import { advanceSession, useActiveSession } from "@/lib/study-session";
 import { cn } from "@/lib/utils";
 import { playSharedClip, type ClipHandle } from "@/lib/audio/shared-player";
+import { toTurkishReading } from "@/lib/content/turkish-reading";
 
 /* ---------- small audio helpers ---------- */
 
@@ -219,7 +220,7 @@ export function WarmupClient({ warmup }: { warmup: Warmup | null }) {
                 <div className="space-y-1">
                   <p className="text-lg font-semibold text-ink">{round.word.translationTr}</p>
                   {round.word.transliteration && (
-                    <p className="text-sm italic text-muted">{round.word.transliteration}</p>
+                    <p className="text-sm italic text-muted">{toTurkishReading(round.word.transliteration)}</p>
                   )}
                 </div>
                 <div className="flex flex-col items-center gap-4">

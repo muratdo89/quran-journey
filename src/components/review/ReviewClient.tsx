@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { playSharedClip } from "@/lib/audio/shared-player";
 import { CheckCircle2, Eye, RotateCcw, Volume2 } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   type StoredLearningCard,
 } from "@/lib/learning-engine";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { toTurkishReading } from "@/lib/content/turkish-reading";
 
 interface WordLookupEntry extends CanonicalWord {
   verseKey: string;
@@ -56,6 +57,16 @@ export function ReviewClient({
   const currentCard = dueQueue[0] ?? null;
   const currentWord = currentCard ? wordsByLocation[currentCard.targetKey] : undefined;
 
+  const answerRef = useRef<HTMLDivElement>(null);
+
+  /** Show the answer and bring the meaning + timing buttons into view in one tap. */
+  function reveal() {
+    setRevealed(true);
+    requestAnimationFrame(() => {
+      answerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }
+
   function playWordAudio(url: string | null | undefined) {
     if (!url) return;
     playSharedClip(url);
@@ -93,7 +104,7 @@ export function ReviewClient({
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <PageHeader
@@ -101,7 +112,7 @@ export function ReviewClient({
             title="Tekrar Kartları"
             description={isRecoveryMode
               ? "Toparlanma modu: Yalnızca en öncelikli 6 kart seçildi."
-              : "Cevabı görmeden önce zihninizden hatırlamaya çalışın; ardından ne zaman tekrar görmek istediğinizi seçin."}
+              : "Önce hatırlamaya çalış, sonra cevaba bak."}
             related={[{ href: "/", label: "Bugünkü plan" }]}
           />
         </div>
@@ -111,13 +122,13 @@ export function ReviewClient({
       </div>
 
       {lastFeedback && (
-        <div className="rounded-xl border border-emerald/30 bg-mint px-4 py-2.5 text-xs font-semibold text-forest">
+        <p role="status" className="text-xs font-semibold text-forest">
           {lastFeedback}
-        </div>
+        </p>
       )}
 
       {currentCard && currentWord ? (
-        <section className="rounded-2xl border border-line bg-surface p-6 sm:p-10 space-y-8 shadow-xs">
+        <section className="rounded-2xl border border-line bg-surface p-5 sm:p-8 space-y-5 shadow-xs">
           <div className="flex items-center justify-between text-xs text-muted">
             <span className="font-mono font-semibold">
               {currentWord.location} ·{" "}
@@ -129,7 +140,7 @@ export function ReviewClient({
           </div>
 
           {/* Prompt before reveal (Active Recall) */}
-          <div className="py-6 text-center space-y-4">
+          <div className="text-center space-y-3">
             {currentCard.direction === "ar_to_tr" ? (
               <>
                 <p className="text-xs font-medium text-muted">
@@ -139,7 +150,7 @@ export function ReviewClient({
                   lang="ar"
                   dir="rtl"
                   translate="no"
-                  className="font-arabic text-5xl sm:text-6xl leading-[1.7] sm:leading-[1.7] text-ink"
+                  className="font-arabic text-5xl leading-[1.7] text-ink"
                 >
                   {currentWord.textUthmani}
                 </p>
@@ -171,7 +182,7 @@ export function ReviewClient({
             <div className="flex justify-center">
               <button
                 type="button"
-                onClick={() => setRevealed(true)}
+                onClick={reveal}
                 className="inline-flex items-center gap-2 rounded-xl bg-forest px-8 py-3.5 text-sm font-semibold text-white hover:bg-forest-deep"
               >
                 <Eye className="h-4 w-4" />
@@ -179,8 +190,8 @@ export function ReviewClient({
               </button>
             </div>
           ) : (
-            <div className="space-y-6 pt-6 border-t border-line">
-              <div className="rounded-xl border border-line bg-parchment p-5 text-center space-y-2">
+            <div ref={answerRef} className="space-y-4 pt-4 border-t border-line scroll-mb-24">
+              <div className="rounded-xl border border-line bg-parchment p-4 text-center space-y-1.5">
                 {currentCard.direction === "ar_to_tr" ? (
                   <p className="text-xl font-bold text-forest">
                     {currentWord.translationTr}
@@ -193,6 +204,11 @@ export function ReviewClient({
                     className="font-arabic text-4xl leading-[1.6] text-forest"
                   >
                     {currentWord.textUthmani}
+                  </p>
+                )}
+                {currentWord.transliteration && (
+                  <p className="text-sm italic text-muted">
+                    Okunuş: {toTurkishReading(currentWord.transliteration)}
                   </p>
                 )}
                 {currentWord.morphology.rootArabic && (
