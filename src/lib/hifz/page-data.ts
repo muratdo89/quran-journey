@@ -80,6 +80,21 @@ export function pageLabel(pageNumber: number): string {
     .join(", ");
 }
 
+/** What the "Ezberlediğim yerler" picker needs: surahs with their page span, and the juz of each page. */
+export interface HifzMeta {
+  surahs: { id: number; name: string; arabic: string; start: number; end: number }[];
+  /** Juz number per page, index 0 = page 1. */
+  pageJuz: number[];
+}
+
+export function hifzMeta(): HifzMeta {
+  const meta = getQuranMeta();
+  return {
+    surahs: meta.surahs.map((s) => ({ id: s.id, name: s.nameTurkish, arabic: s.nameArabic, start: s.pages[0], end: s.pages[1] })),
+    pageJuz: Array.from({ length: meta.totalPages }, (_, i) => meta.pageJuzHizb[String(i + 1)]?.[0] ?? 1),
+  };
+}
+
 /** Page labels for every page ("Nâs, Felak, İhlâs"), small enough to send to the client. */
 export function allPageLabels(): Record<number, string> {
   const out: Record<number, string> = {};

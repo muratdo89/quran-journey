@@ -10,6 +10,7 @@ import {
   normalizeHifzStore,
   ratePage,
   saveSettings,
+  setMemorizedPages,
   splitIntoChunks,
   splitIntoParts,
   type HifzStore,
@@ -117,5 +118,19 @@ describe("today's plan", () => {
     });
     expect(n.settings).toBeNull();
     expect(Object.keys(n.pages)).toEqual(["5"]);
+  });
+
+  it("marks pages the learner already knows and skips them for new lessons", () => {
+    const started = completeNewPart(amme, { page: 604, partIndex: 0, partCount: 2, isRelearn: false }, "2026-11-15");
+    const marked = setMemorizedPages(started, [604, 603, 0, 700], "2026-11-16");
+    expect(marked.pages[604]).toMatchObject({ status: "memorized", memorizedOn: "2026-11-09" });
+    expect(marked.pages[603]).toMatchObject({ status: "memorized" });
+    expect(Object.keys(marked.pages).sort()).toEqual(["603", "604"]);
+    const plan = buildTodayPlan(marked, "2026-11-16");
+    expect(plan.newLesson).toMatchObject({ page: 602, partIndex: 0 });
+    expect(plan.manzil).toHaveLength(1); // quota for 2 memorized pages
+    const unmarked = setMemorizedPages(marked, [603], "2026-11-16");
+    expect(unmarked.pages[604]).toBeUndefined();
+    expect(unmarked.pages[603]).toBe(marked.pages[603]);
   });
 });

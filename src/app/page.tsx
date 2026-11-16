@@ -1,5 +1,5 @@
 import { getRepository } from "@/lib/db";
-import { allPageLabels, legacyMemorizedPages } from "@/lib/hifz/page-data";
+import { allPageLabels, hifzMeta, legacyMemorizedPages } from "@/lib/hifz/page-data";
 import { HifzHome } from "@/components/hifz/HifzHome";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,7 @@ export default async function TodayPage() {
     <HifzHome
       pageLabels={allPageLabels()}
       currentPageNumber={snapshot.profile.currentPageNumber}
+      meta={hifzMeta()}
       legacyPages={legacyMemorizedPages(snapshot.verseProgress)}
     />
   );
