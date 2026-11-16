@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  BookOpenText,
   BarChart3,
   Brain,
   ChevronRight,
@@ -41,6 +42,7 @@ const LEGEND: { cell: Cell; label: string }[] = [
 
 const TOOLS: { href: string; label: string; hint: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { href: "/settings", label: "Hesap ve ayarlar", hint: "Hoca sesi, yazı boyu, bulut kaydı", icon: UserRound },
+  { href: "/mushaf/detay", label: "Gelişmiş Mushaf", hint: "Renkli tecvid, notlar, ses kaydı", icon: BookOpenText },
   { href: "/vocabulary", label: "Kelimeler", hint: "Kelime ve kök çalışması", icon: Languages },
   { href: "/learn-arabic", label: "Arapça dersleri", hint: "Elif-Ba ve tecvid", icon: GraduationCap },
   { href: "/review", label: "Kelime kartları", hint: "Aralıklı tekrar kartları", icon: RotateCcw },

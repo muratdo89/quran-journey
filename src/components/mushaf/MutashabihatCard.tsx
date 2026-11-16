@@ -24,7 +24,7 @@ export function MutashabihatCard({ verseKey, matches }: MutashabihatCardProps) {
         {matches.map((m) => (
           <Link
             key={m.targetKey}
-            href={`/mushaf?page=${m.targetPage}&verse=${m.targetKey}`}
+            href={`/mushaf/detay?page=${m.targetPage}&verse=${m.targetKey}`}
             className="block rounded-xl border border-gold-line bg-surface p-3 hover:border-forest space-y-1"
           >
             <div className="flex items-center justify-between text-xs">

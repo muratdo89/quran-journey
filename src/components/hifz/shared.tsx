@@ -147,8 +147,13 @@ export function VerseBlock({
   showReading = false,
   showMeal = false,
   showKeyWords = false,
+  onWordTap,
+  activeWord = null,
 }: {
   verse: HifzVerse;
+  /** Visible mode only: makes each word tappable (word details in the Mushaf reader). */
+  onWordTap?: (wordIndex: number) => void;
+  activeWord?: number | null;
   hidden?: boolean;
   revealAll?: boolean;
   active?: boolean;
@@ -181,7 +186,22 @@ export function VerseBlock({
                 </React.Fragment>
               );
             })
-          : verse.text}
+          : onWordTap
+            ? verse.words.map((w, i) => (
+                <React.Fragment key={i}>
+                  <button
+                    type="button"
+                    onClick={() => onWordTap(i)}
+                    className={cn(
+                      "rounded-md px-0.5 transition-colors hover:bg-sand",
+                      activeWord === i && "bg-gold-soft text-gold-deep"
+                    )}
+                  >
+                    {w.text}
+                  </button>{" "}
+                </React.Fragment>
+              ))
+            : verse.text}
         <AyahMark n={verse.verseNumber} />
       </p>
       {showReading && verse.reading && (

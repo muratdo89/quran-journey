@@ -100,7 +100,7 @@ export function MushafSearchPanel({ open, onClose }: MushafSearchPanelProps) {
           {searchResults.map((item) => (
             <Link
               key={item.verseKey}
-              href={`/mushaf?page=${item.pageNumber}&verse=${item.verseKey}`}
+              href={`/mushaf/detay?page=${item.pageNumber}&verse=${item.verseKey}`}
               onClick={onClose}
               className="block rounded-xl border border-line bg-surface p-3 hover:border-forest space-y-1"
             >

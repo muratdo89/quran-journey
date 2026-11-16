@@ -1,16 +1,22 @@
-import {
-  getAvailablePages,
-  getAvailableSurahs,
-  getMushafPageData,
-  getMutashabihatMapForVerses,
-  getRootOccurrencesPreview,
-  getSurahMeta,
-  getVerseByKey,
-} from "@/lib/content/canonical-loader";
+import { getQuranMeta, getSurahMeta, getVerseByKey } from "@/lib/content/canonical-loader";
 import { getRepository } from "@/lib/db";
-import { MushafStudyClient } from "@/components/mushaf/MushafStudyClient";
+import { buildHifzPageData } from "@/lib/hifz/page-data";
+import { MushafReader, type MushafNavData } from "@/components/mushaf-reader/MushafReader";
 
 export const dynamic = "force-dynamic";
+
+function navData(): MushafNavData {
+  const meta = getQuranMeta();
+  const juzStarts: number[] = [];
+  for (let p = 1; p <= meta.totalPages; p++) {
+    const juz = meta.pageJuzHizb[String(p)]?.[0];
+    if (juz && !juzStarts[juz - 1]) juzStarts[juz - 1] = p;
+  }
+  return {
+    surahs: meta.surahs.map((s) => ({ id: s.id, name: s.nameTurkish, arabic: s.nameArabic, startPage: s.pages[0] })),
+    juzStarts,
+  };
+}
 
 export default async function MushafPage({
   searchParams,
@@ -20,67 +26,25 @@ export default async function MushafPage({
   const params = await searchParams;
   const repo = await getRepository();
   const snapshot = await repo.getDashboardSnapshot();
-  const availablePages = getAvailablePages();
-  const availableSurahs = getAvailableSurahs();
 
-  let targetPage = snapshot.profile.currentPageNumber;
+  let page = snapshot.profile.currentPageNumber;
   const requestedPage = Number(params.page);
   const requestedSurah = Number(params.surah);
-
-  if (Number.isInteger(requestedPage) && availablePages.includes(requestedPage)) {
-    targetPage = requestedPage;
+  if (Number.isInteger(requestedPage) && requestedPage >= 1 && requestedPage <= 604) {
+    page = requestedPage;
   } else if (params.verse && /^\d+:\d+$/.test(params.verse)) {
-    const v = getVerseByKey(params.verse);
-    if (v && availablePages.includes(v.pageNumber)) {
-      targetPage = v.pageNumber;
-    }
+    page = getVerseByKey(params.verse)?.pageNumber ?? page;
   } else if (Number.isInteger(requestedSurah)) {
-    const surahMeta = getSurahMeta(requestedSurah);
-    if (surahMeta && availablePages.includes(surahMeta.pages[0])) {
-      targetPage = surahMeta.pages[0];
-    }
+    page = getSurahMeta(requestedSurah)?.pages[0] ?? page;
   }
-
-  const pageData = getMushafPageData(targetPage);
-  const verseKeys = pageData.sections.flatMap((s) => s.verses.map((v) => v.verseKey));
-  const mutashabihatMap = getMutashabihatMapForVerses(verseKeys);
-
-  // Precompute cross-Quran root occurrences only for roots appearing on this page
-  const rootOccurrencesMap: Record<
-    string,
-    Array<{
-      location: string;
-      verseKey: string;
-      textUthmani: string;
-      translationTr: string;
-      pageNumber: number;
-    }>
-  > = {};
-
-  for (const section of pageData.sections) {
-    for (const verse of section.verses) {
-      for (const word of verse.words) {
-        const root = word.morphology.rootArabic;
-        if (root && !rootOccurrencesMap[root]) {
-          rootOccurrencesMap[root] = getRootOccurrencesPreview(root, 12);
-        }
-      }
-    }
-  }
+  if (!Number.isInteger(page) || page < 1 || page > 604) page = 1;
 
   return (
-    <MushafStudyClient
-      key={`${pageData.pageNumber}-${params.verse ?? ""}`}
-      pageData={pageData}
-      availableSurahs={availableSurahs}
-      rootOccurrencesMap={rootOccurrencesMap}
-      mutashabihatMap={mutashabihatMap}
-      initialVerseKey={params.verse}
-      initialPreferences={snapshot.preferences}
-      initialBookmarks={snapshot.bookmarks}
-      initialNotes={snapshot.notes}
-      initialRecordings={snapshot.recordings}
-      initialPageProgress={snapshot.pageProgress}
+    <MushafReader
+      key={page}
+      data={buildHifzPageData(page, snapshot.preferences.preferredReciterId)}
+      nav={navData()}
+      focusVerse={params.verse ?? null}
     />
   );
 }
