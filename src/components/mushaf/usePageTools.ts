@@ -54,7 +54,7 @@ export function usePageTools(pageNumber: number, initiallyStudied: boolean) {
       const cache = await caches.open(OFFLINE_CACHE_NAME);
       await cache.put(offlineUrl, res);
       // Also cache current navigation URL HTML if possible
-      await cache.add(`/mushaf?page=${pageNumber}`).catch(() => {});
+      await cache.add(`/mushaf/detay?page=${pageNumber}`).catch(() => {});
 
       const audioList = (payload.audioUrls ?? []).slice(0, 20);
       await Promise.all(

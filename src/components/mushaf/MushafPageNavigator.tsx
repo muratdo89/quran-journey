@@ -29,7 +29,7 @@ export function MushafPageNavigator({ pageData, availableSurahs }: MushafPageNav
     e.preventDefault();
     const num = Number(pageJumpInput);
     if (Number.isInteger(num) && num >= 1 && num <= pageData.edition.totalPages) {
-      router.push(`/mushaf?page=${num}`);
+      router.push(`/mushaf/detay?page=${num}`);
     }
   }
 
@@ -49,7 +49,7 @@ export function MushafPageNavigator({ pageData, availableSurahs }: MushafPageNav
       <div className="flex flex-wrap items-center gap-2">
         {prevPage ? (
           <Link
-            href={`/mushaf?page=${prevPage}`}
+            href={`/mushaf/detay?page=${prevPage}`}
             className="order-1 lg:order-none inline-flex items-center gap-1 rounded-xl border border-line bg-parchment px-3 py-2 text-xs font-semibold text-ink hover:bg-sand"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
@@ -80,7 +80,7 @@ export function MushafPageNavigator({ pageData, availableSurahs }: MushafPageNav
           value={String(pageData.juzNumber)}
           onChange={(e) => {
             const chosen = MADINAH_JUZ_RANGES.find((j) => j.juz === Number(e.target.value));
-            if (chosen) router.push(`/mushaf?page=${chosen.startPage}`);
+            if (chosen) router.push(`/mushaf/detay?page=${chosen.startPage}`);
           }}
           className="order-4 lg:order-none min-w-0 flex-[1_1_7rem] lg:flex-none rounded-xl border border-line bg-parchment px-2.5 py-2 text-xs font-semibold text-ink"
         >
@@ -94,7 +94,7 @@ export function MushafPageNavigator({ pageData, availableSurahs }: MushafPageNav
         <select
           aria-label="Sureye git"
           value={String(primarySection.surah.id)}
-          onChange={(e) => router.push(`/mushaf?surah=${e.target.value}`)}
+          onChange={(e) => router.push(`/mushaf/detay?surah=${e.target.value}`)}
           className="order-5 lg:order-none min-w-0 flex-[2_1_10rem] lg:flex-none rounded-xl border border-line bg-parchment px-3 py-2 text-xs font-semibold text-ink lg:max-w-[200px]"
         >
           {availableSurahs.map((s) => (
@@ -106,7 +106,7 @@ export function MushafPageNavigator({ pageData, availableSurahs }: MushafPageNav
 
         {nextPage ? (
           <Link
-            href={`/mushaf?page=${nextPage}`}
+            href={`/mushaf/detay?page=${nextPage}`}
             className="order-3 lg:order-none inline-flex items-center gap-1 rounded-xl border border-line bg-parchment px-3 py-2 text-xs font-semibold text-ink hover:bg-sand"
           >
             <span>S.{nextPage}</span>

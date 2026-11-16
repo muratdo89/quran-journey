@@ -125,7 +125,7 @@ export function WordInspector({
                   {rootOccurrences.map((occ) => (
                     <Link
                       key={occ.location}
-                      href={`/mushaf?page=${occ.pageNumber}&verse=${occ.verseKey}`}
+                      href={`/mushaf/detay?page=${occ.pageNumber}&verse=${occ.verseKey}`}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-surface border border-line px-2 py-1 hover:border-forest"
                     >
                       <span lang="ar" dir="rtl" translate="no" className="font-arabic text-base">
