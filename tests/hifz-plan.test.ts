@@ -5,6 +5,7 @@ import {
   buildQueue,
   buildTodayPlan,
   completeNewPart,
+  importLegacyPages,
   manzilQuota,
   normalizeHifzStore,
   ratePage,
@@ -93,6 +94,19 @@ describe("today's plan", () => {
   it("lets the learner take one more part on the same day", () => {
     const s = completeNewPart(amme, { page: 604, partIndex: 0, partCount: 2, isRelearn: false }, "2026-11-16");
     expect(buildTodayPlan(allowAnotherNewPart(s), "2026-11-16").newLesson).toMatchObject({ page: 604, partIndex: 1 });
+  });
+
+  it("brings over pages memorized on the old Ezber page once, into older review", () => {
+    const s = ratePage(amme, 604, "akici", { fromNewLesson: true, partCount: 2 }, "2026-11-15");
+    const imported = importLegacyPages(s, [604, 1, 2, 999], "2026-11-16");
+    expect(imported.importedLegacy).toBe(true);
+    expect(imported.pages[604]!.memorizedOn).toBe("2026-11-15");
+    expect(imported.pages[1]).toMatchObject({ status: "memorized", memorizedOn: "2026-11-09" });
+    expect(imported.pages[999]).toBeUndefined();
+    const plan = buildTodayPlan(imported, "2026-11-16");
+    expect(plan.recent).toEqual([604]);
+    expect(plan.manzil).toEqual([1]);
+    expect(importLegacyPages(imported, [3], "2026-11-16")).toBe(imported);
   });
 
   it("ignores broken stored data", () => {

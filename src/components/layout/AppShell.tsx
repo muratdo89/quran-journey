@@ -1,22 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useSyncExternalStore } from "react";
+import React, { useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BarChart3,
-  BookOpen,
-  BookOpenText,
-  Brain,
-  GraduationCap,
-  Languages,
-  Menu,
-  RotateCcw,
-  Sunrise,
-  UserRound,
-  WifiOff,
-  X,
-} from "lucide-react";
+import { BookOpen, BookOpenText, ChartNoAxesColumn, Sunrise, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LastStudyTracker } from "@/components/layout/LastStudyTracker";
 import { installSharedAudioUnlock } from "@/lib/audio/shared-player";
@@ -29,20 +16,19 @@ interface NavItem {
   alsoActiveOn?: string[];
 }
 
-/** Five primary destinations: what the learner opens daily. */
+/**
+ * Three destinations, built around page-by-page hifz: today's work, the Mushaf, and progress.
+ * Everything else (settings, word study, Arabic lessons…) is reached from the İlerleme page.
+ */
 const PRIMARY_NAV: NavItem[] = [
-  { href: "/", label: "Bugün", icon: Sunrise, alsoActiveOn: ["/review", "/hifz"] },
+  { href: "/", label: "Bugün", icon: Sunrise, alsoActiveOn: ["/hifz", "/review", "/warmup"] },
   { href: "/mushaf", label: "Mushaf", icon: BookOpenText },
-  { href: "/memorization", label: "Ezber", icon: Brain },
-  { href: "/vocabulary", label: "Kelimeler", icon: Languages, alsoActiveOn: ["/learn-arabic"] },
-  { href: "/settings", label: "Ben", icon: UserRound, alsoActiveOn: ["/statistics"] },
-];
-
-/** Reachable from the sidebar/drawer and from inside the related primary pages. */
-const SECONDARY_NAV: NavItem[] = [
-  { href: "/learn-arabic", label: "Arapça Dersleri", icon: GraduationCap },
-  { href: "/review", label: "Tekrar Kartları", icon: RotateCcw },
-  { href: "/statistics", label: "İstatistikler", icon: BarChart3 },
+  {
+    href: "/ilerleme",
+    label: "İlerleme",
+    icon: ChartNoAxesColumn,
+    alsoActiveOn: ["/settings", "/statistics", "/memorization", "/vocabulary", "/learn-arabic"],
+  },
 ];
 
 function matches(pathname: string, href: string): boolean {
@@ -57,17 +43,14 @@ function isActive(pathname: string, item: NavItem, includeRelated: boolean): boo
 function NavLink({
   item,
   active,
-  onClick,
 }: {
   item: NavItem;
   active: boolean;
-  onClick?: () => void;
 }) {
   const Icon = item.icon;
   return (
     <Link
       href={item.href}
-      onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors",
@@ -80,23 +63,13 @@ function NavLink({
   );
 }
 
-function NavGroups({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+function NavGroups({ pathname }: { pathname: string }) {
   return (
-    <>
-      <div className="space-y-1">
-        {PRIMARY_NAV.map((item) => (
-          <NavLink key={item.href} item={item} active={isActive(pathname, item, false)} onClick={onNavigate} />
-        ))}
-      </div>
-      <p className="px-3.5 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
-        Diğer
-      </p>
-      <div className="space-y-1">
-        {SECONDARY_NAV.map((item) => (
-          <NavLink key={item.href} item={item} active={isActive(pathname, item, false)} onClick={onNavigate} />
-        ))}
-      </div>
-    </>
+    <div className="space-y-1">
+      {PRIMARY_NAV.map((item) => (
+        <NavLink key={item.href} item={item} active={isActive(pathname, item, true)} />
+      ))}
+    </div>
   );
 }
 
@@ -112,7 +85,6 @@ function subscribeOnlineStatus(callback: () => void): () => void {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   // The hifz session is a focus screen: no phone header or bottom menu, its own top bar and actions.
   const focusMode = pathname === "/hifz";
   const isOffline = useSyncExternalStore(
@@ -168,39 +140,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <span className="text-sm font-bold text-forest">Quran Journey</span>
         </Link>
-        <button
-          type="button"
-          onClick={() => setMobileMenuOpen((v) => !v)}
-          aria-label="Menüyü aç/kapat"
-          className="rounded-lg border border-line bg-surface p-2 text-forest"
-        >
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
       </header>
-
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setMobileMenuOpen(false)}>
-          <div
-            className="w-72 max-w-[85vw] h-full overflow-y-auto bg-sidebar border-r border-line p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 mb-2 border-b border-line">
-              <span className="text-sm font-bold text-forest">Menü</span>
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-lg p-1 text-muted"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <nav aria-label="Menü">
-              <NavGroups pathname={pathname} onNavigate={() => setMobileMenuOpen(false)} />
-            </nav>
-          </div>
-        </div>
-      )}
 
       {/* Main Content */}
       <main className={cn("flex-1 lg:pl-64", focusMode ? "pb-0" : "pb-40 lg:pb-24")}>
@@ -222,7 +162,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile Bottom Quick Nav */}
       <nav
         aria-label="Hızlı alt menü"
-        className={cn("fixed bottom-0 inset-x-0 z-30 border-t border-line bg-parchment/95 backdrop-blur grid grid-cols-5 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]", focusMode ? "hidden" : "lg:hidden")}
+        className={cn("fixed bottom-0 inset-x-0 z-30 border-t border-line bg-parchment/95 backdrop-blur grid grid-cols-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]", focusMode ? "hidden" : "lg:hidden")}
       >
         {PRIMARY_NAV.map((item) => {
           const Icon = item.icon;

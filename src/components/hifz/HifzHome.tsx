@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, BookOpenText, CheckCircle2, Circle, Play, Settings2 } from "lucide-react";
@@ -9,6 +9,7 @@ import {
   TOTAL_PAGES,
   buildTodayPlan,
   estimateMinutes,
+  importLegacyPages,
   saveSettings,
   type HifzDailyParts,
   type HifzDirection,
@@ -21,6 +22,8 @@ import { cn } from "@/lib/utils";
 interface HifzHomeProps {
   pageLabels: Record<number, string>;
   currentPageNumber: number;
+  /** Pages fully memorized on the older Ezber page, carried over once. */
+  legacyPages?: number[];
 }
 
 const card =
@@ -35,9 +38,14 @@ export function partLabel(partIndex: number, partCount: number): string {
 /**
  * Today screen: one sentence, one button. Everything comes from the page-by-page hifz plan.
  */
-export function HifzHome({ pageLabels, currentPageNumber }: HifzHomeProps) {
+export function HifzHome({ pageLabels, currentPageNumber, legacyPages = [] }: HifzHomeProps) {
   const store = useHifzStore();
   const [editing, setEditing] = useState(false);
+  const needsImport = !!store && !store.importedLegacy;
+
+  useEffect(() => {
+    if (needsImport) updateHifzStore((s) => importLegacyPages(s, legacyPages));
+  }, [needsImport, legacyPages]);
 
   if (!store) return <div className="mx-auto max-w-2xl"><div className={cn(card, "h-64 animate-pulse")} /></div>;
 
@@ -147,7 +155,7 @@ function TodayCard({ plan, pageLabels }: { plan: TodayPlan; pageLabels: Record<n
 
 type StartChoice = "amme" | "fatiha" | "page";
 
-function SetupCard({
+export function SetupCard({
   initial,
   currentPageNumber,
   onDone,

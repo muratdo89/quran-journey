@@ -35,6 +35,8 @@ export interface HifzStore {
   pages: Record<string, HifzPageState>;
   /** Day the new lesson was finished (no second new part that day unless asked). */
   newDoneOn?: string;
+  /** Verses memorized in the older (surah-based) Ezber page were brought over once. */
+  importedLegacy?: boolean;
 }
 
 export const TOTAL_PAGES = 604;
@@ -307,6 +309,28 @@ export function ratePage(
   };
 }
 
+function addDays(day: string, delta: number): string {
+  const d = new Date(Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10)));
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Brings over pages fully memorized in the older, surah-based Ezber page (once). They join the
+ * older-review rotation (manzil) rather than the daily recent review, and never overwrite
+ * a page the hifz plan already tracks.
+ */
+export function importLegacyPages(store: HifzStore, pages: number[], today: string = dayKey()): HifzStore {
+  if (store.importedLegacy) return store;
+  const since = addDays(today, -RECENT_DAYS);
+  const next = { ...store.pages };
+  for (const p of pages) {
+    if (!Number.isInteger(p) || p < 1 || p > TOTAL_PAGES || next[p]) continue;
+    next[p] = { status: "memorized", partsDone: 1, partCount: 1, memorizedOn: since, lastReviewedOn: since };
+  }
+  return { ...store, pages: next, importedLegacy: true };
+}
+
 /** "Bir parça daha": lets the learner take the next new part today. */
 export function allowAnotherNewPart(store: HifzStore): HifzStore {
   return { ...store, newDoneOn: undefined };
@@ -333,5 +357,11 @@ export function normalizeHifzStore(raw: unknown): HifzStore {
       pages[k] = v;
     }
   }
-  return { version: 1, settings, pages, newDoneOn: typeof r.newDoneOn === "string" ? r.newDoneOn : undefined };
+  return {
+    version: 1,
+    settings,
+    pages,
+    newDoneOn: typeof r.newDoneOn === "string" ? r.newDoneOn : undefined,
+    importedLegacy: r.importedLegacy === true ? true : undefined,
+  };
 }

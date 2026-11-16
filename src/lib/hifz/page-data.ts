@@ -1,4 +1,4 @@
-import { getMushafPageData, getQuranMeta } from "@/lib/content/canonical-loader";
+import { getMushafPageData, getQuranMeta, getVerseByKey } from "@/lib/content/canonical-loader";
 import { getReciterAyahAudioUrl } from "@/lib/audio/reciters";
 import { toTurkishReading } from "@/lib/content/turkish-reading";
 import { looksEnglishGloss } from "@/lib/content/warmup";
@@ -118,4 +118,26 @@ export function buildHifzPageData(pageNumber: number, reciterId: number): HifzPa
     }
   }
   return { page: page.pageNumber, juz: page.juzNumber, label: pageLabel(page.pageNumber), verses };
+}
+
+const MEMORIZED_STATES = new Set(["provisional_mastery", "stable_memorization"]);
+
+/**
+ * Pages whose every verse was marked memorized on the older, surah-based Ezber page.
+ * Used once to carry that progress into the page-by-page plan.
+ */
+export function legacyMemorizedPages(verseProgress: Array<{ verseKey: string; memorizationState: string }>): number[] {
+  const memorized = new Set(verseProgress.filter((v) => MEMORIZED_STATES.has(v.memorizationState)).map((v) => v.verseKey));
+  if (memorized.size === 0) return [];
+  const candidatePages = new Set<number>();
+  for (const key of memorized) {
+    const v = getVerseByKey(key);
+    if (v) candidatePages.add(v.pageNumber);
+  }
+  const pages: number[] = [];
+  for (const p of candidatePages) {
+    const keys = getMushafPageData(p).sections.flatMap((s) => s.verses.map((v) => v.verseKey));
+    if (keys.length > 0 && keys.every((k) => memorized.has(k))) pages.push(p);
+  }
+  return pages.sort((a, b) => a - b);
 }
