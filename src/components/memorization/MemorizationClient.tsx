@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ArrowDown,
   ArrowUp,
-  CheckCircle2,
   Eye,
   EyeOff,
   GitCompareArrows,
@@ -35,7 +34,6 @@ import {
 import { AUDIO_BLOCKED_MESSAGE, playSharedClip, type ClipHandle } from "@/lib/audio/shared-player";
 import { MEMORIZATION_STATE_LABELS_TR } from "@/lib/learning-engine";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/ui/PageHeader";
 
 interface MemorizationClientProps {
   surah: CanonicalSurahMeta;
@@ -310,180 +308,113 @@ export function MemorizationClient({
   const currentProgress = verseProgress[selectedVerse.verseKey];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div className="space-y-4">
+      {/* Header: surah picker + progress in one line */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <PageHeader
-            eyebrow="Ezber"
-            title="Ezber Stüdyosu"
-            description="Ayeti seç, dinle, sonra gizleyip kendin oku."
-            related={[{ href: "/mushaf", label: "Mushaf" }]}
-          />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gold-ink">Ezber</p>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
+            {surah.nameTurkish}{" "}
+            <span lang="ar" dir="rtl" translate="no" className="font-arabic text-xl text-gold">
+              {surah.nameArabic}
+            </span>
+          </h1>
+          <p className="text-xs text-muted">
+            {surahSolidCount} / {verses.length} ayet ezberlendi
+            {surahSolidCount === verses.length && " · Sure tamam!"}
+          </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
           <select
             aria-label="Ezber suresi seç"
             value={String(surah.id)}
             onChange={(e) => router.push(`/memorization?surah=${e.target.value}`)}
-            className="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs font-semibold text-forest"
+            className="max-w-[11rem] rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-forest"
           >
             {availableSurahs.map((s) => (
               <option key={s.id} value={String(s.id)}>
-                {s.id}. {s.nameTurkish} ({s.versesCount} ayet)
+                {s.id}. {s.nameTurkish}
               </option>
             ))}
           </select>
-
           <button
             type="button"
             onClick={jumpToRandomPoint}
             disabled={verses.length <= 1}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-gold bg-gold-soft px-3.5 py-2.5 text-xs font-semibold text-gold-deep hover:bg-[#efe4ca] disabled:opacity-40"
+            title="Rastgele bir ayetten devam et"
+            aria-label="Rastgele ayet"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:bg-sand disabled:opacity-40"
           >
             <Shuffle className="h-3.5 w-3.5" />
-            <span>Rastgele Ayetten Devam Et</span>
+            <span className="hidden sm:inline">Rastgele</span>
           </button>
         </div>
       </div>
 
-      {/* Surah Page Mastery Summary */}
-      <div className="rounded-2xl border border-line bg-surface px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-forest">
-            {surah.id}. {surah.nameTurkish} Suresi (Sayfa {surah.pages[0]}
-            {surah.pages[1] !== surah.pages[0] ? `–${surah.pages[1]}` : ""})
-          </span>
-          <span
-            lang="ar"
-            dir="rtl"
-            translate="no"
-            className="font-arabic text-lg text-gold"
+      {/* Verse picker: small numbered chips, colour shows progress */}
+      <div className="space-y-2">
+        {verses.length > 20 && (
+          <select
+            aria-label="Ayet bloğu seç"
+            value={String(chunkIndex)}
+            onChange={(e) => {
+              const nextIdx = Number(e.target.value);
+              setChunkIndex(nextIdx);
+              const firstInBlock = verses[nextIdx * CHUNK_SIZE];
+              if (firstInBlock) selectVerse(firstInBlock.verseKey);
+            }}
+            className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-forest"
           >
-            {surah.nameArabic}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-ink">
-            Sağlam Ezber: {surahSolidCount} / {verses.length} ayet
-          </span>
-          {surahSolidCount === verses.length && (
-            <span className="rounded-full bg-mint border border-emerald/30 px-2.5 py-0.5 font-bold text-forest">
-              Sure Tamamlandı!
-            </span>
-          )}
-        </div>
-      </div>
-
-
-      {/* Long-Surah 10-Verse Range Selector when > 20 verses */}
-      {verses.length > 20 && (
-        <div className="rounded-2xl border border-line bg-surface p-3.5 space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-ink">
-              Ayet Aralığı Seç ({verses.length} ayet · 10&apos;lu bloklar)
-            </span>
-            <select
-              aria-label="Ayet bloğu seç"
-              value={String(chunkIndex)}
-              onChange={(e) => {
-                const nextIdx = Number(e.target.value);
-                setChunkIndex(nextIdx);
-                const firstInBlock = verses[nextIdx * CHUNK_SIZE];
-                if (firstInBlock) selectVerse(firstInBlock.verseKey);
-              }}
-              className="rounded-lg border border-line bg-parchment px-2.5 py-1 text-xs font-semibold text-forest"
-            >
-              {Array.from({ length: totalChunks }, (_, idx) => {
-                const startAyah = idx * CHUNK_SIZE + 1;
-                const endAyah = Math.min(verses.length, (idx + 1) * CHUNK_SIZE);
-                return (
-                  <option key={idx} value={String(idx)}>
-                    {startAyah}–{endAyah}. Ayetler
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
             {Array.from({ length: totalChunks }, (_, idx) => {
               const startAyah = idx * CHUNK_SIZE + 1;
               const endAyah = Math.min(verses.length, (idx + 1) * CHUNK_SIZE);
-              const active = idx === chunkIndex;
               return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setChunkIndex(idx)}
-                  className={cn(
-                    "rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                    active
-                      ? "bg-forest text-white"
-                      : "bg-parchment border border-line text-ink-soft hover:bg-sand"
-                  )}
-                >
-                  {startAyah}–{endAyah}
-                </button>
+                <option key={idx} value={String(idx)}>
+                  {startAyah}–{endAyah}. ayetler
+                </option>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Verse Progress Selector Strip */}
-      <section className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-10 gap-2">
-        {visibleVerses.map((v) => {
-          const vp = verseProgress[v.verseKey];
-          const state = vp?.memorizationState ?? "not_started";
-          const active = v.verseKey === selectedVerseKey;
-          const hasMut = (mutashabihatMap[v.verseKey]?.length ?? 0) > 0;
-          return (
-            <button
-              key={v.verseKey}
-              type="button"
-              onClick={() => selectVerse(v.verseKey)}
-              className={cn(
-                "rounded-xl border p-2.5 text-left transition-all",
-                active
-                  ? "border-forest bg-forest text-white shadow-xs"
-                  : "border-line bg-surface hover:bg-sand"
-              )}
-            >
-              <div className="flex items-center justify-between gap-1">
-                <span className="font-mono text-xs font-bold">{v.verseKey}</span>
-                <div className="flex items-center gap-0.5">
-                  {hasMut && (
-                    <GitCompareArrows
-                      className={cn("h-3 w-3", active ? "text-gold-soft" : "text-gold")}
-                    />
-                  )}
-                  {(state === "provisional_mastery" || state === "stable_memorization") && (
-                    <CheckCircle2
-                      className={cn("h-3.5 w-3.5", active ? "text-gold-soft" : "text-emerald")}
-                    />
-                  )}
-                </div>
-              </div>
-              <p
+          </select>
+        )}
+        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Ayet seç">
+          {visibleVerses.map((v) => {
+            const state = verseProgress[v.verseKey]?.memorizationState ?? "not_started";
+            const active = v.verseKey === selectedVerseKey;
+            const solid = state === "provisional_mastery" || state === "stable_memorization";
+            const started = state !== "not_started";
+            return (
+              <button
+                key={v.verseKey}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                title={`${v.verseKey} · ${MEMORIZATION_STATE_LABELS_TR[state]}`}
+                onClick={() => selectVerse(v.verseKey)}
                 className={cn(
-                  "mt-1 text-[10px] font-medium truncate",
-                  active ? "text-line" : "text-muted"
+                  "relative h-9 min-w-9 rounded-full border px-2.5 text-xs font-bold transition-colors",
+                  active
+                    ? "border-forest bg-forest text-white"
+                    : solid
+                      ? "border-emerald/40 bg-mint text-forest hover:bg-mint-strong"
+                      : started
+                        ? "border-gold-line bg-gold-soft text-gold-ink hover:bg-sand"
+                        : "border-line bg-surface text-ink-soft hover:bg-sand"
                 )}
               >
-                {MEMORIZATION_STATE_LABELS_TR[state]}
-              </p>
-            </button>
-          );
-        })}
-      </section>
+                {v.verseNumber}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-      {/* Practice Mode Tabs */}
-      <div className="flex flex-wrap gap-2">
+      {/* Practice mode: compact segmented control */}
+      <div className="inline-flex max-w-full overflow-x-auto rounded-xl border border-line bg-surface p-1" role="tablist" aria-label="Çalışma şekli">
         {[
-          { id: "hide_all", label: "Tam Gizle & Kelime Kelime Aç", icon: EyeOff },
-          { id: "cloze", label: "Seçili Kelime Boşluğu", icon: Sparkles },
-          { id: "next_verse", label: "Sonraki Ayeti Tamamla", icon: Eye },
-          { id: "order_test", label: "Ayet Sıralama Testi", icon: ListOrdered },
+          { id: "hide_all", label: "Gizle", hint: "Tam gizle, kelime kelime aç", icon: EyeOff },
+          { id: "cloze", label: "Boşluk", hint: "Seçili kelime boşluğu", icon: Sparkles },
+          { id: "next_verse", label: "Sonraki", hint: "Sonraki ayeti tamamla", icon: Eye },
+          { id: "order_test", label: "Sırala", hint: "Ayet sıralama testi", icon: ListOrdered },
         ].map((tab) => {
           const Icon = tab.icon;
           const active = mode === tab.id;
@@ -491,12 +422,13 @@ export function MemorizationClient({
             <button
               key={tab.id}
               type="button"
+              role="tab"
+              aria-selected={active}
+              title={tab.hint}
               onClick={() => setMode(tab.id as PracticeMode)}
               className={cn(
-                "inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-semibold transition-colors",
-                active
-                  ? "border-forest bg-forest text-white"
-                  : "border-line bg-surface text-ink hover:bg-sand"
+                "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+                active ? "bg-forest text-white" : "text-muted hover:text-ink"
               )}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -508,16 +440,14 @@ export function MemorizationClient({
 
       {/* Main Practice Surface */}
       {mode !== "order_test" ? (
-        <section className="rounded-2xl border border-line bg-surface p-6 sm:p-8 space-y-6">
+        <section className="rounded-2xl border border-line bg-surface p-5 sm:p-7 space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
             <div>
-              <span className="font-mono text-xs font-bold text-gold">
-                Ayet {selectedVerse.verseKey} (Sayfa {selectedVerse.pageNumber}) · Mevcut Durum:{" "}
+              <span className="text-xs font-semibold text-gold-ink">
+                {selectedVerse.verseKey} ·{" "}
                 {MEMORIZATION_STATE_LABELS_TR[currentProgress?.memorizationState ?? "not_started"]}
               </span>
-              <p className="mt-1 text-xs text-muted">
-                Meal ipucu: {selectedVerse.translations[0]?.text}
-              </p>
+              <p className="mt-1 text-xs text-muted">{selectedVerse.translations[0]?.text}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">

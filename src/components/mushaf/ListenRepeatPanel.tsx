@@ -11,6 +11,7 @@ import {
 } from "@/lib/audio/listen-repeat";
 import { cn } from "@/lib/utils";
 import type { ListenRepeat } from "./useListenRepeat";
+import { toTurkishReading } from "@/lib/content/turkish-reading";
 
 interface ListenRepeatPanelProps {
   listenRepeat: ListenRepeat;
@@ -210,7 +211,7 @@ export function ListenRepeatNowPlaying({
     : "";
   const transliteration = wordsStep
     ? wordsStep.words
-        .map((w) => w.transliteration)
+        .map((w) => toTurkishReading(w.transliteration))
         .filter(Boolean)
         .join(" ")
     : "";
@@ -268,7 +269,7 @@ export function ListenRepeatNowPlaying({
         </p>
         {meaning && <p className="mt-0.5 text-sm font-semibold text-forest">{meaning}</p>}
         {showTransliteration && transliteration && (
-          <p className="mt-1 text-xs font-mono text-muted">{transliteration}</p>
+          <p className="mt-1 text-xs italic text-muted">{transliteration}</p>
         )}
       </div>
 
