@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Pause, Play } from "lucide-react";
+import { Eye, EyeOff, Pause, Play, Volume2, X } from "lucide-react";
 import { playSharedClip, stopSharedAudio, AUDIO_BLOCKED_MESSAGE, type ClipHandle } from "@/lib/audio/shared-player";
 import type { HifzPageData, HifzVerse } from "@/lib/hifz/page-data";
 import type { HifzRating } from "@/lib/hifz/plan";
@@ -146,23 +146,32 @@ export function VerseBlock({
   active = false,
   showReading = false,
   showMeal = false,
-  showKeyWords = false,
   onWordTap,
+  onWordClose,
   activeWord = null,
 }: {
   verse: HifzVerse;
-  /** Visible mode only: makes each word tappable (word details in the Mushaf reader). */
+  /** Visible mode: custom word tap. Without it the block opens its own word sheet and plays the word. */
   onWordTap?: (wordIndex: number) => void;
   activeWord?: number | null;
+  onWordClose?: () => void;
   hidden?: boolean;
   revealAll?: boolean;
   active?: boolean;
   showReading?: boolean;
   showMeal?: boolean;
-  showKeyWords?: boolean;
 }) {
   const [shown, setShown] = useState<Set<number>>(() => new Set());
-  const keyWords = showKeyWords ? verse.keyWords.map((i) => verse.words[i]!).filter(Boolean) : [];
+  const [ownWord, setOwnWord] = useState<number | null>(null);
+  const tapWord =
+    onWordTap ??
+    ((i: number) => {
+      const w = verse.words[i];
+      if (w?.audioUrl) playSharedClip(w.audioUrl);
+      setOwnWord(i);
+    });
+  const highlighted = onWordTap ? activeWord : ownWord;
+  const closeWord = onWordClose ?? (() => setOwnWord(null));
 
   return (
     <div className={cn("-mx-1 rounded-2xl px-1 py-4 transition-colors", active && "bg-mint")}>
@@ -186,45 +195,28 @@ export function VerseBlock({
                 </React.Fragment>
               );
             })
-          : onWordTap
-            ? verse.words.map((w, i) => (
+          : verse.words.map((w, i) => (
                 <React.Fragment key={i}>
                   <button
                     type="button"
-                    onClick={() => onWordTap(i)}
+                    onClick={() => tapWord(i)}
                     className={cn(
                       "rounded-md px-0.5 transition-colors hover:bg-sand",
-                      activeWord === i && "bg-gold-soft text-gold-deep"
+                      highlighted === i && "bg-gold-soft text-gold-deep"
                     )}
                   >
                     {w.text}
                   </button>{" "}
                 </React.Fragment>
-              ))
-            : verse.text}
+              ))}
         <AyahMark n={verse.verseNumber} />
       </p>
+      {!hidden && highlighted != null && <WordCard verse={verse} index={highlighted} onClose={closeWord} />}
       {showReading && verse.reading && (
         <p className="mt-1 text-center text-[15px] italic leading-relaxed text-ink-soft">{verse.reading}</p>
       )}
       {showMeal && verse.meal && (
         <p className="mx-auto mt-2 max-w-prose text-center text-[15px] leading-relaxed text-muted">{verse.meal}</p>
-      )}
-      {keyWords.length > 0 && (
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          {keyWords.map((w, i) => (
-            <span key={i} className="inline-flex items-center gap-2 rounded-full border border-line bg-parchment py-1 pl-3 pr-1">
-              <span className="text-xs">
-                <span className="italic text-ink-soft">{w.reading}</span>
-                <span className="text-muted"> · </span>
-                <span className="font-semibold text-forest">{w.gloss}</span>
-              </span>
-              <span dir="rtl" lang="ar" className="rounded-full bg-surface px-2.5 font-arabic text-lg leading-8 text-ink">
-                {w.text}
-              </span>
-            </span>
-          ))}
-        </div>
       )}
     </div>
   );
@@ -390,6 +382,63 @@ export function LoadingCard({ error, onRetry }: { error: boolean; onRetry: () =>
       ) : (
         "Sayfa hazırlanıyor…"
       )}
+    </div>
+  );
+}
+
+/* ---------- word sheet ---------- */
+
+export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 sm:items-center" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-label={title}
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] border border-line bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[28px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink">{title}</h2>
+          <button type="button" onClick={onClose} aria-label="Kapat" className="-mr-2 rounded-full p-2 text-muted hover:bg-sand">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Compact word info shown right under the ayah: word, okunuş, meaning, listen again, close. */
+export function WordCard({ verse, index, onClose }: { verse: HifzVerse; index: number; onClose: () => void }) {
+  const w = verse.words[index];
+  if (!w) return null;
+  return (
+    <div className="mx-auto mt-1 flex max-w-md items-center gap-3 rounded-2xl border border-gold/30 bg-gold-soft/40 py-2 pl-2 pr-3">
+      <button
+        type="button"
+        disabled={!w.audioUrl}
+        onClick={() => w.audioUrl && playSharedClip(w.audioUrl)}
+        aria-label="Kelimeyi tekrar dinle"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-forest text-parchment hover:bg-forest-deep disabled:opacity-40"
+      >
+        <Volume2 className="h-4 w-4" />
+      </button>
+      <div className="min-w-0 flex-1 text-left">
+        <p className="truncate text-sm italic text-ink-soft">{w.reading}</p>
+        <p className="text-base font-semibold leading-snug text-forest">{w.gloss ?? "Anlam bulunamadı"}</p>
+      </div>
+      <span dir="rtl" lang="ar" className="shrink-0 font-arabic text-2xl leading-10 text-ink">
+        {w.text}
+      </span>
+      <button type="button" onClick={onClose} aria-label="Kapat" className="-mr-1 shrink-0 rounded-full p-1.5 text-muted hover:bg-sand">
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 }

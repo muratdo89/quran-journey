@@ -158,8 +158,8 @@ export function NewLesson({
 
       {step === "anla" && (
         <>
-          <StepTitle title="Önce anla" hint="Ne dediğini bilerek ezberlemek daha kalıcıdır." />
-          <ChunkPaper verses={chunkVerses} showMeal showKeyWords />
+          <StepTitle title="Önce anla" hint="Mealini oku. Bilmediğin kelimeye dokun: anlamı, okunuşu ve sesi gelir." />
+          <ChunkPaper verses={chunkVerses} showMeal />
           <ActionBar>
             <PrimaryButton onClick={advance}>Anladım, dinleyelim</PrimaryButton>
           </ActionBar>
@@ -261,20 +261,18 @@ function ChunkPaper({
   activeKey = null,
   showReading,
   showMeal,
-  showKeyWords,
 }: {
   verses: HifzVerse[];
   activeKey?: string | null;
   showReading?: boolean;
   showMeal?: boolean;
-  showKeyWords?: boolean;
 }) {
   return (
     <VersePaper>
       {verses.map((v) => (
         <div key={v.key}>
           <SurahBanner verse={v} />
-          <VerseBlock verse={v} active={activeKey === v.key} showReading={showReading} showMeal={showMeal} showKeyWords={showKeyWords} />
+          <VerseBlock verse={v} active={activeKey === v.key} showReading={showReading} showMeal={showMeal} />
         </div>
       ))}
     </VersePaper>

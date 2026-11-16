@@ -14,14 +14,12 @@ import {
   Play,
   Settings2,
   Type,
-  Volume2,
-  X,
 } from "lucide-react";
 import type { HifzPageData, HifzVerse } from "@/lib/hifz/page-data";
 import { useHifzStore } from "@/lib/hifz/store";
 import { playSharedClip } from "@/lib/audio/shared-player";
 import { cn } from "@/lib/utils";
-import { AudioBlockedNote, SurahBanner, ToolChip, VerseBlock, VersePaper, useVersePlayer } from "@/components/hifz/shared";
+import { AudioBlockedNote, Sheet, SurahBanner, ToolChip, VerseBlock, VersePaper, useVersePlayer } from "@/components/hifz/shared";
 
 export interface MushafNavData {
   surahs: { id: number; name: string; arabic: string; startPage: number }[];
@@ -219,8 +217,13 @@ export function MushafReader({
                 // Diyanet gives one meal for some verse groups: show it once, under the last verse.
                 showMeal={options.meal && (!v.meal || data.verses[i + 1]?.meal !== v.meal)}
                 showReading={options.reading}
-                onWordTap={(index) => setWord({ verse: v, index })}
+                onWordTap={(index) => {
+                  const w = v.words[index];
+                  if (w?.audioUrl) playSharedClip(w.audioUrl);
+                  setWord({ verse: v, index });
+                }}
                 activeWord={word?.verse.key === v.key ? word.index : null}
+                onWordClose={() => setWord(null)}
               />
             </div>
           ))}
@@ -279,7 +282,6 @@ export function MushafReader({
         </div>
       </div>
 
-      {word && <WordSheet word={word} onClose={() => setWord(null)} onPlayVerse={(v) => void player.play([v], 1)} />}
       {jumpOpen && <JumpSheet nav={nav} page={page} onClose={() => setJumpOpen(false)} onGo={(p) => { setJumpOpen(false); go(p); }} />}
     </div>
   );
@@ -302,75 +304,6 @@ function PageArrow({ dir, page }: { dir: "next" | "prev"; page: number | null })
 }
 
 /* ---------- sheets ---------- */
-
-function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 sm:items-center" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-label={title}
-        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] border border-line bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[28px]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-ink">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Kapat" className="-mr-2 rounded-full p-2 text-muted hover:bg-sand">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function WordSheet({
-  word,
-  onClose,
-  onPlayVerse,
-}: {
-  word: { verse: HifzVerse; index: number };
-  onClose: () => void;
-  onPlayVerse: (v: HifzVerse) => void;
-}) {
-  const w = word.verse.words[word.index]!;
-  return (
-    <Sheet title={`${word.verse.surahNameTr} ${word.verse.verseNumber}. ayet`} onClose={onClose}>
-      <div className="text-center">
-        <p dir="rtl" lang="ar" className="font-arabic text-5xl leading-[1.6] text-ink">
-          {w.text}
-        </p>
-        {w.reading && <p className="mt-1 text-lg italic text-ink-soft">{w.reading}</p>}
-        <p className="mt-1 text-lg font-semibold text-forest">{w.gloss ?? "Anlam bulunamadı"}</p>
-      </div>
-      <p className="mt-4 rounded-2xl bg-parchment p-3 text-sm leading-relaxed text-muted">{word.verse.meal}</p>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          disabled={!w.audioUrl}
-          onClick={() => w.audioUrl && playSharedClip(w.audioUrl)}
-          className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 py-3 text-sm font-semibold text-forest hover:bg-sand disabled:opacity-40"
-        >
-          <Volume2 className="h-4 w-4" />
-          Kelimeyi dinle
-        </button>
-        <button
-          type="button"
-          onClick={() => onPlayVerse(word.verse)}
-          className="flex items-center justify-center gap-2 rounded-2xl bg-forest px-3 py-3 text-sm font-semibold text-parchment hover:bg-forest-deep"
-        >
-          <Play className="h-4 w-4 fill-current" />
-          Ayeti dinle
-        </button>
-      </div>
-    </Sheet>
-  );
-}
 
 function JumpSheet({
   nav,
