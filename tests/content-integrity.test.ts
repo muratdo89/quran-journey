@@ -85,7 +85,12 @@ describe("Canonical Quran Content Integrity (Full 604-Page / 114-Surah Corpus)",
           if (word.audioUrl === null) {
             missingAudioLocations.push(word.location);
           } else {
-            expect(word.audioUrl).toMatch(/^https:\/\/audio\.qurancdn\.com\/wbw\/.+\.mp3$/);
+            // CDN files are numbered by word position (not Quran.com's audio_url, which
+            // counts pause marks as words and points at missing/wrong files).
+            const pad = (n: number) => String(n).padStart(3, "0");
+            expect(word.audioUrl).toBe(
+              `https://audio.qurancdn.com/wbw/${pad(surahId)}_${pad(verse.verseNumber)}_${pad(idx + 1)}.mp3`
+            );
           }
         });
       }
@@ -94,8 +99,8 @@ describe("Canonical Quran Content Integrity (Full 604-Page / 114-Surah Corpus)",
     expect(seenPages.size).toBe(604);
     expect(totalVerses).toBe(6236);
     expect(totalWords).toBe(77429);
-    // Known upstream Quran.com WBW exception at Yasin 36:52:7 (Saktah pause token)
-    expect(missingAudioLocations).toEqual(["36:52:7"]);
+    // Every word has a recording (Yasin 36:52:7 included; the CDN has 036_052_007.mp3).
+    expect(missingAudioLocations).toEqual([]);
   });
 
   it("renders single-surah and multi-surah Mushaf pages accurately across all 604 pages", () => {
