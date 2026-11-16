@@ -176,10 +176,13 @@ for (let surahId = 1; surahId <= 114; surahId += 1) {
       if (word.audioUrl === null) {
         missingAudioLocations.push(word.location);
       } else {
+        // CDN files are numbered by word position; Quran.com's audio_url counts pause marks
+        // as words and points at missing/wrong files (fix: scripts/fix-word-audio-urls.mjs).
+        const pad = (n) => String(n).padStart(3, "0");
+        const expectedUrl = `https://audio.qurancdn.com/wbw/${pad(surahId)}_${pad(verse.verseNumber)}_${pad(idx + 1)}.mp3`;
         assert(
-          typeof word.audioUrl === "string" &&
-            /^https:\/\/audio\.qurancdn\.com\/wbw\/.+\.mp3$/.test(word.audioUrl),
-          `Invalid audio URL at ${word.location}: ${word.audioUrl}`
+          word.audioUrl === expectedUrl,
+          `Wrong word audio URL at ${word.location}: ${word.audioUrl} (expected ${expectedUrl})`
         );
       }
     });
@@ -190,7 +193,7 @@ assert(seenPages.size === 604, `Expected all 604 Mushaf pages covered, got ${see
 assert(totalVerses === 6236, `Expected 6236 total verses, got ${totalVerses}`);
 assert(totalWords === 77429, `Expected 77429 total words, got ${totalWords}`);
 assert(
-  JSON.stringify(missingAudioLocations) === JSON.stringify(["36:52:7"]),
+  missingAudioLocations.length === 0,
   `Unexpected missing word audio locations: ${JSON.stringify(missingAudioLocations)}`
 );
 
