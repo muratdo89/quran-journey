@@ -147,12 +147,14 @@ export function VerseBlock({
   showReading = false,
   showMeal = false,
   onWordTap,
+  onWordClose,
   activeWord = null,
 }: {
   verse: HifzVerse;
   /** Visible mode: custom word tap. Without it the block opens its own word sheet and plays the word. */
   onWordTap?: (wordIndex: number) => void;
   activeWord?: number | null;
+  onWordClose?: () => void;
   hidden?: boolean;
   revealAll?: boolean;
   active?: boolean;
@@ -169,6 +171,7 @@ export function VerseBlock({
       setOwnWord(i);
     });
   const highlighted = onWordTap ? activeWord : ownWord;
+  const closeWord = onWordClose ?? (() => setOwnWord(null));
 
   return (
     <div className={cn("-mx-1 rounded-2xl px-1 py-4 transition-colors", active && "bg-mint")}>
@@ -208,14 +211,12 @@ export function VerseBlock({
               ))}
         <AyahMark n={verse.verseNumber} />
       </p>
+      {!hidden && highlighted != null && <WordCard verse={verse} index={highlighted} onClose={closeWord} />}
       {showReading && verse.reading && (
         <p className="mt-1 text-center text-[15px] italic leading-relaxed text-ink-soft">{verse.reading}</p>
       )}
       {showMeal && verse.meal && (
         <p className="mx-auto mt-2 max-w-prose text-center text-[15px] leading-relaxed text-muted">{verse.meal}</p>
-      )}
-      {!onWordTap && ownWord !== null && (
-        <WordSheet word={{ verse, index: ownWord }} onClose={() => setOwnWord(null)} />
       )}
     </div>
   );
@@ -413,46 +414,31 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
   );
 }
 
-export function WordSheet({
-  word,
-  onClose,
-  onPlayVerse,
-}: {
-  word: { verse: HifzVerse; index: number };
-  onClose: () => void;
-  /** Defaults to playing the verse recitation clip. */
-  onPlayVerse?: (v: HifzVerse) => void;
-}) {
-  const w = word.verse.words[word.index]!;
+/** Compact word info shown right under the ayah: word, okunuş, meaning, listen again, close. */
+export function WordCard({ verse, index, onClose }: { verse: HifzVerse; index: number; onClose: () => void }) {
+  const w = verse.words[index];
+  if (!w) return null;
   return (
-    <Sheet title={`${word.verse.surahNameTr} ${word.verse.verseNumber}. ayet`} onClose={onClose}>
-      <div className="text-center">
-        <p dir="rtl" lang="ar" className="font-arabic text-5xl leading-[1.6] text-ink">
-          {w.text}
-        </p>
-        {w.reading && <p className="mt-1 text-lg italic text-ink-soft">{w.reading}</p>}
-        <p className="mt-1 text-lg font-semibold text-forest">{w.gloss ?? "Anlam bulunamadı"}</p>
+    <div className="mx-auto mt-1 flex max-w-md items-center gap-3 rounded-2xl border border-gold/30 bg-gold-soft/40 py-2 pl-2 pr-3">
+      <button
+        type="button"
+        disabled={!w.audioUrl}
+        onClick={() => w.audioUrl && playSharedClip(w.audioUrl)}
+        aria-label="Kelimeyi tekrar dinle"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-forest text-parchment hover:bg-forest-deep disabled:opacity-40"
+      >
+        <Volume2 className="h-4 w-4" />
+      </button>
+      <div className="min-w-0 flex-1 text-left">
+        <p className="truncate text-sm italic text-ink-soft">{w.reading}</p>
+        <p className="text-base font-semibold leading-snug text-forest">{w.gloss ?? "Anlam bulunamadı"}</p>
       </div>
-      <p className="mt-4 rounded-2xl bg-parchment p-3 text-sm leading-relaxed text-muted">{word.verse.meal}</p>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          disabled={!w.audioUrl}
-          onClick={() => w.audioUrl && playSharedClip(w.audioUrl)}
-          className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 py-3 text-sm font-semibold text-forest hover:bg-sand disabled:opacity-40"
-        >
-          <Volume2 className="h-4 w-4" />
-          Kelimeyi dinle
-        </button>
-        <button
-          type="button"
-          onClick={() => (onPlayVerse ? onPlayVerse(word.verse) : word.verse.audioUrl && playSharedClip(word.verse.audioUrl))}
-          className="flex items-center justify-center gap-2 rounded-2xl bg-forest px-3 py-3 text-sm font-semibold text-parchment hover:bg-forest-deep"
-        >
-          <Play className="h-4 w-4 fill-current" />
-          Ayeti dinle
-        </button>
-      </div>
-    </Sheet>
+      <span dir="rtl" lang="ar" className="shrink-0 font-arabic text-2xl leading-10 text-ink">
+        {w.text}
+      </span>
+      <button type="button" onClick={onClose} aria-label="Kapat" className="-mr-1 shrink-0 rounded-full p-1.5 text-muted hover:bg-sand">
+        <X className="h-4 w-4" />
+      </button>
+    </div>
   );
 }

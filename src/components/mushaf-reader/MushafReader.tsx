@@ -19,7 +19,7 @@ import type { HifzPageData, HifzVerse } from "@/lib/hifz/page-data";
 import { useHifzStore } from "@/lib/hifz/store";
 import { playSharedClip } from "@/lib/audio/shared-player";
 import { cn } from "@/lib/utils";
-import { AudioBlockedNote, Sheet, SurahBanner, ToolChip, VerseBlock, VersePaper, WordSheet, useVersePlayer } from "@/components/hifz/shared";
+import { AudioBlockedNote, Sheet, SurahBanner, ToolChip, VerseBlock, VersePaper, useVersePlayer } from "@/components/hifz/shared";
 
 export interface MushafNavData {
   surahs: { id: number; name: string; arabic: string; startPage: number }[];
@@ -223,6 +223,7 @@ export function MushafReader({
                   setWord({ verse: v, index });
                 }}
                 activeWord={word?.verse.key === v.key ? word.index : null}
+                onWordClose={() => setWord(null)}
               />
             </div>
           ))}
@@ -281,7 +282,6 @@ export function MushafReader({
         </div>
       </div>
 
-      {word && <WordSheet word={word} onClose={() => setWord(null)} onPlayVerse={(v) => void player.play([v], 1)} />}
       {jumpOpen && <JumpSheet nav={nav} page={page} onClose={() => setJumpOpen(false)} onGo={(p) => { setJumpOpen(false); go(p); }} />}
     </div>
   );
