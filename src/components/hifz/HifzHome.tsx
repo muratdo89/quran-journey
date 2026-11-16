@@ -3,11 +3,12 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpenText, CheckCircle2, Circle, Play, Settings2 } from "lucide-react";
+import { ArrowRight, BookOpenText, CheckCircle2, ChevronRight, Circle, ListChecks, Play, Settings2 } from "lucide-react";
 import {
   DAILY_PART_OPTIONS,
   TOTAL_PAGES,
   buildTodayPlan,
+  currentNewPage,
   estimateMinutes,
   importLegacyPages,
   saveSettings,
@@ -17,11 +18,14 @@ import {
   type TodayPlan,
 } from "@/lib/hifz/plan";
 import { updateHifzStore, useHifzStore } from "@/lib/hifz/store";
+import type { HifzMeta } from "@/lib/hifz/page-data";
+import { MarkMemorizedSheet, memorizedPagesOf } from "@/components/hifz/MarkMemorized";
 import { cn } from "@/lib/utils";
 
 interface HifzHomeProps {
   pageLabels: Record<number, string>;
   currentPageNumber: number;
+  meta: HifzMeta;
   /** Pages fully memorized on the older Ezber page, carried over once. */
   legacyPages?: number[];
 }
@@ -38,7 +42,7 @@ export function partLabel(partIndex: number, partCount: number): string {
 /**
  * Today screen: one sentence, one button. Everything comes from the page-by-page hifz plan.
  */
-export function HifzHome({ pageLabels, currentPageNumber, legacyPages = [] }: HifzHomeProps) {
+export function HifzHome({ pageLabels, currentPageNumber, meta, legacyPages = [] }: HifzHomeProps) {
   const store = useHifzStore();
   const [editing, setEditing] = useState(false);
   const needsImport = !!store && !store.importedLegacy;
@@ -55,6 +59,8 @@ export function HifzHome({ pageLabels, currentPageNumber, legacyPages = [] }: Hi
         <SetupCard
           initial={store.settings}
           currentPageNumber={currentPageNumber}
+          meta={meta}
+          pageLabels={pageLabels}
           onDone={() => setEditing(false)}
           canCancel={!!store.settings}
         />
@@ -153,49 +159,69 @@ function TodayCard({ plan, pageLabels }: { plan: TodayPlan; pageLabels: Record<n
   );
 }
 
-type StartChoice = "amme" | "fatiha" | "page";
+type StartChoice = "resume" | "amme" | "fatiha" | "page";
 
 export function SetupCard({
   initial,
   currentPageNumber,
+  meta,
+  pageLabels,
   onDone,
   canCancel,
 }: {
   initial: HifzSettings | null;
   currentPageNumber: number;
+  meta: HifzMeta;
+  pageLabels?: Record<number, string>;
   onDone: () => void;
   canCancel: boolean;
 }) {
   const router = useRouter();
-  const initialChoice: StartChoice = !initial
-    ? "amme"
-    : initial.startPage === TOTAL_PAGES && initial.direction === "backward"
-      ? "amme"
-      : initial.startPage === 1 && initial.direction === "forward"
-        ? "fatiha"
-        : "page";
-  const [choice, setChoice] = useState<StartChoice>(initialChoice);
-  const [page, setPage] = useState<number>(initial?.startPage ?? currentPageNumber ?? 1);
-  const [direction, setDirection] = useState<HifzDirection>(initial?.direction ?? "forward");
+  const store = useHifzStore();
+  const lastPage = Math.min(TOTAL_PAGES, Math.max(1, Math.round(currentPageNumber) || 1));
+  const resumePage = initial ? (store ? currentNewPage(store) : null) ?? initial.startPage : lastPage;
+  const canResume = !!initial || lastPage > 1;
+  const [choice, setChoice] = useState<StartChoice>(canResume ? "resume" : "amme");
+  const [page, setPage] = useState<number>(initial?.startPage ?? lastPage);
+  const [direction, setDirection] = useState<HifzDirection>(initial?.direction ?? (lastPage >= 582 ? "backward" : "forward"));
   const [parts, setParts] = useState<HifzDailyParts>(initial?.dailyParts ?? 2);
+  const [marking, setMarking] = useState(false);
+  const markedCount = memorizedPagesOf(store).length;
 
   function submit() {
     const settings: HifzSettings =
-      choice === "amme"
-        ? { startPage: TOTAL_PAGES, direction: "backward", dailyParts: parts }
-        : choice === "fatiha"
-          ? { startPage: 1, direction: "forward", dailyParts: parts }
-          : { startPage: Math.min(TOTAL_PAGES, Math.max(1, Math.round(page) || 1)), direction, dailyParts: parts };
+      choice === "resume"
+        ? initial
+          ? { ...initial, dailyParts: parts }
+          : { startPage: lastPage, direction, dailyParts: parts }
+        : choice === "amme"
+          ? { startPage: TOTAL_PAGES, direction: "backward", dailyParts: parts }
+          : choice === "fatiha"
+            ? { startPage: 1, direction: "forward", dailyParts: parts }
+            : { startPage: Math.min(TOTAL_PAGES, Math.max(1, Math.round(page) || 1)), direction, dailyParts: parts };
     updateHifzStore((s) => saveSettings(s, settings));
     onDone();
     if (!initial) router.push("/hifz");
   }
 
+  const label = (p: number) => (pageLabels?.[p] ? ` · ${pageLabels[p]}` : "");
   const choices: { id: StartChoice; label: string; hint: string }[] = [
+    ...(canResume
+      ? [
+          {
+            id: "resume" as const,
+            label: initial ? "Kaldığım yerden devam" : "Kaldığım yerden",
+            hint: initial
+              ? `Sayfa ${resumePage}${label(resumePage)}`
+              : `Mushaf'ta en son açtığın sayfa: ${lastPage}${label(lastPage)}`,
+          },
+        ]
+      : []),
     { id: "amme", label: "Amme cüzünün sonundan", hint: "Nâs, Felak, İhlâs… kısa surelerle geriye doğru" },
     { id: "fatiha", label: "Baştan", hint: "Fâtiha ve Bakara'dan ileri doğru" },
     { id: "page", label: "Seçtiğim sayfadan", hint: "Sayfa numarası ve yön seç" },
   ];
+  const showDirection = choice === "page" || (choice === "resume" && !initial);
 
   return (
     <section className={card}>
@@ -206,60 +232,77 @@ export function SetupCard({
 
       <div role="radiogroup" aria-label="Başlangıç" className="mt-5 space-y-2">
         {choices.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            role="radio"
-            aria-checked={choice === c.id}
-            onClick={() => setChoice(c.id)}
-            className={cn(
-              "flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-colors",
-              choice === c.id ? "border-forest bg-mint" : "border-line hover:bg-sand"
+          <div key={c.id}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={choice === c.id}
+              onClick={() => setChoice(c.id)}
+              className={cn(
+                "flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-colors",
+                choice === c.id ? "border-forest bg-mint" : "border-line hover:bg-sand"
+              )}
+            >
+              {choice === c.id ? (
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-forest" />
+              ) : (
+                <Circle className="mt-0.5 h-5 w-5 shrink-0 text-line" />
+              )}
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-ink">{c.label}</span>
+                <span className="block truncate text-xs text-muted">{c.hint}</span>
+              </span>
+            </button>
+            {choice === c.id && showDirection && (
+              <div className="mt-2 flex flex-wrap items-center gap-3 rounded-2xl bg-parchment px-4 py-3 text-sm">
+                {c.id === "page" && (
+                  <label className="flex items-center gap-2">
+                    Sayfa
+                    <input
+                      type="number"
+                      min={1}
+                      max={TOTAL_PAGES}
+                      value={page}
+                      onChange={(e) => setPage(Number(e.target.value))}
+                      className="w-20 rounded-lg border border-line bg-surface px-2 py-1"
+                    />
+                  </label>
+                )}
+                <span className="text-xs text-muted">Yön</span>
+                <div className="inline-flex rounded-full bg-surface p-0.5">
+                  {(["forward", "backward"] as const).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDirection(d)}
+                      className={cn("rounded-full px-3 py-1 text-xs font-semibold", direction === d ? "bg-forest text-parchment" : "text-muted")}
+                    >
+                      {d === "forward" ? "İleri" : "Geriye"}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
-          >
-            {choice === c.id ? (
-              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-forest" />
-            ) : (
-              <Circle className="mt-0.5 h-5 w-5 shrink-0 text-line" />
-            )}
-            <span>
-              <span className="block text-sm font-semibold text-ink">{c.label}</span>
-              <span className="block text-xs text-muted">{c.hint}</span>
-            </span>
-          </button>
+          </div>
         ))}
       </div>
 
-      {choice === "page" && (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-2xl bg-parchment px-4 py-3 text-sm">
-          <label className="flex items-center gap-2">
-            Sayfa
-            <input
-              type="number"
-              min={1}
-              max={TOTAL_PAGES}
-              value={page}
-              onChange={(e) => setPage(Number(e.target.value))}
-              className="w-20 rounded-lg border border-line bg-surface px-2 py-1"
-            />
-          </label>
-          <div className="inline-flex rounded-full bg-surface p-0.5">
-            {(["forward", "backward"] as const).map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDirection(d)}
-                className={cn(
-                  "rounded-full px-3 py-1 text-xs font-semibold",
-                  direction === d ? "bg-forest text-parchment" : "text-muted"
-                )}
-              >
-                {d === "forward" ? "İleri" : "Geriye"}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <button
+        type="button"
+        onClick={() => setMarking(true)}
+        className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-dashed border-gold/50 bg-gold-soft/30 px-4 py-3 text-left transition-colors hover:bg-gold-soft/60"
+      >
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface text-gold-deep">
+          <ListChecks className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-ink">Ezberlediğim yerleri işaretle</span>
+          <span className="block text-xs text-muted">
+            {markedCount > 0 ? `${markedCount} sayfa ezberli · yeni derste atlanır` : "Bildiğin sureler yeni derste atlanır, tekrarda gelir"}
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+      </button>
 
       <p className="mt-6 text-sm font-semibold text-ink">Günde ne kadar?</p>
       <div role="radiogroup" aria-label="Günlük miktar" className="mt-2 grid grid-cols-3 gap-2">
@@ -294,6 +337,7 @@ export function SetupCard({
           Vazgeç
         </button>
       )}
+      {marking && store && <MarkMemorizedSheet meta={meta} store={store} onClose={() => setMarking(false)} />}
     </section>
   );
 }

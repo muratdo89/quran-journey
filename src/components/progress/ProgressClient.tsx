@@ -8,6 +8,7 @@ import {
   Brain,
   ChevronRight,
   GraduationCap,
+  ListChecks,
   Languages,
   RotateCcw,
   Settings2,
@@ -16,6 +17,8 @@ import {
 import { TOTAL_PAGES, buildTodayPlan, type HifzPageState } from "@/lib/hifz/plan";
 import { useHifzStore } from "@/lib/hifz/store";
 import { SetupCard } from "@/components/hifz/HifzHome";
+import { MarkMemorizedSheet } from "@/components/hifz/MarkMemorized";
+import type { HifzMeta } from "@/lib/hifz/page-data";
 import { cn } from "@/lib/utils";
 
 type Cell = "memorized" | "weak" | "learning" | "none";
@@ -54,9 +57,19 @@ const card =
   "rounded-[28px] border border-line bg-surface p-5 sm:p-7 shadow-[0_1px_0_rgba(31,42,35,0.04),0_12px_32px_-18px_rgba(27,67,50,0.18)]";
 
 /** İlerleme: the 604-page memorization map, hifz settings and the less-used tools. */
-export function ProgressClient({ pageJuz, currentPageNumber }: { pageJuz: number[]; currentPageNumber: number }) {
+export function ProgressClient({
+  meta,
+  pageLabels,
+  currentPageNumber,
+}: {
+  meta: HifzMeta;
+  pageLabels: Record<number, string>;
+  currentPageNumber: number;
+}) {
   const store = useHifzStore();
   const [editing, setEditing] = useState(false);
+  const [marking, setMarking] = useState(false);
+  const pageJuz = meta.pageJuz;
 
   const juzPages = useMemo(() => {
     const out: number[][] = Array.from({ length: 30 }, () => []);
@@ -68,7 +81,14 @@ export function ProgressClient({ pageJuz, currentPageNumber }: { pageJuz: number
   if (editing) {
     return (
       <div className="mx-auto max-w-2xl">
-        <SetupCard initial={store.settings} currentPageNumber={currentPageNumber} onDone={() => setEditing(false)} canCancel />
+        <SetupCard
+          initial={store.settings}
+          currentPageNumber={currentPageNumber}
+          meta={meta}
+          pageLabels={pageLabels}
+          onDone={() => setEditing(false)}
+          canCancel
+        />
       </div>
     );
   }
@@ -138,8 +158,18 @@ export function ProgressClient({ pageJuz, currentPageNumber }: { pageJuz: number
         </div>
       </section>
 
-      <section className={card}>
-        <button type="button" onClick={() => setEditing(true)} className="flex w-full items-center gap-3 text-left">
+      <section className={cn(card, "divide-y divide-line py-2 sm:py-3")}>
+        <button type="button" onClick={() => setMarking(true)} className="flex w-full items-center gap-3 py-3 text-left">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold-soft text-gold-deep">
+            <ListChecks className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-ink">Ezberlediğim yerleri işaretle</span>
+            <span className="block truncate text-xs text-muted">Bildiğin sureleri veya sayfaları işaretle</span>
+          </span>
+          <ChevronRight className="h-4 w-4 text-muted" />
+        </button>
+        <button type="button" onClick={() => setEditing(true)} className="flex w-full items-center gap-3 py-3 text-left">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint text-forest">
             <Settings2 className="h-5 w-5" />
           </span>
@@ -175,6 +205,7 @@ export function ProgressClient({ pageJuz, currentPageNumber }: { pageJuz: number
           })}
         </ul>
       </section>
+      {marking && <MarkMemorizedSheet meta={meta} store={store} onClose={() => setMarking(false)} />}
     </div>
   );
 }

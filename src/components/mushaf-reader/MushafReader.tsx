@@ -18,7 +18,7 @@ import {
 import type { HifzPageData, HifzVerse } from "@/lib/hifz/page-data";
 import { useHifzStore } from "@/lib/hifz/store";
 import { playSharedClip } from "@/lib/audio/shared-player";
-import { cn } from "@/lib/utils";
+import { cn, searchKey } from "@/lib/utils";
 import { AudioBlockedNote, Sheet, SurahBanner, ToolChip, VerseBlock, VersePaper, useVersePlayer } from "@/components/hifz/shared";
 
 export interface MushafNavData {
@@ -319,9 +319,9 @@ function JumpSheet({
   const [tab, setTab] = useState<"sure" | "cuz" | "sayfa">("sure");
   const [query, setQuery] = useState("");
   const [pageInput, setPageInput] = useState(String(page));
-  const q = query.trim().toLocaleLowerCase("tr");
+  const q = searchKey(query);
   const surahs = q
-    ? nav.surahs.filter((s) => s.name.toLocaleLowerCase("tr").includes(q) || String(s.id) === q)
+    ? nav.surahs.filter((s) => searchKey(s.name).includes(q) || String(s.id) === q)
     : nav.surahs;
 
   return (

@@ -331,6 +331,27 @@ export function importLegacyPages(store: HifzStore, pages: number[], today: stri
   return { ...store, pages: next, importedLegacy: true };
 }
 
+/**
+ * "Ezberlediğim yerler": the learner marks what they already know by heart.
+ * Newly marked pages go straight into older review (manzil); pages taken off the list are cleared.
+ * Pages the app is tracking (memorized here or being learned) and still marked keep their history.
+ */
+export function setMemorizedPages(store: HifzStore, marked: Iterable<number>, today: string = dayKey()): HifzStore {
+  const want = new Set([...marked].filter((p) => Number.isInteger(p) && p >= 1 && p <= TOTAL_PAGES));
+  const since = addDays(today, -RECENT_DAYS);
+  const next: HifzStore["pages"] = {};
+  for (const [key, state] of Object.entries(store.pages)) {
+    const p = Number(key);
+    if (state.status === "memorized" && !want.has(p)) continue;
+    next[p] = state;
+  }
+  for (const p of want) {
+    if (next[p]?.status === "memorized") continue;
+    next[p] = { status: "memorized", partsDone: 1, partCount: 1, memorizedOn: since, lastReviewedOn: since };
+  }
+  return { ...store, pages: next };
+}
+
 /** "Bir parça daha": lets the learner take the next new part today. */
 export function allowAnotherNewPart(store: HifzStore): HifzStore {
   return { ...store, newDoneOn: undefined };
