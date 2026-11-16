@@ -6,6 +6,7 @@ import { Check, Plus, Volume2, X } from "lucide-react";
 import type { CanonicalVerse, CanonicalWord } from "@/lib/content/types";
 import { getTajweedLegend, type TajweedRuleDetail } from "@/lib/content/tajweed-analyzer";
 import { POS_LABELS_TR, isEnglishFallbackGloss, type RootOccurrencePreview } from "./shared";
+import { toTurkishReading } from "@/lib/content/turkish-reading";
 
 interface WordInspectorProps {
   selectedWord: CanonicalWord | null;
@@ -58,8 +59,8 @@ export function WordInspector({
                 </p>
               )}
               {showTransliteration && selectedWord.transliteration && (
-                <p className="mt-0.5 text-xs font-mono text-muted">
-                  Okunuş yardımı: {selectedWord.transliteration}
+                <p className="mt-0.5 text-sm italic text-muted">
+                  Okunuş: {toTurkishReading(selectedWord.transliteration)}
                 </p>
               )}
             </div>
