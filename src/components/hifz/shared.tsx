@@ -111,32 +111,174 @@ export function useVersePlayer() {
 
 /* ---------- pieces ---------- */
 
+const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+const toArabicDigits = (n: number) => String(n).replace(/\d/g, (d) => AR_DIGITS[Number(d)]!);
+
+/** Mushaf-style verse end mark: ﴿٣﴾ in gold, inside the Arabic line. */
+export function AyahMark({ n }: { n: number }) {
+  return (
+    <span aria-label={`${n}. ayet`} className="mx-1 whitespace-nowrap font-arabic text-[0.8em] text-gold">
+      ﴿{toArabicDigits(n)}﴾
+    </span>
+  );
+}
+
+export function SurahBanner({ verse }: { verse: HifzVerse }) {
+  if (!verse.startsSurah) return null;
+  return (
+    <div className="flex items-center gap-3 pt-4 pb-1" aria-label={`${verse.surahNameTr} Suresi`}>
+      <span className="h-px flex-1 bg-gold-line" />
+      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-ink">{verse.surahNameTr} Suresi</span>
+      <span className="h-px flex-1 bg-gold-line" />
+    </div>
+  );
+}
+
+/**
+ * One verse, the same shape on every step: Arabic centred like a Mushaf line, then optional
+ * Turkish reading, meal and key words. `hidden` blurs every word; a tap on a word shows it.
+ * Parents change the `key` to hide the verse again.
+ */
+export function VerseBlock({
+  verse,
+  hidden = false,
+  revealAll = false,
+  active = false,
+  showReading = false,
+  showMeal = false,
+  showKeyWords = false,
+}: {
+  verse: HifzVerse;
+  hidden?: boolean;
+  revealAll?: boolean;
+  active?: boolean;
+  showReading?: boolean;
+  showMeal?: boolean;
+  showKeyWords?: boolean;
+}) {
+  const [shown, setShown] = useState<Set<number>>(() => new Set());
+  const keyWords = showKeyWords ? verse.keyWords.map((i) => verse.words[i]!).filter(Boolean) : [];
+
+  return (
+    <div className={cn("-mx-1 rounded-2xl px-1 py-4 transition-colors", active && "bg-mint")}>
+      <p dir="rtl" lang="ar" className="text-center font-arabic text-[1.9rem] leading-[2.25] text-ink sm:text-[2.1rem]">
+        {hidden
+          ? verse.words.map((w, i) => {
+              const visible = revealAll || shown.has(i);
+              return (
+                <React.Fragment key={i}>
+                  <button
+                    type="button"
+                    onClick={() => setShown((s) => new Set(s).add(i))}
+                    aria-label={visible ? w.text : "Gizli kelime, göstermek için dokun"}
+                    className={cn(
+                      "rounded-md transition-[filter,opacity] duration-200",
+                      visible ? "" : "select-none opacity-40 blur-[7px]"
+                    )}
+                  >
+                    {w.text}
+                  </button>{" "}
+                </React.Fragment>
+              );
+            })
+          : verse.text}
+        <AyahMark n={verse.verseNumber} />
+      </p>
+      {showReading && verse.reading && (
+        <p className="mt-1 text-center text-[15px] italic leading-relaxed text-ink-soft">{verse.reading}</p>
+      )}
+      {showMeal && verse.meal && (
+        <p className="mx-auto mt-2 max-w-prose text-center text-[15px] leading-relaxed text-muted">{verse.meal}</p>
+      )}
+      {keyWords.length > 0 && (
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          {keyWords.map((w, i) => (
+            <span key={i} className="inline-flex items-center gap-2 rounded-full border border-line bg-parchment py-1 pl-3 pr-1">
+              <span className="text-xs">
+                <span className="italic text-ink-soft">{w.reading}</span>
+                <span className="text-muted"> · </span>
+                <span className="font-semibold text-forest">{w.gloss}</span>
+              </span>
+              <span dir="rtl" lang="ar" className="rounded-full bg-surface px-2.5 font-arabic text-lg leading-8 text-ink">
+                {w.text}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The paper the verses sit on, with thin rules between verses. */
+export function VersePaper({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-[28px] border border-line bg-surface px-4 py-2 shadow-[0_1px_0_rgba(31,42,35,0.04),0_12px_32px_-22px_rgba(27,67,50,0.25)] sm:px-8 [&>*+*]:border-t [&>*+*]:border-line/60">
+      {children}
+    </div>
+  );
+}
+
 export function PlayToggle({
   playing,
   onPlay,
   onStop,
   label,
-  className,
 }: {
   playing: boolean;
   onPlay: () => void;
   onStop: () => void;
   label: string;
-  className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={playing ? onStop : onPlay}
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold text-forest hover:bg-sand",
-        className
-      )}
+      className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-xs font-semibold text-forest hover:bg-sand"
     >
-      {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
+      {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 fill-current" />}
       {playing ? "Durdur" : label}
     </button>
   );
+}
+
+export function ToolChip({ on, onClick, children }: { on?: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-colors",
+        on ? "border-forest bg-mint text-forest" : "border-line bg-surface text-muted hover:text-forest"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function MealToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <ToolChip on={on} onClick={onToggle}>
+      {on ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+      Meal
+    </ToolChip>
+  );
+}
+
+export function RevealAllToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <ToolChip on={on} onClick={onToggle}>
+      {on ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+      {on ? "Gizle" : "Hepsini aç"}
+    </ToolChip>
+  );
+}
+
+/** A centred row of small tools (listen, meal, reveal) above the verses. */
+export function ToolRow({ children }: { children: React.ReactNode }) {
+  return <div className="flex flex-wrap items-center justify-center gap-2">{children}</div>;
 }
 
 export function AudioBlockedNote({ show }: { show: boolean }) {
@@ -144,100 +286,26 @@ export function AudioBlockedNote({ show }: { show: boolean }) {
   return <p className="text-center text-xs font-semibold text-gold-ink">{AUDIO_BLOCKED_MESSAGE}</p>;
 }
 
-export function VerseNumber({ n }: { n: number }) {
+export function StepTitle({ title, hint }: { title: string; hint?: string }) {
   return (
-    <span className="mx-1 inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-gold-line px-1 align-middle font-sans text-[11px] font-semibold text-gold-ink">
-      {n}
-    </span>
-  );
-}
-
-export function SurahTitle({ verse }: { verse: HifzVerse }) {
-  if (!verse.startsSurah) return null;
-  return (
-    <p className="pt-2 text-center text-xs font-semibold uppercase tracking-[0.12em] text-gold-ink">
-      {verse.surahNameTr} Suresi
-    </p>
-  );
-}
-
-/** A verse with every word hidden; tapping a word shows it. `revealAll` shows the whole verse. */
-export function HiddenVerse({
-  verse,
-  revealAll,
-  active,
-  showMeal,
-}: {
-  verse: HifzVerse;
-  revealAll: boolean;
-  active?: boolean;
-  showMeal?: boolean;
-}) {
-  // Parents remount this (new `key`) to hide the verse again.
-  const [shown, setShown] = useState<Set<number>>(() => new Set());
-
-  return (
-    <div className={cn("rounded-2xl px-3 py-3 transition-colors", active && "bg-mint")}>
-      <p dir="rtl" lang="ar" className="font-arabic text-[1.65rem] leading-[2.6] text-ink">
-        {verse.words.map((w, i) => {
-          const visible = revealAll || shown.has(i);
-          return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setShown((s) => new Set(s).add(i))}
-              aria-label={visible ? w.text : "Gizli kelime, göstermek için dokun"}
-              className={cn(
-                "mx-[3px] inline-block rounded-lg px-1 align-middle leading-[1.7] transition-colors",
-                visible ? "text-ink" : "bg-sand-strong text-transparent select-none"
-              )}
-            >
-              {w.text}
-            </button>
-          );
-        })}
-        <VerseNumber n={verse.verseNumber} />
-      </p>
-      {showMeal && <p className="mt-1 text-sm leading-relaxed text-muted">{verse.meal}</p>}
+    <div className="text-center">
+      <h2 className="font-display text-[1.6rem] font-semibold leading-tight tracking-tight text-ink">{title}</h2>
+      {hint && <p className="mx-auto mt-1 max-w-sm text-sm leading-snug text-muted">{hint}</p>}
     </div>
   );
 }
 
-export function VisibleVerse({ verse, active, showReading }: { verse: HifzVerse; active?: boolean; showReading?: boolean }) {
+/**
+ * Bottom action bar: always within thumb reach, above the safe area. HifzSession keeps
+ * enough bottom padding so the last verse never hides behind it.
+ */
+export function ActionBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className={cn("rounded-2xl px-3 py-3 transition-colors", active && "bg-mint")}>
-      <p dir="rtl" lang="ar" className="font-arabic text-[1.65rem] leading-[2.4] text-ink">
-        {verse.text}
-        <VerseNumber n={verse.verseNumber} />
-      </p>
-      {showReading && verse.reading && <p className="mt-1 text-sm italic leading-relaxed text-ink-soft">{verse.reading}</p>}
+    <div className="fixed inset-x-0 bottom-0 z-30 lg:pl-64">
+      <div className="mx-auto max-w-2xl bg-gradient-to-t from-parchment from-60% to-transparent px-4 pt-8 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        {children}
+      </div>
     </div>
-  );
-}
-
-export function MealToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-muted hover:text-forest"
-    >
-      {on ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-      {on ? "Meali gizle" : "İpucu: meal"}
-    </button>
-  );
-}
-
-export function RevealAllToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-muted hover:text-forest"
-    >
-      {on ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-      {on ? "Yeniden gizle" : "Hepsini göster"}
-    </button>
   );
 }
 
@@ -255,7 +323,7 @@ export function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-forest px-6 py-4 text-base font-semibold text-parchment shadow-sm shadow-forest/20 transition-colors hover:bg-forest-deep disabled:opacity-50"
+      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-forest px-6 py-4 text-base font-semibold text-parchment shadow-lg shadow-forest/25 transition hover:bg-forest-deep active:scale-[0.99] disabled:opacity-50"
     >
       {children}
     </button>
@@ -270,18 +338,21 @@ const RATINGS: { id: HifzRating; label: string; hint: string; cls: string }[] = 
 
 export function RatingButtons({ onRate }: { onRate: (r: HifzRating) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {RATINGS.map((r) => (
-        <button
-          key={r.id}
-          type="button"
-          onClick={() => onRate(r.id)}
-          className={cn("flex flex-col items-center rounded-2xl border px-2 py-3 transition-colors", r.cls)}
-        >
-          <span className="text-sm font-semibold">{r.label}</span>
-          <span className="text-[11px] opacity-80">{r.hint}</span>
-        </button>
-      ))}
+    <div className="space-y-2">
+      <p className="text-center text-xs font-semibold text-muted">Nasıl gitti?</p>
+      <div className="grid grid-cols-3 gap-2">
+        {RATINGS.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            onClick={() => onRate(r.id)}
+            className={cn("flex flex-col items-center rounded-2xl border px-2 py-3 shadow-sm transition-colors", r.cls)}
+          >
+            <span className="text-sm font-semibold">{r.label}</span>
+            <span className="text-[11px] opacity-80">{r.hint}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

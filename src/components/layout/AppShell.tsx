@@ -113,6 +113,8 @@ function subscribeOnlineStatus(callback: () => void): () => void {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // The hifz session is a focus screen: no phone header or bottom menu, its own top bar and actions.
+  const focusMode = pathname === "/hifz";
   const isOffline = useSyncExternalStore(
     subscribeOnlineStatus,
     () => (typeof navigator !== "undefined" ? !navigator.onLine : false),
@@ -159,7 +161,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile Top Bar */}
-      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b border-line bg-parchment/95 backdrop-blur px-4 py-3">
+      <header className={cn("sticky top-0 z-30 flex items-center justify-between border-b border-line bg-parchment/95 backdrop-blur px-4 py-3", focusMode ? "hidden" : "lg:hidden")}>
         <Link href="/" className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-forest text-parchment">
             <BookOpen className="h-4 w-4" />
@@ -201,7 +203,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 lg:pl-64 pb-40 lg:pb-24">
+      <main className={cn("flex-1 lg:pl-64", focusMode ? "pb-0" : "pb-40 lg:pb-24")}>
         <LastStudyTracker />
         {isOffline && (
           <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-950 flex items-center justify-center gap-2">
@@ -211,7 +213,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </div>
         )}
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className={cn("mx-auto max-w-6xl px-4 sm:px-6 lg:px-8", focusMode ? "pb-6" : "py-6 sm:py-8")}>
           {children}
         </div>
       </main>
@@ -220,7 +222,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile Bottom Quick Nav */}
       <nav
         aria-label="Hızlı alt menü"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-line bg-parchment/95 backdrop-blur grid grid-cols-5 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]"
+        className={cn("fixed bottom-0 inset-x-0 z-30 border-t border-line bg-parchment/95 backdrop-blur grid grid-cols-5 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]", focusMode ? "hidden" : "lg:hidden")}
       >
         {PRIMARY_NAV.map((item) => {
           const Icon = item.icon;
