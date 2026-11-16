@@ -1,43 +1,16 @@
-import { getBackendConfigurationStatus, getRepository } from "@/lib/db";
-import { buildDailyLearningPlan } from "@/lib/learning-engine";
-import { DashboardClient } from "@/components/dashboard/DashboardClient";
-import { getDailyVerse, getJuzProgress } from "@/lib/content/daily-focus";
+import { getRepository } from "@/lib/db";
+import { allPageLabels } from "@/lib/hifz/page-data";
+import { HifzHome } from "@/components/hifz/HifzHome";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function TodayPage() {
   const repo = await getRepository();
-  const [snapshot, backendStatus] = await Promise.all([
-    repo.getDashboardSnapshot(),
-    getBackendConfigurationStatus(),
-  ]);
-
-  const dailyPlan = buildDailyLearningPlan({
-    requestedMode: snapshot.goals.sessionMode,
-    cards: snapshot.cards,
-    verseStates: snapshot.verseProgress.map((v) => ({
-      verseKey: v.verseKey,
-      memorizationState: v.memorizationState,
-    })),
-    currentPageNumber: snapshot.profile.currentPageNumber,
-    daysSinceLastStudy: snapshot.daysSinceLastStudy,
-    placementCompleted: snapshot.profile.placementCompleted,
-  });
-
-  const currentPage = snapshot.profile.currentPageNumber;
-  const dailyVerse = getDailyVerse(currentPage);
-  const juzProgress = getJuzProgress(
-    currentPage,
-    snapshot.pageProgress.filter((p) => p.status !== "not_started").map((p) => p.pageNumber)
-  );
-
+  const snapshot = await repo.getDashboardSnapshot();
   return (
-    <DashboardClient
-      dailyVerse={dailyVerse}
-      juzProgress={juzProgress}
-      initialSnapshot={snapshot}
-      initialPlan={dailyPlan}
-      backendStatus={backendStatus}
+    <HifzHome
+      pageLabels={allPageLabels()}
+      currentPageNumber={snapshot.profile.currentPageNumber}
     />
   );
 }
