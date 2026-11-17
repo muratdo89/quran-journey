@@ -149,8 +149,13 @@ export function VerseBlock({
   onWordTap,
   onWordClose,
   activeWord = null,
+  onPlayVerse,
+  versePlaying = false,
 }: {
   verse: HifzVerse;
+  /** Shows a small play button after the verse mark: listen to the whole verse with one tap. */
+  onPlayVerse?: () => void;
+  versePlaying?: boolean;
   /** Visible mode: custom word tap. Without it the block opens its own word sheet and plays the word. */
   onWordTap?: (wordIndex: number) => void;
   activeWord?: number | null;
@@ -210,6 +215,9 @@ export function VerseBlock({
                 </React.Fragment>
               ))}
         <AyahMark n={verse.verseNumber} />
+        {onPlayVerse && verse.audioUrl && (
+          <VersePlayButton n={verse.verseNumber} playing={versePlaying} onClick={onPlayVerse} />
+        )}
       </p>
       {!hidden && highlighted != null && <WordCard verse={verse} index={highlighted} onClose={closeWord} />}
       {showReading && verse.reading && (
@@ -219,6 +227,26 @@ export function VerseBlock({
         <p className="mx-auto mt-2 max-w-prose text-center text-[15px] leading-relaxed text-muted">{verse.meal}</p>
       )}
     </div>
+  );
+}
+
+/** Small, quiet round button that sits beside the verse mark and plays the whole verse. */
+function VersePlayButton({ n, playing, onClick }: { n: number; playing: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={playing ? "Durdur" : `${n}. ayeti dinle`}
+      aria-pressed={playing}
+      className={cn(
+        "ml-0.5 inline-grid h-8 w-8 place-items-center rounded-full border align-middle transition-colors",
+        playing
+          ? "border-forest bg-forest text-parchment"
+          : "border-gold-line/80 bg-surface text-gold-ink hover:border-forest hover:text-forest"
+      )}
+    >
+      {playing ? <Pause className="h-3.5 w-3.5 fill-current" /> : <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />}
+    </button>
   );
 }
 
