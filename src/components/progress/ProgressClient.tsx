@@ -2,18 +2,8 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  BookOpenText,
-  BarChart3,
-  Brain,
-  ChevronRight,
-  GraduationCap,
-  ListChecks,
-  Languages,
-  RotateCcw,
-  Settings2,
-  UserRound,
-} from "lucide-react";
+import { ChevronRight, ListChecks, Settings2 } from "lucide-react";
+import { TOOLS } from "@/components/layout/tools";
 import { TOTAL_PAGES, buildTodayPlan, type HifzPageState } from "@/lib/hifz/plan";
 import { useHifzStore } from "@/lib/hifz/store";
 import { SetupCard } from "@/components/hifz/HifzHome";
@@ -41,16 +31,6 @@ const LEGEND: { cell: Cell; label: string }[] = [
   { cell: "weak", label: "Zayıf" },
   { cell: "learning", label: "Öğreniliyor" },
   { cell: "none", label: "Başlanmadı" },
-];
-
-const TOOLS: { href: string; label: string; hint: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { href: "/settings", label: "Hesap ve ayarlar", hint: "Hoca sesi, yazı boyu, bulut kaydı", icon: UserRound },
-  { href: "/mushaf/detay", label: "Gelişmiş Mushaf", hint: "Renkli tecvid, notlar, ses kaydı", icon: BookOpenText },
-  { href: "/vocabulary", label: "Kelimeler", hint: "Kelime ve kök çalışması", icon: Languages },
-  { href: "/learn-arabic", label: "Arapça dersleri", hint: "Elif-Ba ve tecvid", icon: GraduationCap },
-  { href: "/review", label: "Kelime kartları", hint: "Aralıklı tekrar kartları", icon: RotateCcw },
-  { href: "/memorization", label: "Ayet ezber araçları", hint: "Sure seçerek gizle, boşluk, sırala", icon: Brain },
-  { href: "/statistics", label: "Ayrıntılı istatistik", hint: "Kelime, okuma ve tecvid", icon: BarChart3 },
 ];
 
 const card =

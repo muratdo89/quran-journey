@@ -3,7 +3,8 @@
 import React, { useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, BookOpenText, ChartNoAxesColumn, Sunrise, WifiOff } from "lucide-react";
+import { BookOpen, BookOpenText, ChartNoAxesColumn, ChevronDown, Sunrise, WifiOff } from "lucide-react";
+import { TOOLS } from "@/components/layout/tools";
 import { cn } from "@/lib/utils";
 import { LastStudyTracker } from "@/components/layout/LastStudyTracker";
 import { installSharedAudioUnlock } from "@/lib/audio/shared-player";
@@ -63,12 +64,82 @@ function NavLink({
   );
 }
 
+const TOOLS_OPEN_KEY = "qj.sidebar.toolsOpen";
+const toolsOpenListeners = new Set<() => void>();
+
+function readToolsOpen(): boolean {
+  try {
+    return window.localStorage.getItem(TOOLS_OPEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeToolsOpen(value: boolean) {
+  try {
+    window.localStorage.setItem(TOOLS_OPEN_KEY, value ? "1" : "0");
+  } catch {}
+  toolsOpenListeners.forEach((l) => l());
+}
+
+function subscribeToolsOpen(callback: () => void): () => void {
+  toolsOpenListeners.add(callback);
+  return () => toolsOpenListeners.delete(callback);
+}
+
 function NavGroups({ pathname }: { pathname: string }) {
+  // A tool page lights up its own row in the sidebar, not Bugün/Mushaf/İlerleme.
+  const activeTool = TOOLS.find((t) => matches(pathname, t.href));
+  // Collapsed by default so the three main items stay the focus; remembered per device.
+  const toolsOpen = useSyncExternalStore(subscribeToolsOpen, readToolsOpen, () => false);
+  const open = toolsOpen || Boolean(activeTool);
+
+  function toggle() {
+    writeToolsOpen(!open);
+  }
+
   return (
     <div className="space-y-1">
       {PRIMARY_NAV.map((item) => (
-        <NavLink key={item.href} item={item} active={isActive(pathname, item, true)} />
+        <NavLink key={item.href} item={item} active={!activeTool && isActive(pathname, item, true)} />
       ))}
+
+      <div className="pt-5">
+        <div className="mx-3 mb-2 border-t border-line" />
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={open}
+          aria-controls="sidebar-tools"
+          className="flex w-full items-center justify-between rounded-lg px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted hover:text-forest"
+        >
+          <span>Diğer araçlar</span>
+          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
+        </button>
+        {open && (
+          <ul id="sidebar-tools" className="mt-1 space-y-0.5">
+            {TOOLS.map((t) => {
+              const Icon = t.icon;
+              const active = activeTool?.href === t.href;
+              return (
+                <li key={t.href}>
+                  <Link
+                    href={t.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg px-3.5 py-1.5 text-[13px] transition-colors",
+                      active ? "bg-mint-strong font-medium text-forest" : "text-muted hover:bg-sand-strong hover:text-forest"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{t.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
