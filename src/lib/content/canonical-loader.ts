@@ -60,7 +60,8 @@ export interface QuranSearchResult {
 }
 
 export interface PaginatedWordsResult {
-  items: EnrichedWord[];
+  /** With `unique`, `count` is how many times the word occurs in the searched scope. */
+  items: Array<EnrichedWord & { count?: number }>;
   total: number;
   page: number;
   pageSize: number;
@@ -437,6 +438,8 @@ export function getWordsPage({
   statusMap = {},
   page = 1,
   pageSize = 24,
+  mushafPage,
+  unique = false,
 }: {
   surahId?: number | "all";
   rootArabic?: string | "all";
@@ -445,6 +448,10 @@ export function getWordsPage({
   statusMap?: Record<string, string>;
   page?: number;
   pageSize?: number;
+  /** Only words printed on this Mushaf page (1..604). Overrides surahId. */
+  mushafPage?: number;
+  /** Collapse repeated words (same spelling without harakat) into one item with a count. */
+  unique?: boolean;
 }): PaginatedWordsResult {
   const safeSize = Math.max(1, Math.min(48, pageSize));
   const safePage = Math.max(1, page);
@@ -467,8 +474,33 @@ export function getWordsPage({
     );
   };
 
+  const paginate = (matched: EnrichedWord[]): PaginatedWordsResult => {
+    const words = unique ? collapseRepeatedWords(matched) : matched;
+    const total = words.length;
+    const totalPages = Math.max(1, Math.ceil(total / safeSize));
+    const clampedPage = Math.min(safePage, totalPages);
+    const start = (clampedPage - 1) * safeSize;
+    return {
+      items: words.slice(start, start + safeSize),
+      total,
+      page: clampedPage,
+      pageSize: safeSize,
+      totalPages,
+    };
+  };
+
+  // Fast Path 0: one Mushaf page
+  if (mushafPage !== undefined && Number.isInteger(mushafPage) && mushafPage >= 1 && mushafPage <= quranMetaDataset.totalPages) {
+    const surahIds = quranMetaDataset.pageSurahs[String(mushafPage)] ?? [];
+    const words = surahIds.flatMap((sid) =>
+      getSurahEnrichedWords(sid).filter((w) => w.pageNumber === mushafPage),
+    );
+    return paginate(words.filter(matchesWord));
+  }
+
   // Fast Path 1: Single Surah specified (only 1 gzipped file read)
   if (surahId !== "all") {
+    if (unique) return paginate(getSurahEnrichedWords(surahId).filter(matchesWord));
     const words = getSurahEnrichedWords(surahId).filter(matchesWord);
     const total = words.length;
     const totalPages = Math.max(1, Math.ceil(total / safeSize));
@@ -551,18 +583,7 @@ export function getWordsPage({
   if (verseKeyPrefixMatch) {
     const targetSid = Number(verseKeyPrefixMatch[1]);
     if (targetSid >= 1 && targetSid <= 114) {
-      const words = getSurahEnrichedWords(targetSid).filter(matchesWord);
-      const total = words.length;
-      const totalPages = Math.max(1, Math.ceil(total / safeSize));
-      const clampedPage = Math.min(safePage, totalPages);
-      const start = (clampedPage - 1) * safeSize;
-      return {
-        items: words.slice(start, start + safeSize),
-        total,
-        page: clampedPage,
-        pageSize: safeSize,
-        totalPages,
-      };
+      return paginate(getSurahEnrichedWords(targetSid).filter(matchesWord));
     }
   }
 
@@ -588,18 +609,19 @@ export function getWordsPage({
     }
   }
 
-  const total = allMatched.length;
-  const totalPages = Math.max(1, Math.ceil(total / safeSize));
-  const clampedPage = Math.min(safePage, totalPages);
-  const start = (clampedPage - 1) * safeSize;
+  return paginate(allMatched);
+}
 
-  return {
-    items: allMatched.slice(start, start + safeSize),
-    total,
-    page: clampedPage,
-    pageSize: safeSize,
-    totalPages,
-  };
+/** Keeps the first occurrence of each word (compared without harakat) and counts the rest. */
+export function collapseRepeatedWords(words: EnrichedWord[]): Array<EnrichedWord & { count: number }> {
+  const byKey = new Map<string, EnrichedWord & { count: number }>();
+  for (const w of words) {
+    const key = normalizeArabicForSearch(w.textImlaei || w.textUthmani);
+    const existing = byKey.get(key);
+    if (existing) existing.count += 1;
+    else byKey.set(key, { ...w, count: 1 });
+  }
+  return [...byKey.values()];
 }
 
 export function verifyVerseSha256(verse: CanonicalVerse): boolean {

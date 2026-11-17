@@ -46,14 +46,20 @@ export async function GET(req: Request) {
       statusMap[wp.wordLocation] = wp.status;
     }
 
+    const mushafPageRaw = Number(url.searchParams.get("mpage"));
+    const mushafPage = Number.isInteger(mushafPageRaw) && mushafPageRaw >= 1 ? mushafPageRaw : undefined;
+    const unique = url.searchParams.get("unique") === "1";
+
     const result = getWordsPage({
       surahId,
+      mushafPage,
+      unique,
       rootArabic,
       query,
       statusFilter,
       statusMap,
       page,
-      pageSize: 24,
+      pageSize: unique ? 30 : 24,
     });
 
     return NextResponse.json({
