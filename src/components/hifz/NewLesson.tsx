@@ -158,8 +158,9 @@ export function NewLesson({
 
       {step === "anla" && (
         <>
-          <StepTitle title="Önce anla" hint="Mealini oku. Bilmediğin kelimeye dokun: anlamı, okunuşu ve sesi gelir." />
-          <ChunkPaper verses={chunkVerses} showMeal />
+          <StepTitle title="Önce anla" hint="Mealini oku. Bilmediğin kelimeye dokun. Ayetin tamamı için ▶ düğmesine bas." />
+          <AudioBlockedNote show={player.blocked} />
+          <ChunkPaper verses={chunkVerses} showMeal player={player} />
           <ActionBar>
             <PrimaryButton onClick={advance}>Anladım, dinleyelim</PrimaryButton>
           </ActionBar>
@@ -185,7 +186,7 @@ export function NewLesson({
             </ToolChip>
           </ToolRow>
           <AudioBlockedNote show={player.blocked} />
-          <ChunkPaper verses={chunkVerses} activeKey={player.activeKey} showReading />
+          <ChunkPaper verses={chunkVerses} showReading player={player} />
           <ActionBar>
             <PrimaryButton onClick={advance}>Dinledim</PrimaryButton>
           </ActionBar>
@@ -199,7 +200,7 @@ export function NewLesson({
             <PlayToggle playing={player.playing} onPlay={() => void player.play(chunkVerses, 1)} onStop={player.stop} label="Bir kez dinle" />
           </ToolRow>
           <AudioBlockedNote show={player.blocked} />
-          <ChunkPaper verses={chunkVerses} activeKey={player.activeKey} showReading />
+          <ChunkPaper verses={chunkVerses} showReading player={player} />
           <ActionBar>
             <CountButton count={count} onClick={countRead} />
           </ActionBar>
@@ -258,23 +259,34 @@ export function NewLesson({
 
 function ChunkPaper({
   verses,
-  activeKey = null,
+  player,
   showReading,
   showMeal,
 }: {
   verses: HifzVerse[];
-  activeKey?: string | null;
+  player: ReturnType<typeof useVersePlayer>;
   showReading?: boolean;
   showMeal?: boolean;
 }) {
   return (
     <VersePaper>
-      {verses.map((v) => (
-        <div key={v.key}>
-          <SurahBanner verse={v} />
-          <VerseBlock verse={v} active={activeKey === v.key} showReading={showReading} showMeal={showMeal} />
-        </div>
-      ))}
+      {verses.map((v) => {
+        const playing = player.activeKey === v.key;
+        return (
+          <div key={v.key}>
+            <SurahBanner verse={v} />
+            <VerseBlock
+              verse={v}
+              active={playing}
+              showReading={showReading}
+              showMeal={showMeal}
+              versePlaying={playing}
+              // Tap = this one verse start to finish; tap again (or on the playing verse) = stop.
+              onPlayVerse={() => (playing ? player.stop() : void player.play([v], 1))}
+            />
+          </div>
+        );
+      })}
     </VersePaper>
   );
 }
