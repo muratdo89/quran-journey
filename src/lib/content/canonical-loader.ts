@@ -453,7 +453,7 @@ export function getWordsPage({
   /** Collapse repeated words (same spelling without harakat) into one item with a count. */
   unique?: boolean;
 }): PaginatedWordsResult {
-  const safeSize = Math.max(1, Math.min(48, pageSize));
+  const safeSize = Math.max(1, Math.min(200, pageSize));
   const safePage = Math.max(1, page);
   const rawQ = query.trim();
   const trQ = rawQ.toLocaleLowerCase("tr-TR");

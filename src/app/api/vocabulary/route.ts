@@ -59,7 +59,7 @@ export async function GET(req: Request) {
       statusFilter,
       statusMap,
       page,
-      pageSize: unique ? 30 : 24,
+      pageSize: mushafPage ? 200 : unique ? 30 : 24,
     });
 
     return NextResponse.json({
