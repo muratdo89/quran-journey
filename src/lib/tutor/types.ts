@@ -137,6 +137,8 @@ export interface TutorTurnResponse {
   expectingLanguage: "tr" | "ar";
   stageCard: TutorStageCard | null;
   audioCue: TutorAudioCue | null;
+  teacherAudioDataUrl?: string | null;
+  providerDiagnosticTr?: string | null;
   recitationCheck?: TutorRecitationCheck;
   suggestedVoiceCommandsTr: string[];
   providerMode: "gemini" | "local_guided";

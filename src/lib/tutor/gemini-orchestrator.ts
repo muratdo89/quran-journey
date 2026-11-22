@@ -12,6 +12,7 @@ import {
   lookupCanonicalInfo,
   persistTutorProgress,
 } from "./tools";
+import { synthesizeTurkishTeacherAudio } from "./gemini-tts";
 import type {
   TutorAudioCue,
   TutorRecitationCheck,
@@ -630,6 +631,8 @@ export async function orchestrateTutorTurn(params: {
 
   let replyTr = step.baseReplyTr;
   let providerMode: "gemini" | "local_guided" = "local_guided";
+  let teacherAudioDataUrl: string | null = null;
+  let providerDiagnosticTr: string | null = null;
 
   if (geminiKey) {
     try {
@@ -650,10 +653,13 @@ export async function orchestrateTutorTurn(params: {
         recitationCheck: step.recitationCheck ?? null,
       });
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(geminiKey)}`;
+      const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": geminiKey,
+        },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
           contents: [
@@ -692,9 +698,21 @@ export async function orchestrateTutorTurn(params: {
           replyTr = candidateText;
           providerMode = "gemini";
         }
+
+        // Synthesize natural human-like Turkish teacher voice using Gemini TTS
+        const tts = await synthesizeTurkishTeacherAudio(replyTr);
+        if (tts.audioDataUrl) {
+          teacherAudioDataUrl = tts.audioDataUrl;
+        } else if (tts.errorTr) {
+          providerDiagnosticTr = `${tts.errorTr} (Şimdilik tarayıcı sesi kullanılıyor.)`;
+        }
+      } else {
+        providerDiagnosticTr = geminiKey.startsWith("AQ.")
+          ? `Gemini API reddedildi (HTTP ${res.status}): Anahtarın "AQ." (Vertex AI) biçiminde görünüyor. Google AI Studio (aistudio.google.com/apikey) üzerinden "AIza..." ile başlayan anahtar alıp .env.local dosyasına yazmalısın.`
+          : `Gemini API hata döndürdü (HTTP ${res.status}); yerel rehber moduna geçildi.`;
       }
     } catch {
-      // Gracefully keep deterministic canonical baseReplyTr
+      providerDiagnosticTr = "Gemini API bağlantısı kurulamadı; yerel rehber modu aktif.";
     }
   }
 
@@ -710,6 +728,8 @@ export async function orchestrateTutorTurn(params: {
     expectingLanguage: step.expectingLanguage,
     stageCard: step.stageCard,
     audioCue: step.audioCue,
+    teacherAudioDataUrl,
+    providerDiagnosticTr,
     recitationCheck: step.recitationCheck,
     suggestedVoiceCommandsTr: step.suggestedVoiceCommandsTr,
     providerMode,

@@ -74,10 +74,13 @@ export async function transcribeTutorAudio(params: {
           ? "Transcribe ONLY the exact Arabic Quranic words spoken in this audio. Output plain Arabic text with no commentary, no translation, and no punctuation."
           : "Bu ses kaydındaki Türkçe konuşmayı yalnızca düz metin olarak yaz. Açıklama veya yorum ekleme.";
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(geminiKey)}`;
+      const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": geminiKey,
+        },
         body: JSON.stringify({
           contents: [
             {

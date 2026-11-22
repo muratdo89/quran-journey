@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { SqliteProgressRepository } from "@/lib/db/sqlite-repository";
 import { transcribeTutorAudio } from "@/lib/tutor/audio-transcribe";
 import { orchestrateTutorTurn } from "@/lib/tutor/gemini-orchestrator";
+import { pcm16ToWavBase64, synthesizeTurkishTeacherAudio } from "@/lib/tutor/gemini-tts";
 import {
   checkVocabularyAnswerMatch,
   evaluateCanonicalRecitation,
@@ -204,4 +205,63 @@ describe("AI Voice Teacher — Canonical Grounding, Patient Coaching & Recitatio
     expect(withGroq.provider).toBe("groq_whisper");
     expect(withGroq.transcript).toBe("بسم الله الرحمن الرحيم");
   });
+
+  it("wraps 24kHz PCM16 audio into a valid RIFF/WAV data URL via Gemini TTS", async () => {
+    const samplePcm = Buffer.alloc(16, 0).toString("base64");
+    const wavB64 = pcm16ToWavBase64(samplePcm, 24000);
+    const wavBuf = Buffer.from(wavB64, "base64");
+    expect(wavBuf.subarray(0, 4).toString("ascii")).toBe("RIFF");
+    expect(wavBuf.subarray(8, 12).toString("ascii")).toBe("WAVE");
+    expect(wavBuf.readUInt32LE(24)).toBe(24000);
+    expect(wavBuf.length).toBe(44 + 16);
+
+    process.env.GEMINI_API_KEY = "AIza-test-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: "audio/L16;codec=pcm;rate=24000",
+                      data: samplePcm,
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+
+    const tts = await synthesizeTurkishTeacherAudio("Selamün aleyküm, hoş geldin.");
+    expect(tts.audioDataUrl).toMatch(/^data:audio\/wav;base64,/);
+    expect(tts.model).toBe("gemini-2.5-flash-preview-tts");
+  });
+
+  it("surfaces a clear Turkish diagnostic when an AQ. Vertex key is rejected by Gemini AI Studio", async () => {
+    process.env.GEMINI_API_KEY = "AQ.test-vertex-format-key";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { message: "API key not valid" } }), { status: 400 })
+    );
+
+    const repo = createTempRepo();
+    const res = await orchestrateTutorTurn({
+      request: {
+        action: "start",
+        sessionState: createInitialTutorSessionState(1),
+      },
+      snapshot: await repo.getDashboardSnapshot(),
+      repo,
+    });
+
+    expect(res.providerMode).toBe("local_guided");
+    expect(res.providerDiagnosticTr).toContain("AIza...");
+    repo.close();
+  });
 });
+

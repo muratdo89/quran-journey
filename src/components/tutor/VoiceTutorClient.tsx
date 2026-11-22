@@ -90,6 +90,9 @@ export function VoiceTutorClient({
   const [textInput, setTextInput] = useState("");
   const [micLevel, setMicLevel] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [diagnosticMsg, setDiagnosticMsg] = useState<string | null>(null);
+  const [testingApi, setTestingApi] = useState(false);
+  const [apiHealthMsg, setApiHealthMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [lastUserTranscript, setLastUserTranscript] = useState<string | null>(null);
 
   const [sessionState, setSessionState] = useState<TutorSessionState>(() =>
@@ -343,13 +346,22 @@ export function VoiceTutorClient({
         setLastAudioCue(data.audioCue);
         setSuggestedCommands(data.suggestedVoiceCommandsTr);
         setProviderMode(data.providerMode);
+        setDiagnosticMsg(data.providerDiagnosticTr ?? null);
         setExpectingLang(data.expectingLanguage);
         expectingLangRef.current = data.expectingLanguage;
 
-        // 1. Speak Turkish coaching guidance
+        // 1. Speak Turkish coaching guidance (prefer natural Gemini human voice over browser TTS)
         if (!voiceMutedRef.current) {
           setStatus("teacher_speaking");
-          await speakTurkishCoaching(data.replyTr);
+          if (data.teacherAudioDataUrl) {
+            const teacherClip = playSharedClip(data.teacherAudioDataUrl);
+            const clipRes = await teacherClip.done;
+            if (clipRes.status === "error" || clipRes.status === "blocked") {
+              await speakTurkishCoaching(data.replyTr);
+            }
+          } else {
+            await speakTurkishCoaching(data.replyTr);
+          }
           if (disposedRef.current) return;
         }
 
@@ -501,16 +513,55 @@ export function VoiceTutorClient({
             </p>
           </div>
 
-          <div className="rounded-2xl border border-line bg-parchment/70 p-4 space-y-2 text-xs text-ink-soft">
-            <p className="font-semibold text-ink">Aktif Ses &amp; Zekâ Durumu</p>
+          <div className="rounded-2xl border border-line bg-parchment/70 p-4 space-y-2.5 text-xs text-ink-soft">
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-semibold text-ink">Aktif Ses &amp; Zekâ Durumu</p>
+              <button
+                type="button"
+                disabled={testingApi}
+                onClick={async () => {
+                  setTestingApi(true);
+                  setApiHealthMsg(null);
+                  try {
+                    const res = await fetch("/api/tutor/health");
+                    const json = (await res.json()) as {
+                      gemini?: { ok: boolean; messageTr: string };
+                    };
+                    setApiHealthMsg({
+                      ok: Boolean(json.gemini?.ok),
+                      text: json.gemini?.messageTr ?? "Durum alınamadı.",
+                    });
+                  } catch {
+                    setApiHealthMsg({ ok: false, text: "Test isteği başarısız oldu." });
+                  } finally {
+                    setTestingApi(false);
+                  }
+                }}
+                className="rounded-full border border-forest/30 bg-surface px-3 py-1 text-[11px] font-semibold text-forest hover:bg-mint disabled:opacity-50"
+              >
+                {testingApi ? "Test ediliyor..." : "API Test Et"}
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               <span className="rounded-full bg-surface border border-line px-2.5 py-1">
-                Beyin: {geminiConfigured ? "Gemini 2.5 Flash" : "Yerel Rehber Mod"}
+                Beyin &amp; Doğal Ses: {geminiConfigured ? "Gemini 2.5 Flash + TTS" : "Yerel Rehber Mod"}
               </span>
               <span className="rounded-full bg-surface border border-line px-2.5 py-1">
                 Kıraat Dinleme: {groqConfigured ? "Groq Whisper" : geminiConfigured ? "Gemini Ses" : "Tarayıcı Ses Tanıma"}
               </span>
             </div>
+            {apiHealthMsg && (
+              <p
+                className={cn(
+                  "rounded-xl px-3 py-2 text-[11px] leading-relaxed",
+                  apiHealthMsg.ok
+                    ? "bg-mint text-forest font-medium"
+                    : "bg-amber-50 border border-amber-300 text-amber-950"
+                )}
+              >
+                {apiHealthMsg.text}
+              </p>
+            )}
             {(geminiConfigured || groqConfigured) && (
               <label className="mt-2 flex items-start gap-2 pt-1 cursor-pointer text-[11px] text-muted">
                 <input
@@ -636,6 +687,12 @@ export function VoiceTutorClient({
             card={stageCard}
             onReplayAudio={lastAudioCue ? handleReplayAudio : undefined}
           />
+        )}
+
+        {diagnosticMsg && (
+          <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-950 leading-relaxed">
+            {diagnosticMsg}
+          </p>
         )}
 
         {errorMsg && (
