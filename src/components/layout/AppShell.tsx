@@ -22,7 +22,7 @@ interface NavItem {
  * Everything else (settings, word study, Arabic lessons…) is reached from the İlerleme page.
  */
 const PRIMARY_NAV: NavItem[] = [
-  { href: "/", label: "Bugün", icon: Sunrise, alsoActiveOn: ["/hifz", "/review", "/warmup"] },
+  { href: "/", label: "Bugün", icon: Sunrise, alsoActiveOn: ["/hoca", "/hifz", "/review", "/warmup"] },
   { href: "/mushaf", label: "Mushaf", icon: BookOpenText },
   {
     href: "/ilerleme",
@@ -156,8 +156,8 @@ function subscribeOnlineStatus(callback: () => void): () => void {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  // The hifz session is a focus screen: no phone header or bottom menu, its own top bar and actions.
-  const focusMode = pathname === "/hifz";
+  // The hifz and voice teacher sessions are focus screens: no phone header or bottom menu.
+  const focusMode = pathname === "/hifz" || pathname === "/hoca";
   const isOffline = useSyncExternalStore(
     subscribeOnlineStatus,
     () => (typeof navigator !== "undefined" ? !navigator.onLine : false),

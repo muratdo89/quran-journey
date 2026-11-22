@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpenText, CheckCircle2, ChevronRight, Circle, ListChecks, Play, Settings2 } from "lucide-react";
+import { ArrowRight, BookOpenText, CheckCircle2, ChevronRight, Circle, ListChecks, Mic, Play, Settings2 } from "lucide-react";
 import {
   DAILY_PART_OPTIONS,
   TOTAL_PAGES,
@@ -122,23 +122,44 @@ function TodayCard({ plan, pageLabels }: { plan: TodayPlan; pageLabels: Record<n
       </h1>
 
       {allDone ? (
-        <Link
-          href="/mushaf"
-          className="mt-5 flex w-full items-center justify-center gap-3 rounded-2xl border border-line bg-parchment px-6 py-4 text-base font-semibold text-forest hover:bg-sand"
-        >
-          <BookOpenText className="h-4 w-4" />
-          Mushaf&apos;ta serbest oku
-        </Link>
+        <div className="mt-5 space-y-2.5">
+          <button
+            type="button"
+            onClick={() => router.push("/hoca")}
+            className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-forest px-6 py-4 text-base font-semibold text-parchment shadow-sm shadow-forest/20 transition-colors hover:bg-forest-deep"
+          >
+            <Mic className="h-4 w-4" />
+            <span>Hocayla Serbest Tekrar</span>
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </button>
+          <Link
+            href="/mushaf"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-line bg-parchment px-5 py-3 text-sm font-semibold text-forest hover:bg-sand"
+          >
+            <BookOpenText className="h-4 w-4" />
+            Mushaf&apos;ta serbest oku
+          </Link>
+        </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => router.push("/hifz")}
-          className="group mt-5 flex w-full items-center justify-center gap-3 rounded-2xl bg-forest px-6 py-4 text-base font-semibold text-parchment shadow-sm shadow-forest/20 transition-colors hover:bg-forest-deep"
-        >
-          <Play className="h-4 w-4 fill-current" />
-          <span>{started ? "Devam et" : "Başla"}</span>
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-        </button>
+        <div className="mt-5 space-y-2.5">
+          <button
+            type="button"
+            onClick={() => router.push("/hoca")}
+            className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-forest px-6 py-4 text-base font-semibold text-parchment shadow-sm shadow-forest/20 transition-colors hover:bg-forest-deep"
+          >
+            <Mic className="h-4 w-4" />
+            <span>{started ? "Hocayla Devam Et" : "Hocayla Derse Başla"}</span>
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/hifz")}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-line bg-parchment px-5 py-3 text-sm font-semibold text-forest transition-colors hover:bg-sand"
+          >
+            <Play className="h-3.5 w-3.5 fill-current" />
+            <span>{started ? "Dokunmatik Hıfz'a devam et" : "Sessiz ortam: Dokunmatik Hıfz"}</span>
+          </button>
+        </div>
       )}
 
       {rows.length > 0 && (
