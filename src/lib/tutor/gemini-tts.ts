@@ -5,8 +5,8 @@
  */
 
 const GEMINI_TTS_MODELS = [
-  "gemini-2.5-flash-preview-tts",
-  "gemini-3.1-flash-tts-preview",
+  "gemini-3.8-flash-lite-tts",
+  "gemini-3.8-flash-tts",
 ] as const;
 
 export function parseSampleRate(mimeType: string): number {
@@ -117,8 +117,16 @@ export async function synthesizeTurkishTeacherAudio(
         continue;
       }
 
-      const mime = (inline.mimeType ?? "audio/L16;codec=pcm;rate=24000").toLowerCase();
-      if (mime.includes("wav") || mime.includes("mpeg") || mime.includes("mp3") || mime.includes("ogg")) {
+      const mime = (inline.mimeType ?? "audio/wav").toLowerCase();
+      // Gemini 3.8 TTS returns standard RIFF/WAV ("UklGR" in base64) directly; never double-wrap.
+      const alreadyWav = mime.includes("wav") || inline.data.startsWith("UklGR");
+      if (alreadyWav) {
+        return {
+          audioDataUrl: `data:audio/wav;base64,${inline.data}`,
+          model,
+        };
+      }
+      if (mime.includes("mpeg") || mime.includes("mp3") || mime.includes("ogg")) {
         return {
           audioDataUrl: `data:${mime.split(";")[0]};base64,${inline.data}`,
           model,

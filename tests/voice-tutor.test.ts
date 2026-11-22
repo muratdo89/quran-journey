@@ -240,13 +240,13 @@ describe("AI Voice Teacher — Canonical Grounding, Patient Coaching & Recitatio
 
     const tts = await synthesizeTurkishTeacherAudio("Selamün aleyküm, hoş geldin.");
     expect(tts.audioDataUrl).toMatch(/^data:audio\/wav;base64,/);
-    expect(tts.model).toBe("gemini-2.5-flash-preview-tts");
+    expect(tts.model).toBe("gemini-3.8-flash-lite-tts");
   });
 
-  it("surfaces a clear Turkish diagnostic when an AQ. Vertex key is rejected by Gemini AI Studio", async () => {
-    process.env.GEMINI_API_KEY = "AQ.test-vertex-format-key";
+  it("surfaces a clear Turkish diagnostic when Gemini returns an API error", async () => {
+    process.env.GEMINI_API_KEY = "AQ.test-key";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ error: { message: "API key not valid" } }), { status: 400 })
+      new Response(JSON.stringify({ error: { message: "API error" } }), { status: 403 })
     );
 
     const repo = createTempRepo();
@@ -260,7 +260,7 @@ describe("AI Voice Teacher — Canonical Grounding, Patient Coaching & Recitatio
     });
 
     expect(res.providerMode).toBe("local_guided");
-    expect(res.providerDiagnosticTr).toContain("AIza...");
+    expect(res.providerDiagnosticTr).toContain("HTTP 403");
     repo.close();
   });
 });

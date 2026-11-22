@@ -66,61 +66,63 @@ export async function transcribeTutorAudio(params: {
   }
 
   if (geminiKey) {
-    try {
-      const base64Audio = Buffer.from(params.audioBytes).toString("base64");
-      const cleanMime = (params.mimeType || "audio/webm").split(";")[0]!;
-      const prompt =
-        params.language === "ar"
-          ? "Transcribe ONLY the exact Arabic Quranic words spoken in this audio. Output plain Arabic text with no commentary, no translation, and no punctuation."
-          : "Bu ses kaydındaki Türkçe konuşmayı yalnızca düz metin olarak yaz. Açıklama veya yorum ekleme.";
+    const cleanMime = (params.mimeType || "audio/webm").split(";")[0]!;
+    const base64Audio = Buffer.from(params.audioBytes).toString("base64");
+    const prompt =
+      params.language === "ar"
+        ? "Transcribe ONLY the exact Arabic Quranic words spoken in this audio. Output plain Arabic text with no commentary, no translation, and no punctuation."
+        : "Bu ses kaydındaki Türkçe konuşmayı yalnızca düz metin olarak yaz. Açıklama veya yorum ekleme.";
 
-      const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": geminiKey,
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: prompt },
-                { inlineData: { mimeType: cleanMime, data: base64Audio } },
-              ],
-            },
-          ],
-          generationConfig: { temperature: 0 },
-        }),
-      });
+    for (const model of ["gemini-3.5-flash-lite", "gemini-flash-latest"] as const) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": geminiKey,
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  { text: prompt },
+                  { inlineData: { mimeType: cleanMime, data: base64Audio } },
+                ],
+              },
+            ],
+            generationConfig: { temperature: 0 },
+          }),
+        });
 
-      if (!res.ok) {
-        throw new Error(`Gemini Audio HTTP ${res.status}`);
+        if (!res.ok) continue;
+
+        const json = (await res.json()) as {
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        };
+        const text =
+          json.candidates?.[0]?.content?.parts
+            ?.map((p) => p.text ?? "")
+            .join(" ")
+            .trim() ?? "";
+
+        return {
+          status: "completed",
+          provider: "gemini_audio",
+          transcript: text,
+        };
+      } catch {
+        continue;
       }
-
-      const json = (await res.json()) as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-      };
-      const text =
-        json.candidates?.[0]?.content?.parts
-          ?.map((p) => p.text ?? "")
-          .join(" ")
-          .trim() ?? "";
-
-      return {
-        status: "completed",
-        provider: "gemini_audio",
-        transcript: text,
-      };
-    } catch {
-      return {
-        status: "error",
-        provider: "gemini_audio",
-        transcript: "",
-        errorTr: "Gemini ses çözümleme isteği başarısız oldu.",
-      };
     }
+
+    return {
+      status: "error",
+      provider: "gemini_audio",
+      transcript: "",
+      errorTr: "Gemini ses çözümleme isteği başarısız oldu.",
+    };
   }
 
   return {

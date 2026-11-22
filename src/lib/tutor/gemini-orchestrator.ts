@@ -653,63 +653,73 @@ export async function orchestrateTutorTurn(params: {
         recitationCheck: step.recitationCheck ?? null,
       });
 
-      const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": geminiKey,
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [
-            ...step.nextState.history.slice(-6).map((m) => ({
-              role: m.role === "assistant" ? "model" : "user",
-              parts: [{ text: m.text }],
-            })),
-            {
-              role: "user",
-              parts: [
-                {
-                  text: `DOĞRULANMIŞ BAĞLAM:\n${groundedContext}\n\nBu bağlamdaki tüm gerçekleri ve yönlendirmeyi koruyarak öğrenciye söyleyeceğin doğal, kısa Türkçe hoca cümlesini yaz.`,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: 180,
+      let lastErrStatus = 0;
+      let succeeded = false;
+
+      for (const model of ["gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.7-flash"] as const) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": geminiKey,
           },
-        }),
-      });
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [
+              ...step.nextState.history.slice(-6).map((m) => ({
+                role: m.role === "assistant" ? "model" : "user",
+                parts: [{ text: m.text }],
+              })),
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: `DOĞRULANMIŞ BAĞLAM:\n${groundedContext}\n\nBu bağlamdaki tüm gerçekleri ve yönlendirmeyi koruyarak öğrenciye söyleyeceğin doğal, kısa Türkçe hoca cümlesini yaz.`,
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              temperature: 0.4,
+              maxOutputTokens: 180,
+            },
+          }),
+        });
 
-      if (res.ok) {
-        const json = (await res.json()) as {
-          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-        };
-        const candidateText =
-          json.candidates?.[0]?.content?.parts
-            ?.map((p) => p.text ?? "")
-            .join(" ")
-            .replace(/[*_`#]/g, "")
-            .trim() ?? "";
+        if (res.ok) {
+          const json = (await res.json()) as {
+            candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+          };
+          const candidateText =
+            json.candidates?.[0]?.content?.parts
+              ?.map((p) => p.text ?? "")
+              .join(" ")
+              .replace(/[*_`#]/g, "")
+              .trim() ?? "";
 
-        if (candidateText.length >= 10) {
-          replyTr = candidateText;
-          providerMode = "gemini";
+          if (candidateText.length >= 10) {
+            replyTr = candidateText;
+            providerMode = "gemini";
+          }
+
+          // Synthesize natural human-like Turkish teacher voice using Gemini 3.8 TTS
+          const tts = await synthesizeTurkishTeacherAudio(replyTr);
+          if (tts.audioDataUrl) {
+            teacherAudioDataUrl = tts.audioDataUrl;
+          } else if (tts.errorTr) {
+            providerDiagnosticTr = `${tts.errorTr} (Şimdilik tarayıcı sesi kullanılıyor.)`;
+          }
+          succeeded = true;
+          break;
         }
 
-        // Synthesize natural human-like Turkish teacher voice using Gemini TTS
-        const tts = await synthesizeTurkishTeacherAudio(replyTr);
-        if (tts.audioDataUrl) {
-          teacherAudioDataUrl = tts.audioDataUrl;
-        } else if (tts.errorTr) {
-          providerDiagnosticTr = `${tts.errorTr} (Şimdilik tarayıcı sesi kullanılıyor.)`;
-        }
-      } else {
-        providerDiagnosticTr = geminiKey.startsWith("AQ.")
-          ? `Gemini API reddedildi (HTTP ${res.status}): Anahtarın "AQ." (Vertex AI) biçiminde görünüyor. Google AI Studio (aistudio.google.com/apikey) üzerinden "AIza..." ile başlayan anahtar alıp .env.local dosyasına yazmalısın.`
-          : `Gemini API hata döndürdü (HTTP ${res.status}); yerel rehber moduna geçildi.`;
+        lastErrStatus = res.status;
+        if (res.status === 401 || res.status === 403) break;
+      }
+
+      if (!succeeded) {
+        providerDiagnosticTr = `Gemini API hata döndürdü (HTTP ${lastErrStatus}); yerel rehber moduna geçildi.`;
       }
     } catch {
       providerDiagnosticTr = "Gemini API bağlantısı kurulamadı; yerel rehber modu aktif.";

@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
+import { synthesizeTurkishTeacherAudio } from "@/lib/tutor/gemini-tts";
 
 export const dynamic = "force-dynamic";
+
+const GEMINI_TEXT_MODELS = [
+  "gemini-3.5-flash-lite",
+  "gemini-flash-latest",
+  "gemini-3.7-flash",
+] as const;
 
 export async function GET() {
   const geminiKey = process.env.GEMINI_API_KEY?.trim() ?? "";
@@ -19,64 +26,73 @@ export async function GET() {
     });
   }
 
-  const looksLikeVertexKey = geminiKey.startsWith("AQ.");
+  let lastStatus = 0;
+  let lastDetail = "";
 
-  try {
-    const res = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": geminiKey,
-        },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: "Merhaba" }] }],
-          generationConfig: { maxOutputTokens: 8 },
-        }),
+  for (const model of GEMINI_TEXT_MODELS) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": geminiKey,
+          },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: "Merhaba" }] }],
+            generationConfig: { maxOutputTokens: 8 },
+          }),
+        }
+      );
+
+      if (res.ok) {
+        const tts = await synthesizeTurkishTeacherAudio("Merhaba.");
+        const voiceNote = tts.audioDataUrl
+          ? `Doğal Türkçe ses (${tts.model}) aktif.`
+          : `Metin modeli çalışıyor ancak TTS uyarısı: ${tts.errorTr ?? "ses alınamadı"} (yedek ses kullanılacak).`;
+
+        return NextResponse.json({
+          gemini: {
+            ok: true,
+            status: "connected",
+            model,
+            ttsOk: Boolean(tts.audioDataUrl),
+            messageTr: `Gemini (${model}) bağlantısı başarılı! ${voiceNote}`,
+          },
+          groq: {
+            configured: Boolean(groqKey),
+          },
+        });
       }
-    );
 
-    if (res.ok) {
+      lastStatus = res.status;
+      lastDetail = (await res.text().catch(() => "")).slice(0, 200);
+      // If 401/403 (auth/permission error), no need to retry other models
+      if (res.status === 401 || res.status === 403) break;
+    } catch {
       return NextResponse.json({
         gemini: {
-          ok: true,
-          status: "connected",
-          messageTr: "Gemini 2.5 Flash ve doğal Türkçe ses bağlantısı çalışıyor.",
+          ok: false,
+          status: "network_error",
+          messageTr: "Google Gemini sunucusuna bağlanılamadı (internet bağlantısını kontrol et).",
         },
         groq: {
           configured: Boolean(groqKey),
         },
       });
     }
-
-    const errText = await res.text().catch(() => "");
-    const hintTr = looksLikeVertexKey
-      ? `Google API anahtarı reddedildi (HTTP ${res.status}). Anahtarın "AQ." ile başlıyor (Vertex AI biçimi). Google AI Studio (aistudio.google.com/apikey) üzerinden "AIza..." ile başlayan Gemini API anahtarı alıp .env.local dosyasına koyman gerekiyor.`
-      : `Google Gemini API hata döndürdü (HTTP ${res.status}). Anahtarın geçerli olduğundan ve Gemini API erişiminin açık olduğundan emin ol.`;
-
-    return NextResponse.json({
-      gemini: {
-        ok: false,
-        status: "error",
-        httpStatus: res.status,
-        messageTr: hintTr,
-        detail: errText.slice(0, 180),
-      },
-      groq: {
-        configured: Boolean(groqKey),
-      },
-    });
-  } catch {
-    return NextResponse.json({
-      gemini: {
-        ok: false,
-        status: "network_error",
-        messageTr: "Google Gemini sunucusuna bağlanılamadı (internet bağlantısını kontrol et).",
-      },
-      groq: {
-        configured: Boolean(groqKey),
-      },
-    });
   }
+
+  return NextResponse.json({
+    gemini: {
+      ok: false,
+      status: "error",
+      httpStatus: lastStatus,
+      messageTr: `Google Gemini API hata döndürdü (HTTP ${lastStatus}). ${lastDetail || "Anahtarının geçerli ve Gemini API için yetkili olduğundan emin ol."}`,
+    },
+    groq: {
+      configured: Boolean(groqKey),
+    },
+  });
 }
