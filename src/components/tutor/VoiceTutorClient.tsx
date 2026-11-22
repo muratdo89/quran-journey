@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -9,6 +9,7 @@ import {
   Mic,
   MicOff,
   Send,
+  Settings2,
   Sparkles,
   Volume2,
   VolumeX,
@@ -17,6 +18,8 @@ import {
 import { playSharedClip, stopSharedAudio, unlockSharedAudio } from "@/lib/audio/shared-player";
 import { speakTurkishCoaching, stopTurkishSpeech } from "@/lib/audio/turkish-tts";
 import { HandsFreeVadRecorder } from "@/lib/audio/vad-recorder";
+import { buildTodayPlan, currentNewPage } from "@/lib/hifz/plan";
+import { useHifzStore } from "@/lib/hifz/store";
 import {
   createInitialTutorSessionState,
   type TutorAudioCue,
@@ -81,11 +84,32 @@ export function VoiceTutorClient({
   geminiConfigured,
   groqConfigured,
 }: VoiceTutorClientProps) {
+  // Sync with the learner's real HifzStore plan (localStorage) instead of always defaulting to page 1
+  const hifzStore = useHifzStore();
+  const hifzSync = useMemo(() => {
+    if (!hifzStore?.settings) {
+      return { activePage: initialPageNumber, reviewPages: [] as number[] };
+    }
+    const plan = buildTodayPlan(hifzStore);
+    const activePage =
+      plan.newLesson?.page ??
+      plan.recent[0] ??
+      plan.manzil[0] ??
+      currentNewPage(hifzStore) ??
+      hifzStore.settings.startPage ??
+      initialPageNumber;
+    const reviewPages = [...plan.recent, ...plan.manzil];
+    return { activePage, reviewPages };
+  }, [hifzStore, initialPageNumber]);
+
   const [started, setStarted] = useState(false);
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [voiceMuted, setVoiceMuted] = useState(false);
   const [autoListen, setAutoListen] = useState(true);
-  const [cloudConsent, setCloudConsent] = useState(initialCloudConsent || geminiConfigured || groqConfigured);
+  const [cloudConsent, setCloudConsent] = useState(
+    initialCloudConsent || geminiConfigured || groqConfigured
+  );
+  const [showTechDrawer, setShowTechDrawer] = useState(false);
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [micLevel, setMicLevel] = useState(0);
@@ -93,7 +117,6 @@ export function VoiceTutorClient({
   const [diagnosticMsg, setDiagnosticMsg] = useState<string | null>(null);
   const [testingApi, setTestingApi] = useState(false);
   const [apiHealthMsg, setApiHealthMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [lastUserTranscript, setLastUserTranscript] = useState<string | null>(null);
 
   const [sessionState, setSessionState] = useState<TutorSessionState>(() =>
     createInitialTutorSessionState(initialPageNumber)
@@ -122,6 +145,7 @@ export function VoiceTutorClient({
   const cloudConsentRef = useRef(cloudConsent);
   const stageCardRef = useRef(stageCard);
   const disposedRef = useRef(false);
+  const turnSeqRef = useRef(0);
   const submitTurnRef = useRef<
     ((payload: {
       action?: "start" | "user_speech" | "recitation_result";
@@ -169,7 +193,7 @@ export function VoiceTutorClient({
     if (!rec) {
       setStatus("idle");
       setErrorMsg(
-        "Bu tarayıcıda yerleşik ses tanıma bulunamadı. Alttaki klavye simgesinden yazarak veya GEMINI_API_KEY/GROQ_API_KEY ekleyerek devam edebilirsin."
+        "Bu tarayıcıda yerleşik ses tanıma bulunamadı. Alttaki klavye simgesinden yazarak devam edebilirsin."
       );
       return;
     }
@@ -189,7 +213,6 @@ export function VoiceTutorClient({
     rec.onresult = (ev) => {
       const transcript = ev.results[0]?.[0]?.transcript?.trim() ?? "";
       if (transcript) {
-        setLastUserTranscript(transcript);
         if (expectingLangRef.current === "ar") {
           void submitTurnRef.current?.({
             action: "recitation_result",
@@ -210,7 +233,6 @@ export function VoiceTutorClient({
         setStatus("idle");
         return;
       }
-      setErrorMsg("Ses algılanamadı; alttaki Konuş düğmesine dokunup tekrar söyleyebilirsin.");
       setStatus("idle");
     };
 
@@ -234,7 +256,8 @@ export function VoiceTutorClient({
     }
     if ((groqConfigured || geminiConfigured) && cloudConsentRef.current && vadRef.current) {
       vadRef.current.updateOptions({
-        silenceHoldMs: expectingLangRef.current === "ar" ? 2300 : 1400,
+        silenceHoldMs: expectingLangRef.current === "ar" ? 2000 : 1050,
+        cooldownMs: 350,
       });
       vadRef.current.resumeListening();
       setStatus("listening");
@@ -268,7 +291,6 @@ export function VoiceTutorClient({
         const data = (await res.json()) as {
           status?: string;
           transcript?: string;
-          errorTr?: string;
         };
 
         if (data.status === "client_fallback") {
@@ -278,12 +300,11 @@ export function VoiceTutorClient({
 
         const transcript = (data.transcript ?? "").trim();
         if (!transcript) {
-          setErrorMsg("Sesin net duyulmadı, tekrar söyleyebilirsin.");
+          // Quietly keep listening on ambient blips instead of flashing an annoying error
           resumeListeningNow();
           return;
         }
 
-        setLastUserTranscript(transcript);
         if (expectingLangRef.current === "ar") {
           await submitTurnRef.current?.({
             action: "recitation_result",
@@ -304,10 +325,22 @@ export function VoiceTutorClient({
     [resumeListeningNow, startBrowserSpeechListening]
   );
 
-  const playVerifiedQuranCue = useCallback(async (cue: TutorAudioCue) => {
+  const playVerifiedQuranCue = useCallback(async (cue: TutorAudioCue, mySeq: number) => {
     setStatus("quran_playing");
-    const clip = playSharedClip(cue.url);
-    await clip.done;
+    const loops = Math.max(1, Math.min(3, cue.repeatCount ?? 1));
+    const rate = cue.playbackRate ?? 1;
+
+    for (let i = 0; i < loops; i += 1) {
+      if (disposedRef.current || turnSeqRef.current !== mySeq) return;
+      const clip = playSharedClip(cue.url, { rate });
+      const res = await clip.done;
+      if (res.status === "stopped" || res.status === "error" || res.status === "blocked") {
+        return;
+      }
+      if (i + 1 < loops) {
+        await new Promise((r) => window.setTimeout(r, 450));
+      }
+    }
   }, []);
 
   const submitTurn = useCallback(
@@ -316,6 +349,7 @@ export function VoiceTutorClient({
       userText?: string;
       recitationTranscript?: string;
     }) => {
+      const mySeq = ++turnSeqRef.current;
       stopAllAudioAndMic();
       setStatus("thinking");
       setErrorMsg(null);
@@ -327,6 +361,9 @@ export function VoiceTutorClient({
           body: JSON.stringify({
             ...payload,
             reciterId: preferredReciterId,
+            hifzActivePage: payload.action === "start" ? hifzSync.activePage : undefined,
+            hifzReviewPages: payload.action === "start" ? hifzSync.reviewPages : undefined,
+            skipInlineTts: true, // Return text + card immediately (~1s), then fetch TTS separately
             sessionState: sessionStateRef.current,
           }),
         });
@@ -336,8 +373,9 @@ export function VoiceTutorClient({
         }
 
         const data = (await res.json()) as TutorTurnResponse;
-        if (disposedRef.current) return;
+        if (disposedRef.current || turnSeqRef.current !== mySeq) return;
 
+        // Immediately render text reply & canonical stage card!
         setSessionState(data.sessionState);
         sessionStateRef.current = data.sessionState;
         setReplyTr(data.replyTr);
@@ -350,39 +388,70 @@ export function VoiceTutorClient({
         setExpectingLang(data.expectingLanguage);
         expectingLangRef.current = data.expectingLanguage;
 
-        // 1. Speak Turkish coaching guidance (prefer natural Gemini human voice over browser TTS)
+        // 1. Speak Turkish coaching guidance via fast cached /api/tutor/tts (Gemini natural voice)
         if (!voiceMutedRef.current) {
           setStatus("teacher_speaking");
-          if (data.teacherAudioDataUrl) {
-            const teacherClip = playSharedClip(data.teacherAudioDataUrl);
-            const clipRes = await teacherClip.done;
-            if (clipRes.status === "error" || clipRes.status === "blocked") {
-              await speakTurkishCoaching(data.replyTr);
+          let playedGeminiVoice = false;
+
+          if (geminiConfigured) {
+            try {
+              const ttsRes = await fetch("/api/tutor/tts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: data.replyTr }),
+              });
+              if (ttsRes.ok) {
+                const ttsJson = (await ttsRes.json()) as {
+                  audioDataUrl?: string | null;
+                  errorTr?: string;
+                };
+                if (disposedRef.current || turnSeqRef.current !== mySeq) return;
+                if (ttsJson.audioDataUrl) {
+                  const teacherClip = playSharedClip(ttsJson.audioDataUrl);
+                  const clipRes = await teacherClip.done;
+                  if (clipRes.status === "ended" || clipRes.status === "stopped") {
+                    playedGeminiVoice = true;
+                  }
+                }
+              }
+            } catch {
+              /* fallback below */
             }
-          } else {
+          }
+
+          if (!playedGeminiVoice && !disposedRef.current && turnSeqRef.current === mySeq) {
             await speakTurkishCoaching(data.replyTr);
           }
-          if (disposedRef.current) return;
+          if (disposedRef.current || turnSeqRef.current !== mySeq) return;
         }
 
         // 2. Play verified Quranic audio (NEVER AI TTS!) if cue is present
         if (data.audioCue?.autoPlay && data.audioCue.url) {
-          await playVerifiedQuranCue(data.audioCue);
-          if (disposedRef.current) return;
+          await playVerifiedQuranCue(data.audioCue, mySeq);
+          if (disposedRef.current || turnSeqRef.current !== mySeq) return;
         }
 
-        // 3. Resume hands-free listening automatically
+        // 3. Resume hands-free listening automatically (with 350ms echo cooldown)
         if (data.phase !== "wrap_up") {
           resumeListeningNow();
         } else {
           setStatus("idle");
         }
       } catch {
+        if (turnSeqRef.current !== mySeq) return;
         setErrorMsg("Hocaya şu an ulaşılamadı. Tekrar deneyebilir veya dokunmatik moda geçebilirsin.");
         setStatus("idle");
       }
     },
-    [playVerifiedQuranCue, preferredReciterId, resumeListeningNow, stopAllAudioAndMic]
+    [
+      geminiConfigured,
+      hifzSync.activePage,
+      hifzSync.reviewPages,
+      playVerifiedQuranCue,
+      preferredReciterId,
+      resumeListeningNow,
+      stopAllAudioAndMic,
+    ]
   );
 
   useEffect(() => {
@@ -402,7 +471,6 @@ export function VoiceTutorClient({
   }, [stopAllAudioAndMic]);
 
   async function handleStartSession() {
-    // 1 tap unlocks iOS Safari / Chrome shared audio + Wake Lock + microphone
     unlockSharedAudio();
     setStarted(true);
     setErrorMsg(null);
@@ -420,7 +488,8 @@ export function VoiceTutorClient({
 
     if (useCloudStt) {
       const vad = new HandsFreeVadRecorder({
-        silenceHoldMs: 1400,
+        silenceHoldMs: 1050,
+        cooldownMs: 350,
         onSpeechStart: () => setStatus("capturing_speech"),
         onLevel: (rms) => setMicLevel(Math.min(1, rms * 8)),
         onUtteranceReady: (blob) => {
@@ -439,7 +508,8 @@ export function VoiceTutorClient({
 
   function handlePrimaryMicButton() {
     if (status === "teacher_speaking" || status === "quran_playing") {
-      // Barge-in: stop audio and start listening immediately
+      // Barge-in: cancel current turn audio immediately and listen
+      turnSeqRef.current += 1;
       stopAllAudioAndMic();
       resumeListeningNow();
       return;
@@ -456,7 +526,6 @@ export function VoiceTutorClient({
       return;
     }
 
-    // Idle -> manually trigger listening
     if (useCloudStt && vadRef.current) {
       vadRef.current.startManualCapture();
       setStatus("capturing_speech");
@@ -467,9 +536,12 @@ export function VoiceTutorClient({
 
   async function handleReplayAudio() {
     if (!lastAudioCue?.url) return;
+    const mySeq = ++turnSeqRef.current;
     stopAllAudioAndMic();
-    await playVerifiedQuranCue(lastAudioCue);
-    resumeListeningNow();
+    await playVerifiedQuranCue(lastAudioCue, mySeq);
+    if (turnSeqRef.current === mySeq) {
+      resumeListeningNow();
+    }
   }
 
   async function handleManualTextSend(e: React.FormEvent) {
@@ -477,7 +549,6 @@ export function VoiceTutorClient({
     const cleaned = textInput.trim();
     if (!cleaned) return;
     setTextInput("");
-    setLastUserTranscript(cleaned);
     await submitTurn(
       expectingLang === "ar"
         ? { action: "recitation_result", recitationTranscript: cleaned, userText: cleaned }
@@ -485,7 +556,26 @@ export function VoiceTutorClient({
     );
   }
 
-  // Pre-start single-tap entry screen
+  async function handleTestApi() {
+    setTestingApi(true);
+    setApiHealthMsg(null);
+    try {
+      const res = await fetch("/api/tutor/health");
+      const json = (await res.json()) as {
+        gemini?: { ok: boolean; messageTr: string };
+      };
+      setApiHealthMsg({
+        ok: Boolean(json.gemini?.ok),
+        text: json.gemini?.messageTr ?? "Durum alınamadı.",
+      });
+    } catch {
+      setApiHealthMsg({ ok: false, text: "Test isteği başarısız oldu." });
+    } finally {
+      setTestingApi(false);
+    }
+  }
+
+  // Serene, uncluttered pre-start entry screen (technical details tucked inside corner settings icon)
   if (!started) {
     return (
       <div className="mx-auto flex min-h-[82vh] max-w-xl flex-col justify-center px-2 py-6">
@@ -493,89 +583,88 @@ export function VoiceTutorClient({
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-mint px-3 py-1 text-xs font-semibold text-forest">
               <Sparkles className="h-3.5 w-3.5" />
-              Sesli Yapay Zekâ Hoca
+              Sayfa {hifzSync.activePage}
+              {hifzSync.reviewPages.length > 0 ? ` · ${hifzSync.reviewPages.length} tekrar` : ""}
             </span>
-            <Link
-              href="/"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted hover:text-forest"
-              aria-label="Kapat"
-            >
-              <X className="h-4 w-4" />
-            </Link>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowTechDrawer((v) => !v)}
+                aria-label="Ses ve API ayarları"
+                className={cn(
+                  "inline-flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted hover:text-forest",
+                  showTechDrawer && "bg-mint text-forest border-forest/30"
+                )}
+              >
+                <Settings2 className="h-4 w-4" />
+              </button>
+              <Link
+                href="/"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted hover:text-forest"
+                aria-label="Kapat"
+              >
+                <X className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 text-center py-2">
             <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
-              Eller serbest günlük Kur&apos;an dersi
+              Hocayla günlük dersine hazırsın.
             </h1>
             <p className="text-sm text-muted leading-relaxed">
-              Tek dokunuşla başla; bundan sonra konuşarak ilerle. Hoca seni Türkçe yönlendirir, Kur&apos;an ayetlerini ve kelimelerini yalnızca doğrulanmış okuyuculardan dinletir.
+              Tek dokunuşla başla; dilediğin sureyi aç, yavaşlat, tekrar dinlet veya aklına takılanı sesle sor.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-line bg-parchment/70 p-4 space-y-2.5 text-xs text-ink-soft">
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-semibold text-ink">Aktif Ses &amp; Zekâ Durumu</p>
-              <button
-                type="button"
-                disabled={testingApi}
-                onClick={async () => {
-                  setTestingApi(true);
-                  setApiHealthMsg(null);
-                  try {
-                    const res = await fetch("/api/tutor/health");
-                    const json = (await res.json()) as {
-                      gemini?: { ok: boolean; messageTr: string };
-                    };
-                    setApiHealthMsg({
-                      ok: Boolean(json.gemini?.ok),
-                      text: json.gemini?.messageTr ?? "Durum alınamadı.",
-                    });
-                  } catch {
-                    setApiHealthMsg({ ok: false, text: "Test isteği başarısız oldu." });
-                  } finally {
-                    setTestingApi(false);
-                  }
-                }}
-                className="rounded-full border border-forest/30 bg-surface px-3 py-1 text-[11px] font-semibold text-forest hover:bg-mint disabled:opacity-50"
-              >
-                {testingApi ? "Test ediliyor..." : "API Test Et"}
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-surface border border-line px-2.5 py-1">
-                Beyin &amp; Doğal Ses: {geminiConfigured ? "Gemini 2.5 Flash + TTS" : "Yerel Rehber Mod"}
-              </span>
-              <span className="rounded-full bg-surface border border-line px-2.5 py-1">
-                Kıraat Dinleme: {groqConfigured ? "Groq Whisper" : geminiConfigured ? "Gemini Ses" : "Tarayıcı Ses Tanıma"}
-              </span>
-            </div>
-            {apiHealthMsg && (
-              <p
-                className={cn(
-                  "rounded-xl px-3 py-2 text-[11px] leading-relaxed",
-                  apiHealthMsg.ok
-                    ? "bg-mint text-forest font-medium"
-                    : "bg-amber-50 border border-amber-300 text-amber-950"
-                )}
-              >
-                {apiHealthMsg.text}
-              </p>
-            )}
-            {(geminiConfigured || groqConfigured) && (
-              <label className="mt-2 flex items-start gap-2 pt-1 cursor-pointer text-[11px] text-muted">
-                <input
-                  type="checkbox"
-                  checked={cloudConsent}
-                  onChange={(e) => setCloudConsent(e.target.checked)}
-                  className="mt-0.5 accent-forest"
-                />
-                <span>
-                  Sesimin yalnızca bu dersteki konuşma ve kelime sırası kontrolü için sunucuya gönderilmesine onay veriyorum (tecvid kalitesi için uzman hoca teyidi esastır).
+          {showTechDrawer && (
+            <div className="rounded-2xl border border-line bg-parchment/70 p-4 space-y-2.5 text-xs text-ink-soft">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-ink">Bağlantı &amp; Ses Durumu</p>
+                <button
+                  type="button"
+                  disabled={testingApi}
+                  onClick={handleTestApi}
+                  className="rounded-full border border-forest/30 bg-surface px-3 py-1 text-[11px] font-semibold text-forest hover:bg-mint disabled:opacity-50"
+                >
+                  {testingApi ? "Test ediliyor..." : "API Test Et"}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-surface border border-line px-2.5 py-1">
+                  Hoca Sesi: {geminiConfigured ? "Gemini Doğal Ses" : "Yerel Rehber"}
                 </span>
-              </label>
-            )}
-          </div>
+                <span className="rounded-full bg-surface border border-line px-2.5 py-1">
+                  Kıraat Dinleme: {groqConfigured ? "Groq Whisper" : geminiConfigured ? "Gemini Ses" : "Tarayıcı"}
+                </span>
+              </div>
+              {apiHealthMsg && (
+                <p
+                  className={cn(
+                    "rounded-xl px-3 py-2 text-[11px] leading-relaxed",
+                    apiHealthMsg.ok
+                      ? "bg-mint text-forest font-medium"
+                      : "bg-amber-50 border border-amber-300 text-amber-950"
+                  )}
+                >
+                  {apiHealthMsg.text}
+                </p>
+              )}
+              {(geminiConfigured || groqConfigured) && (
+                <label className="mt-1 flex items-start gap-2 pt-1 cursor-pointer text-[11px] text-muted">
+                  <input
+                    type="checkbox"
+                    checked={cloudConsent}
+                    onChange={(e) => setCloudConsent(e.target.checked)}
+                    className="mt-0.5 accent-forest"
+                  />
+                  <span>
+                    Sesimin bu dersteki konuşma ve kelime sırası kontrolü için işlenmesine onay veriyorum (tecvid kalitesi için uzman hoca teyidi esastır).
+                  </span>
+                </label>
+              )}
+            </div>
+          )}
 
           <button
             type="button"
@@ -596,6 +685,8 @@ export function VoiceTutorClient({
     );
   }
 
+  const recentDialogue = sessionState.history.slice(-4);
+
   return (
     <div className="mx-auto flex min-h-[88vh] max-w-2xl flex-col justify-between pb-6">
       {/* Minimal Focus Top Bar */}
@@ -607,6 +698,11 @@ export function VoiceTutorClient({
           <span className="text-xs text-muted">
             Sayfa {sessionState.currentPageNumber}
           </span>
+          {sessionState.playbackRate !== 1 && (
+            <span className="rounded-full border border-line px-2 py-0.5 text-[10px] font-semibold text-forest">
+              {sessionState.playbackRate}x
+            </span>
+          )}
           <span className="hidden sm:inline rounded-full border border-line px-2 py-0.5 text-[10px] text-muted">
             {providerMode === "gemini" ? "Gemini" : "Yerel Rehber"}
           </span>
@@ -635,7 +731,7 @@ export function VoiceTutorClient({
                 : "border-line bg-surface text-muted"
             )}
           >
-            {autoListen ? "Otomatik Dinle: Açık" : "Manuel Konuş"}
+            {autoListen ? "Eller Serbest" : "Manuel"}
           </button>
           <Link
             href="/"
@@ -650,8 +746,16 @@ export function VoiceTutorClient({
 
       {/* Main Synced Stage Area */}
       <main className="my-4 flex-1 space-y-4">
-        {/* AI Teacher Voice Bubble */}
-        <section className="rounded-2xl border border-line bg-surface p-5 shadow-xs space-y-2">
+        {/* Canonical Visual Card Synced with Teacher */}
+        {stageCard && (
+          <StageCardView
+            card={stageCard}
+            onReplayAudio={lastAudioCue ? handleReplayAudio : undefined}
+          />
+        )}
+
+        {/* AI Teacher Voice Bubble + Compact Dialogue Context */}
+        <section className="rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs space-y-2.5">
           <div className="flex items-center justify-between text-xs text-muted">
             <span className="font-semibold text-forest flex items-center gap-1.5">
               <Headphones className="h-3.5 w-3.5" />
@@ -668,26 +772,31 @@ export function VoiceTutorClient({
                       ? "Seni dinliyor..."
                       : status === "listening"
                         ? expectingLang === "ar"
-                          ? "Arapça okumanı bekliyor..."
-                          : "Cevabını dinliyor..."
+                          ? "Okumanı bekliyor..."
+                          : "Dinliyor..."
                         : "Hazır"}
             </span>
           </div>
+
           <p className="text-base leading-relaxed text-ink">{replyTr}</p>
-          {lastUserTranscript && (
-            <p className="text-xs text-muted border-t border-line pt-2">
-              Sen: &ldquo;{lastUserTranscript}&rdquo;
-            </p>
+
+          {recentDialogue.length > 1 && (
+            <div className="border-t border-line pt-2 space-y-1 max-h-24 overflow-y-auto">
+              {recentDialogue.slice(0, -1).map((m, idx) => (
+                <p
+                  key={`${m.role}-${idx}`}
+                  className={cn(
+                    "text-[11px] leading-snug",
+                    m.role === "user" ? "text-forest font-medium" : "text-muted"
+                  )}
+                >
+                  {m.role === "user" ? "Sen: " : "Hoca: "}
+                  {m.text}
+                </p>
+              ))}
+            </div>
           )}
         </section>
-
-        {/* Canonical Visual Card Synced with Teacher */}
-        {stageCard && (
-          <StageCardView
-            card={stageCard}
-            onReplayAudio={lastAudioCue ? handleReplayAudio : undefined}
-          />
-        )}
 
         {diagnosticMsg && (
           <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-950 leading-relaxed">
@@ -704,17 +813,13 @@ export function VoiceTutorClient({
 
       {/* Bottom Hands-Free Control Bar (Minimal Taps) */}
       <footer className="space-y-3 pt-2">
-        {/* Subtle tappable/speakable voice command hints */}
         {suggestedCommands.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2">
             {suggestedCommands.map((cmd) => (
               <button
                 key={cmd}
                 type="button"
-                onClick={() => {
-                  setLastUserTranscript(cmd);
-                  void submitTurn({ action: "user_speech", userText: cmd });
-                }}
+                onClick={() => void submitTurn({ action: "user_speech", userText: cmd })}
                 className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-medium text-ink-soft hover:border-forest hover:text-forest"
               >
                 &ldquo;{cmd}&rdquo;
@@ -732,7 +837,7 @@ export function VoiceTutorClient({
               placeholder={
                 expectingLang === "ar"
                   ? "Arapça ayeti veya Türkçe komutu yaz..."
-                  : "Cevabını veya komutunu yaz..."
+                  : "Sorunu veya komutunu yaz (ör. Bakara suresine geç)..."
               }
               className="flex-1 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink"
             />
@@ -756,7 +861,6 @@ export function VoiceTutorClient({
             <Keyboard className="h-4 w-4" />
           </button>
 
-          {/* Single Big Override Button: Dur / Konuş */}
           <button
             type="button"
             onClick={handlePrimaryMicButton}
@@ -943,7 +1047,7 @@ function StageCardView({
           <div className="rounded-xl border border-dashed border-forest/30 bg-parchment/70 p-6 text-center space-y-1">
             <p className="text-sm font-semibold text-forest">Ezberden okuma zamanı</p>
             <p className="text-xs text-muted">
-              Ayet gizli. Sesli oku; bitirdiğinde kelime sırası kontrol edilecek.
+              Ayet gizli. Sesli oku; takılırsan &ldquo;tekrar dinlet&rdquo; demen yeterli.
             </p>
           </div>
         ) : (

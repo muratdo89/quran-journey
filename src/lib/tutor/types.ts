@@ -14,6 +14,8 @@ export interface TutorAudioCue {
   url: string;
   labelTr: string;
   autoPlay: boolean;
+  playbackRate?: number;
+  repeatCount?: number;
 }
 
 export interface TutorRecitationWordDiff {
@@ -115,6 +117,7 @@ export interface TutorSessionState {
   currentCardId: string | null;
   currentReadingModuleId: string | null;
   currentTajweedSlug: string | null;
+  playbackRate: number;
   attemptCount: number;
   vocabDoneCount: number;
   versesDoneCount: number;
@@ -128,6 +131,9 @@ export interface TutorTurnRequest {
   userText?: string;
   recitationTranscript?: string;
   reciterId?: number;
+  hifzActivePage?: number;
+  hifzReviewPages?: number[];
+  skipInlineTts?: boolean;
   sessionState: TutorSessionState;
 }
 
@@ -155,6 +161,7 @@ export function createInitialTutorSessionState(currentPageNumber = 1): TutorSess
     currentCardId: null,
     currentReadingModuleId: null,
     currentTajweedSlug: null,
+    playbackRate: 1,
     attemptCount: 0,
     vocabDoneCount: 0,
     versesDoneCount: 0,

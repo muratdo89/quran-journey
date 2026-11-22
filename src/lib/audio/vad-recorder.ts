@@ -1,10 +1,10 @@
 /**
  * Hands-free WebAudio Voice Activity Detection (VAD) + MediaRecorder controller.
  *
- * Keeps one microphone stream open with echoCancellation + noiseSuppression so the learner
- * can speak naturally after the AI teacher or Quran reciter finishes, without tapping
- * repeatedly. Automatically pauses capture while speakers are playing to prevent echo loops,
- * and exposes manual start/stop overrides for noisy environments.
+ * Includes:
+ * - Automatic 350ms acoustic cooldown when resuming after speaker playback (prevents room echo triggers)
+ * - Adaptive ambient noise-floor calibration (adjusts smoothly to quiet rooms and noisy cafés)
+ * - Manual start/stop override for noisy environments
  */
 
 export interface VadCaptureOptions {
@@ -14,8 +14,8 @@ export interface VadCaptureOptions {
   minSpeechMs?: number;
   /** Maximum single utterance length (ms) to bound latency and API cost. */
   maxSpeechMs?: number;
-  /** RMS threshold (0..1) above which audio is considered speech. */
-  rmsThreshold?: number;
+  /** Cooldown (ms) after resumeListening() to ignore speaker reverb tails. */
+  cooldownMs?: number;
   onSpeechStart?: () => void;
   onLevel?: (rms: number) => void;
   onUtteranceReady: (blob: Blob, durationMs: number) => void;
@@ -34,6 +34,8 @@ export class HandsFreeVadRecorder {
   private speaking = false;
   private speechStartedAt = 0;
   private lastVoiceAt = 0;
+  private ignoreUntil = 0;
+  private noiseFloor = 0.012;
   private options: VadCaptureOptions;
 
   constructor(options: VadCaptureOptions) {
@@ -79,12 +81,14 @@ export class HandsFreeVadRecorder {
     }
   }
 
-  /** Enable automatic VAD listening (call after teacher/reciter audio ends). */
+  /** Enable automatic VAD listening with a short echo-suppression cooldown. */
   resumeListening() {
     if (!this.active) return;
     if (this.audioCtx?.state === "suspended") {
       this.audioCtx.resume().catch(() => {});
     }
+    const cooldown = this.options.cooldownMs ?? 350;
+    this.ignoreUntil = Date.now() + cooldown;
     this.paused = false;
   }
 
@@ -108,6 +112,7 @@ export class HandsFreeVadRecorder {
   startManualCapture() {
     if (!this.active || !this.stream) return;
     this.paused = false;
+    this.ignoreUntil = 0;
     if (!this.speaking) {
       this.beginRecording();
     }
@@ -167,7 +172,7 @@ export class HandsFreeVadRecorder {
       return;
     }
     const durationMs = Date.now() - this.speechStartedAt;
-    const minSpeechMs = this.options.minSpeechMs ?? 450;
+    const minSpeechMs = this.options.minSpeechMs ?? 420;
     const rec = this.recorder;
     this.speaking = false;
 
@@ -193,6 +198,9 @@ export class HandsFreeVadRecorder {
 
       if (this.paused || !this.analyser) return;
 
+      const now = Date.now();
+      if (now < this.ignoreUntil) return;
+
       this.analyser.getByteTimeDomainData(buffer);
       let sumSquares = 0;
       for (let i = 0; i < buffer.length; i += 1) {
@@ -202,12 +210,16 @@ export class HandsFreeVadRecorder {
       const rms = Math.sqrt(sumSquares / buffer.length);
       this.options.onLevel?.(rms);
 
-      const threshold = this.options.rmsThreshold ?? 0.028;
-      const silenceHoldMs = this.options.silenceHoldMs ?? 1500;
-      const maxSpeechMs = this.options.maxSpeechMs ?? 18000;
-      const now = Date.now();
+      // Slowly adapt ambient noise floor when not speaking
+      if (!this.speaking) {
+        this.noiseFloor = this.noiseFloor * 0.94 + Math.min(rms, 0.045) * 0.06;
+      }
 
-      if (rms >= threshold) {
+      const dynamicThreshold = Math.min(0.085, Math.max(0.022, this.noiseFloor * 2.5));
+      const silenceHoldMs = this.options.silenceHoldMs ?? 1050;
+      const maxSpeechMs = this.options.maxSpeechMs ?? 18000;
+
+      if (rms >= dynamicThreshold) {
         this.lastVoiceAt = now;
         if (!this.speaking) {
           this.beginRecording();

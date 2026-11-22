@@ -3,8 +3,10 @@ import {
   TAJWEED_LESSONS,
 } from "@/lib/content/arabic-curriculum";
 import {
+  getAvailableSurahs,
   getMushafPageData,
   getMutashabihatForVerse,
+  getSurahEntry,
   getVerseByKey,
   getWordByLocation,
   searchQuranVerses,
@@ -357,6 +359,80 @@ export function lookupCanonicalInfo(query: string): {
     found: false,
     summaryTr: "Doğrulanmış Kur'an verisinde bu sorguyla doğrudan eşleşen kayıt bulunamadı.",
   };
+}
+
+function foldTurkishAscii(s: string): string {
+  return s
+    .toLocaleLowerCase("tr-TR")
+    .replace(/â/g, "a")
+    .replace(/î/g, "i")
+    .replace(/û/g, "u")
+    .replace(/ğ/g, "g")
+    .replace(/ş/g, "s")
+    .replace(/ç/g, "c")
+    .replace(/ö/g, "o")
+    .replace(/ü/g, "u")
+    .replace(/ı/g, "i")
+    .replace(/['’`-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function resolveNavigationRequest(text: string): {
+  pageNumber: number;
+  verseKey: string;
+  labelTr: string;
+} | null {
+  const low = text.toLocaleLowerCase("tr-TR");
+  const folded = foldTurkishAscii(text);
+
+  // 1. Explicit Mushaf page request: "sayfa 604", "sayfa 604'e geç", "604. sayfa", "604. sayfaya"
+  const pageMatch =
+    /\bsayfa\s*(\d{1,3})\b/.exec(folded) ?? /\b(\d{1,3})\.?\s*sayfa/.exec(folded);
+  if (pageMatch) {
+    const num = Number(pageMatch[1]);
+    if (Number.isInteger(num) && num >= 1 && num <= 604) {
+      const pageData = getMushafPageData(num);
+      const firstSec = pageData.sections[0];
+      const firstVerse = firstSec?.verses[0];
+      if (firstVerse) {
+        return {
+          pageNumber: num,
+          verseKey: firstVerse.verseKey,
+          labelTr: `Sayfa ${num} (${firstSec.surah.nameTurkish})`,
+        };
+      }
+    }
+  }
+
+  // 2. Explicit Surah name (+ optional ayah number): "bakara suresi", "yasin 5. ayet", "ihlas'a geç"
+  const hasNavCue =
+    /(?:sure|ayet|geç|aç|başla|çalış|oku|dinle|tekrar)/.test(low);
+  if (!hasNavCue) return null;
+
+  const surahs = getAvailableSurahs();
+  const sorted = [...surahs].sort((a, b) => b.nameTurkish.length - a.nameTurkish.length);
+  for (const s of sorted) {
+    const targetFolded = foldTurkishAscii(s.nameTurkish);
+    if (targetFolded.length < 3) continue;
+    // Match exact Surah word (apostrophe was normalized to space, so "ihlas'a" -> "ihlas a")
+    const pattern = new RegExp(`(?:^|\\s)${targetFolded}(?:\\s|$)`);
+    if (pattern.test(folded)) {
+      const entry = getSurahEntry(s.id);
+      if (!entry || entry.verses.length === 0) continue;
+      const ayahMatch = /\b(\d{1,3})\.?\s*ayet/.exec(folded) ?? /\bayet\s*(\d{1,3})\b/.exec(folded);
+      const requestedAyah = ayahMatch ? Number(ayahMatch[1]) : 1;
+      const verse =
+        entry.verses.find((v) => v.verseNumber === requestedAyah) ?? entry.verses[0]!;
+      return {
+        pageNumber: verse.pageNumber,
+        verseKey: verse.verseKey,
+        labelTr: `${s.nameTurkish} Suresi ${verse.verseKey} (Sayfa ${verse.pageNumber})`,
+      };
+    }
+  }
+
+  return null;
 }
 
 export async function persistTutorProgress(

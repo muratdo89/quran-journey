@@ -28,6 +28,7 @@ const SessionStateSchema = z.object({
   currentCardId: z.string().nullable(),
   currentReadingModuleId: z.string().nullable(),
   currentTajweedSlug: z.string().nullable(),
+  playbackRate: z.number().min(0.5).max(1.5).default(1),
   attemptCount: z.number().int().min(0).max(20),
   vocabDoneCount: z.number().int().min(0).max(200),
   versesDoneCount: z.number().int().min(0).max(200),
@@ -41,6 +42,9 @@ const TurnRequestSchema = z.object({
   userText: z.string().max(1200).optional(),
   recitationTranscript: z.string().max(1200).optional(),
   reciterId: z.number().int().optional(),
+  hifzActivePage: z.number().int().min(1).max(604).optional(),
+  hifzReviewPages: z.array(z.number().int().min(1).max(604)).max(20).optional(),
+  skipInlineTts: z.boolean().optional(),
   sessionState: SessionStateSchema.optional(),
 });
 
@@ -50,8 +54,9 @@ export async function POST(req: Request) {
     const repo = await getRepository();
     const snapshot = await repo.getDashboardSnapshot();
 
+    const startPage = body.hifzActivePage ?? snapshot.profile.currentPageNumber;
     const sessionState =
-      body.sessionState ?? createInitialTutorSessionState(snapshot.profile.currentPageNumber);
+      body.sessionState ?? createInitialTutorSessionState(startPage);
 
     const response = await orchestrateTutorTurn({
       request: {
@@ -59,6 +64,9 @@ export async function POST(req: Request) {
         userText: body.userText,
         recitationTranscript: body.recitationTranscript,
         reciterId: body.reciterId,
+        hifzActivePage: body.hifzActivePage,
+        hifzReviewPages: body.hifzReviewPages,
+        skipInlineTts: body.skipInlineTts,
         sessionState,
       },
       snapshot,

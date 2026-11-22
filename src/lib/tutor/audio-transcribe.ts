@@ -70,8 +70,8 @@ export async function transcribeTutorAudio(params: {
     const base64Audio = Buffer.from(params.audioBytes).toString("base64");
     const prompt =
       params.language === "ar"
-        ? "Transcribe ONLY the exact Arabic Quranic words spoken in this audio. Output plain Arabic text with no commentary, no translation, and no punctuation."
-        : "Bu ses kaydındaki Türkçe konuşmayı yalnızca düz metin olarak yaz. Açıklama veya yorum ekleme.";
+        ? "Listen carefully. If the speaker is reciting Arabic Quranic verses, transcribe ONLY the exact Arabic words with no commentary or translation. If the speaker is instead speaking Turkish (for example asking to repeat, slow down, skip, or show the verse), transcribe ONLY the exact Turkish sentence."
+        : "Bu ses kaydındaki Türkçe konuşmayı (veya varsa Arapça Kur'an kelimesini) yalnızca düz metin olarak yaz. Açıklama veya yorum ekleme.";
 
     for (const model of ["gemini-3.5-flash-lite", "gemini-flash-latest"] as const) {
       try {

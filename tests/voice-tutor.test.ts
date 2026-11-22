@@ -9,6 +9,7 @@ import { pcm16ToWavBase64, synthesizeTurkishTeacherAudio } from "@/lib/tutor/gem
 import {
   checkVocabularyAnswerMatch,
   evaluateCanonicalRecitation,
+  resolveNavigationRequest,
 } from "@/lib/tutor/tools";
 import { createInitialTutorSessionState } from "@/lib/tutor/types";
 
@@ -263,5 +264,78 @@ describe("AI Voice Teacher — Canonical Grounding, Patient Coaching & Recitatio
     expect(res.providerDiagnosticTr).toContain("HTTP 403");
     repo.close();
   });
+
+  it("resolves natural Turkish Surah, ayah, and Mushaf page navigation requests", () => {
+    const p604 = resolveNavigationRequest("Sayfa 604'e geçelim");
+    expect(p604?.pageNumber).toBe(604);
+    expect(p604?.verseKey).toBe("112:1");
+
+    const baqarah = resolveNavigationRequest("Bakara 5. ayeti aç");
+    expect(baqarah?.verseKey).toBe("2:5");
+    expect(baqarah?.pageNumber).toBe(2);
+
+    const yasin = resolveNavigationRequest("Yasin suresini dinlet");
+    expect(yasin?.verseKey).toBe("36:1");
+  });
+
+  it("syncs with HifzStore active page, handles speed/repeat commands, and stays in phase on free-form questions", async () => {
+    const repo = createTempRepo();
+    const snap = await repo.getDashboardSnapshot();
+
+    const start = await orchestrateTutorTurn({
+      request: {
+        action: "start",
+        hifzActivePage: 604,
+        hifzReviewPages: [603, 602],
+        skipInlineTts: true,
+        sessionState: createInitialTutorSessionState(1),
+      },
+      snapshot: snap,
+      repo,
+    });
+    expect(start.sessionState.currentPageNumber).toBe(604);
+    expect(start.replyTr).toContain("Sayfa 604");
+    expect(start.replyTr).toContain("2 tekrar sayfan");
+
+    const slow = await orchestrateTutorTurn({
+      request: {
+        action: "user_speech",
+        userText: "Biraz yavaş oku",
+        skipInlineTts: true,
+        sessionState: start.sessionState,
+      },
+      snapshot: snap,
+      repo,
+    });
+    expect(slow.sessionState.playbackRate).toBe(0.75);
+    expect(slow.audioCue?.playbackRate).toBe(0.75);
+
+    const repeat3 = await orchestrateTutorTurn({
+      request: {
+        action: "user_speech",
+        userText: "3 kere dinlet",
+        skipInlineTts: true,
+        sessionState: slow.sessionState,
+      },
+      snapshot: snap,
+      repo,
+    });
+    expect(repeat3.audioCue?.repeatCount).toBe(3);
+
+    const question = await orchestrateTutorTurn({
+      request: {
+        action: "user_speech",
+        userText: "Bu ayetin anlamı ne?",
+        skipInlineTts: true,
+        sessionState: repeat3.sessionState,
+      },
+      snapshot: snap,
+      repo,
+    });
+    expect(question.phase).toBe("hifz_listen");
+    expect(question.replyTr.length).toBeGreaterThan(20);
+    repo.close();
+  });
 });
+
 
