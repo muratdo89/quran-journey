@@ -80,31 +80,24 @@ export function VocabularyClient({ initialPage, initialWords, initialRoot, initi
   const knownList = useSyncExternalStore(subscribeKnown, readKnown, () => EMPTY);
   const known = useMemo(() => new Set(knownList), [knownList]);
 
-  const [page, setPage] = useState(initialPage);
+  const [manualPage, setManualPage] = useState<number | null>(null);
+  const page = manualPage ?? (!explicit && hifzPage ? hifzPage : initialPage);
   const [words, setWords] = useState<VocabWord[]>(initialWords);
   const [loading, setLoading] = useState(false);
-  const [autoScoped, setAutoScoped] = useState(explicit);
   const [round, setRound] = useState<VocabWord[] | null>(null);
   const [searchOpen, setSearchOpen] = useState(Boolean(initialRoot || initialQuery));
-  const skipFirst = useRef(true);
-
-  // Start on the page being memorized unless a link named a page.
-  if (!autoScoped && store) {
-    setAutoScoped(true);
-    if (hifzPage && hifzPage !== page) setPage(hifzPage);
-  }
+  const fetchedPageRef = useRef(initialPage);
 
   useEffect(() => {
-    if (skipFirst.current) {
-      skipFirst.current = false;
-      return;
-    }
+    if (page === fetchedPageRef.current) return;
     let cancelled = false;
-    setLoading(true);
     fetch(`/api/vocabulary?mpage=${page}&unique=1`)
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
-        if (!cancelled && json) setWords(json.items);
+        if (!cancelled && json) {
+          fetchedPageRef.current = page;
+          setWords(json.items);
+        }
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -116,6 +109,12 @@ export function VocabularyClient({ initialPage, initialWords, initialRoot, initi
   const unknown = words.filter((w) => !known.has(wordKey(w)));
   const pct = words.length ? Math.round((knownCount / words.length) * 100) : 0;
   const surahName = words[0]?.surahNameTr;
+
+  function goToPage(nextPage: number) {
+    const clamped = Math.max(1, Math.min(TOTAL_PAGES, nextPage));
+    if (clamped !== fetchedPageRef.current) setLoading(true);
+    setManualPage(clamped);
+  }
 
   function startRound() {
     const pool = unknown.length > 0 ? unknown : words;
@@ -141,7 +140,7 @@ export function VocabularyClient({ initialPage, initialWords, initialRoot, initi
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => goToPage(page - 1)}
             disabled={page <= 1}
             aria-label="Önceki sayfa"
             className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-sand disabled:opacity-30"
@@ -157,7 +156,7 @@ export function VocabularyClient({ initialPage, initialWords, initialRoot, initi
           </div>
           <button
             type="button"
-            onClick={() => setPage((p) => Math.min(TOTAL_PAGES, p + 1))}
+            onClick={() => goToPage(page + 1)}
             disabled={page >= TOTAL_PAGES}
             aria-label="Sonraki sayfa"
             className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-sand disabled:opacity-30"
@@ -251,11 +250,12 @@ function LearnRound({ words, onExit }: { words: VocabWord[]; onExit: () => void 
   const [queue, setQueue] = useState<VocabWord[]>(words);
   const [revealed, setRevealed] = useState(false);
   const [learned, setLearned] = useState(0);
+  const [turnNonce, setTurnNonce] = useState(0);
   const current = queue[0];
 
   useEffect(() => {
     if (current?.audioUrl) playSharedClip(current.audioUrl);
-  }, [current]);
+  }, [current, turnNonce]);
 
   if (!current) {
     return (
@@ -289,6 +289,7 @@ function LearnRound({ words, onExit }: { words: VocabWord[]; onExit: () => void 
       setQueue([...rest, head]);
     }
     setRevealed(false);
+    setTurnNonce((n) => n + 1);
   }
 
   return (

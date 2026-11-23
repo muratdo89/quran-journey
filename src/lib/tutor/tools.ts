@@ -136,46 +136,54 @@ export function getNextVocabularyQuizItem(
   audioCue: TutorAudioCue | null;
 } | null {
   const excluded = new Set(excludeLocations);
+  const excludedSurface = new Set<string>();
+  for (const loc of excludeLocations) {
+    const w = getWordByLocation(loc);
+    if (w?.textUthmani) excludedSurface.add(w.textUthmani.trim());
+  }
+
   const dueCards = prioritizeDueCards(snapshot.cards).filter(
     (c) => c.cardType === "vocabulary" && !excluded.has(c.targetKey)
   );
 
   for (const card of dueCards) {
     const word = getWordByLocation(card.targetKey);
-    if (word) {
-      return {
-        card: {
-          kind: "vocabulary_quiz",
-          cardId: card.id,
-          wordLocation: word.location,
-          verseKey: word.verseKey,
-          surahNameTr: word.surahNameTr,
-          textUthmani: word.textUthmani,
-          turkishReading: word.transliteration ? toTurkishReading(word.transliteration) : null,
-          meaningTr: word.translationTr,
-          verseTranslationTr: word.verseTranslationTr,
-          rootArabic: word.morphology.rootArabic,
-          audioUrl: word.audioUrl,
-          revealed: false,
-        },
-        audioCue: word.audioUrl
-          ? {
-              kind: "word",
-              url: word.audioUrl,
-              labelTr: `Kelime telaffuzu (${word.verseKey})`,
-              autoPlay: true,
-            }
-          : null,
-      };
-    }
+    if (!word || !word.translationTr?.trim()) continue;
+    if (excludedSurface.has(word.textUthmani.trim())) continue;
+    return {
+      card: {
+        kind: "vocabulary_quiz",
+        cardId: card.id,
+        wordLocation: word.location,
+        verseKey: word.verseKey,
+        surahNameTr: word.surahNameTr,
+        textUthmani: word.textUthmani,
+        turkishReading: word.transliteration ? toTurkishReading(word.transliteration) : null,
+        meaningTr: word.translationTr,
+        verseTranslationTr: word.verseTranslationTr,
+        rootArabic: word.morphology.rootArabic,
+        audioUrl: word.audioUrl,
+        revealed: false,
+      },
+      audioCue: word.audioUrl
+        ? {
+            kind: "word",
+            url: word.audioUrl,
+            labelTr: `Kelime telaffuzu (${word.verseKey})`,
+            autoPlay: true,
+          }
+        : null,
+    };
   }
 
-  // Fallback: pick an unasked word from the learner's active Mushaf page
+  // Fallback: pick an unasked, distinct word with a Turkish meaning from the learner's active Mushaf page
   const pageData = getMushafPageData(pageNumber);
   for (const section of pageData.sections) {
     for (const verse of section.verses) {
       for (const word of verse.words) {
         if (excluded.has(word.location)) continue;
+        if (!word.translationTr?.trim()) continue;
+        if (excludedSurface.has(word.textUthmani.trim())) continue;
         return {
           card: {
             kind: "vocabulary_quiz",
@@ -314,22 +322,74 @@ export function evaluateCanonicalRecitation(
 export function checkVocabularyAnswerMatch(userAnswerTr: string, expectedMeaningTr: string): boolean {
   const norm = (s: string) =>
     s
+      .replace(/\([^)]*\)/g, " ")
       .toLocaleLowerCase("tr-TR")
+      .replace(/â/g, "a")
+      .replace(/î/g, "i")
+      .replace(/û/g, "u")
+      .replace(/['’`]/g, "")
       .replace(/[^\p{L}\p{N}\s]/gu, " ")
       .replace(/\s+/g, " ")
       .trim();
 
   const ans = norm(userAnswerTr);
   const exp = norm(expectedMeaningTr);
-  if (!ans || !exp) return false;
-  if (ans.includes(exp) || exp.includes(ans)) return true;
+  if (!ans || !exp || ans.length < 2) return false;
 
-  const stopWords = new Set(["ve", "ile", "bir", "bu", "o", "da", "de", "için", "olan", "en"]);
-  const expTokens = exp.split(" ").filter((t) => t.length >= 3 && !stopWords.has(t));
-  const ansTokens = ans.split(" ").filter((t) => t.length >= 3 && !stopWords.has(t));
+  const stopWords = new Set([
+    "ve",
+    "ile",
+    "bir",
+    "bu",
+    "şu",
+    "o",
+    "da",
+    "de",
+    "için",
+    "olan",
+    "en",
+    "mi",
+    "mı",
+    "mu",
+    "mü",
+    "ne",
+    "ben",
+    "sen",
+    "biz",
+    "siz",
+    "evet",
+    "hayır",
+    "tamam",
+    "peki",
+    "yani",
+    "şey",
+    "galiba",
+    "sanırım",
+    "demek",
+    "anlamı",
+    "kelime",
+  ]);
 
+  if (ans === exp) return true;
+  if (exp.length >= 3 && ans.includes(exp)) return true;
+
+  const expTokens = exp.split(" ").filter((t) => t.length >= 2 && !stopWords.has(t));
+  const ansTokens = ans.split(" ").filter((t) => t.length >= 2 && !stopWords.has(t));
+  if (expTokens.length === 0 || ansTokens.length === 0) return false;
+
+  // Exact token match (handles short valid Turkish words like "din", "rab", "hak", "yol", "nur")
+  if (expTokens.some((et) => ansTokens.includes(et))) return true;
+
+  // Word-start stem match for agglutinative Turkish suffixes (e.g. yol->yola, rab->rabbi, gün->gününün, nimet->nimetler)
   return expTokens.some((et) =>
-    ansTokens.some((at) => at.startsWith(et.slice(0, 4)) || et.startsWith(at.slice(0, 4)))
+    ansTokens.some((at) => {
+      if (at.length >= 3 && et.startsWith(at)) return true;
+      if (et.length >= 3 && at.startsWith(et)) return true;
+      if (et.length >= 4 && at.length >= 4) {
+        return at.startsWith(et.slice(0, 4)) || et.startsWith(at.slice(0, 4));
+      }
+      return false;
+    })
   );
 }
 

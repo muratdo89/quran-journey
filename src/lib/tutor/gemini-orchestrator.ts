@@ -130,6 +130,39 @@ export async function runGuidedTutorStep(params: {
   if (/(?:yavaş|ağır|normal hız|hızlandır)/.test(low) && !/(?:^|\s)hızlı tekrar/.test(low)) {
     const wantsSlow = /(?:yavaş|ağır)/.test(low);
     state.playbackRate = wantsSlow ? 0.75 : 1;
+
+    if (state.phase === "vocabulary" && state.currentWordLocation) {
+      const word = getWordByLocation(state.currentWordLocation);
+      if (word) {
+        return {
+          baseReplyTr: wantsSlow
+            ? "Tamam, sesi yavaşlattım. Kelimeyi bu hızda tekrar dinleyelim; Türkçe anlamı neydi?"
+            : "Tamam, hızı normale aldım. Kelimeyi tekrar dinleyelim; Türkçe anlamı neydi?",
+          expectingLanguage: "tr",
+          stageCard: {
+            kind: "vocabulary_quiz",
+            cardId: state.currentCardId,
+            wordLocation: word.location,
+            verseKey: word.verseKey,
+            surahNameTr: word.surahNameTr,
+            textUthmani: word.textUthmani,
+            turkishReading: word.transliteration ? toTurkishReading(word.transliteration) : null,
+            meaningTr: word.translationTr,
+            verseTranslationTr: word.verseTranslationTr,
+            rootArabic: word.morphology.rootArabic,
+            audioUrl: word.audioUrl,
+            revealed: false,
+            showHint: state.attemptCount > 0,
+          },
+          audioCue: word.audioUrl
+            ? withRate({ kind: "word", url: word.audioUrl, labelTr: "Kelime telaffuzu", autoPlay: true })
+            : null,
+          suggestedVoiceCommandsTr: ["Tekrar dinle", "Hatırlayamadım", "Ezbere geç"],
+          nextState: state,
+        };
+      }
+    }
+
     const study = getVerseStudyCard({
       verseKey: state.currentVerseKey,
       pageNumber: state.currentPageNumber,
@@ -351,37 +384,12 @@ export async function runGuidedTutorStep(params: {
 
   // 4. Vocabulary Quiz (oral Arabic -> Turkish meaning recall)
   if (state.phase === "vocabulary") {
-    if (/(?:^|\s)(ezber|hıfz|ayet|mushaf)/.test(low)) {
+    if (
+      /(?:ezbere|hıfza|mushafa|ayete)\s*(?:geç|dön|başla)|(?:^|\s)(?:ezbere geç|hıfza geç|ezber çalış|direkt ezber)/.test(
+        low
+      )
+    ) {
       return enterHifzListen(state, reciterId, "Tamam, şimdi ayet ezberine geçelim.");
-    }
-
-    if (/\b(tekrar|dinle|bir daha)\b/.test(low) && state.currentWordLocation) {
-      const word = getWordByLocation(state.currentWordLocation);
-      if (word) {
-        return {
-          baseReplyTr: "Kelimenin sesini tekrar dinletiyorum. Türkçe anlamını hatırlayabiliyor musun?",
-          expectingLanguage: "tr",
-          stageCard: {
-            kind: "vocabulary_quiz",
-            cardId: state.currentCardId,
-            wordLocation: word.location,
-            verseKey: word.verseKey,
-            surahNameTr: word.surahNameTr,
-            textUthmani: word.textUthmani,
-            turkishReading: word.transliteration ? toTurkishReading(word.transliteration) : null,
-            meaningTr: word.translationTr,
-            verseTranslationTr: word.verseTranslationTr,
-            rootArabic: word.morphology.rootArabic,
-            audioUrl: word.audioUrl,
-            revealed: false,
-          },
-          audioCue: word.audioUrl
-            ? { kind: "word", url: word.audioUrl, labelTr: "Kelime telaffuzu", autoPlay: true }
-            : null,
-          suggestedVoiceCommandsTr: ["Hatırlayamadım", "Ezbere geç"],
-          nextState: state,
-        };
-      }
     }
 
     const currentWord = state.currentWordLocation
@@ -389,36 +397,72 @@ export async function runGuidedTutorStep(params: {
       : undefined;
 
     if (currentWord) {
-      const gaveUp = /\b(bilmiyorum|hatırlamıyorum|hatırlayamadım|geç|söyle|ipucu)\b/.test(low);
+      const buildCurrentCard = (showHint = state.attemptCount > 0): Extract<TutorStageCard, { kind: "vocabulary_quiz" }> => ({
+        kind: "vocabulary_quiz",
+        cardId: state.currentCardId,
+        wordLocation: currentWord.location,
+        verseKey: currentWord.verseKey,
+        surahNameTr: currentWord.surahNameTr,
+        textUthmani: currentWord.textUthmani,
+        turkishReading: currentWord.transliteration ? toTurkishReading(currentWord.transliteration) : null,
+        meaningTr: currentWord.translationTr,
+        verseTranslationTr: currentWord.verseTranslationTr,
+        rootArabic: currentWord.morphology.rootArabic,
+        audioUrl: currentWord.audioUrl,
+        revealed: false,
+        showHint,
+      });
+
+      const currentAudioCue = currentWord.audioUrl
+        ? withRate({ kind: "word", url: currentWord.audioUrl, labelTr: "Kelime telaffuzu", autoPlay: true })
+        : null;
+
+      // Replay or didn't hear -> replay cleanly without counting as a miss
+      if (/(?:^|\s)(tekrar|dinle|bir daha|duymadım|anlamadım|ses gelmedi)(?:\s|$|[.,!?])/.test(low)) {
+        return {
+          baseReplyTr: "Kelimenin sesini tekrar dinletiyorum. Türkçe anlamını hatırlayabiliyor musun?",
+          expectingLanguage: "tr",
+          stageCard: buildCurrentCard(),
+          audioCue: currentAudioCue,
+          suggestedVoiceCommandsTr: ["İpucu ver", "Hatırlayamadım", "Ezbere geç"],
+          nextState: state,
+        };
+      }
+
+      // Context hint / question during quiz -> answer safely without spoiling meaning or counting as miss
+      if (/(?:^|\s)(hangi sure|hangi ayet|kökü ne|nerede geçiyor|ipucu)/.test(low)) {
+        const rootNote = currentWord.morphology.rootArabic
+          ? " Arapça kökünü de ekranda gösterdim."
+          : "";
+        return {
+          baseReplyTr: `Bu kelime ${currentWord.surahNameTr} suresi ${currentWord.verseKey} ayetinde geçiyor.${rootNote} Tekrar dinleyip tahmin etmek ister misin?`,
+          expectingLanguage: "tr",
+          stageCard: buildCurrentCard(true),
+          audioCue: currentAudioCue,
+          suggestedVoiceCommandsTr: ["Tekrar dinle", "Hatırlayamadım", "Ezbere geç"],
+          nextState: state,
+        };
+      }
+
+      const gaveUp =
+        /(?:^|\s)(bilmiyorum|hatırlamıyorum|hatırlayamadım|bilemedim|çıkaramadım|emin değilim|geç|geçelim|pas|söyle)(?:\s|$|[.,!?])/.test(
+          low
+        );
       const isCorrect = !gaveUp && checkVocabularyAnswerMatch(rawText, currentWord.translationTr);
 
-      // Patient 2-step coaching: on 1st miss (not explicit skip), give gentle hint + replay once
+      // Patient 2-step coaching: on 1st miss (not explicit skip), give gentle Turkish hint + replay once
       if (!isCorrect && !gaveUp && state.attemptCount === 0) {
         state.attemptCount = 1;
-        const hint = currentWord.morphology.rootArabic
-          ? `İpucu vereyim: kökü ${currentWord.morphology.rootArabic}. Bir kez daha dinleyip dener misin?`
-          : `Küçük bir ipucu: ${currentWord.surahNameTr} suresi ${currentWord.verseKey} ayetinde geçiyor. Tekrar dinleyip tahmin etmek ister misin?`;
+        const rootNote = currentWord.morphology.rootArabic
+          ? " Arapça kökünü de ekranda paylaştım."
+          : "";
+        const hint = `Küçük bir ipucu: ${currentWord.surahNameTr} suresi ${currentWord.verseKey} ayetinde geçiyor.${rootNote} Bir kez daha dinleyip dener misin?`;
 
         return {
           baseReplyTr: `Yaklaştın ama tam değil. ${hint}`,
           expectingLanguage: "tr",
-          stageCard: {
-            kind: "vocabulary_quiz",
-            cardId: state.currentCardId,
-            wordLocation: currentWord.location,
-            verseKey: currentWord.verseKey,
-            surahNameTr: currentWord.surahNameTr,
-            textUthmani: currentWord.textUthmani,
-            turkishReading: currentWord.transliteration ? toTurkishReading(currentWord.transliteration) : null,
-            meaningTr: currentWord.translationTr,
-            verseTranslationTr: currentWord.verseTranslationTr,
-            rootArabic: currentWord.morphology.rootArabic,
-            audioUrl: currentWord.audioUrl,
-            revealed: false,
-          },
-          audioCue: currentWord.audioUrl
-            ? { kind: "word", url: currentWord.audioUrl, labelTr: "Kelime tekrarı", autoPlay: true }
-            : null,
+          stageCard: buildCurrentCard(true),
+          audioCue: currentAudioCue,
           suggestedVoiceCommandsTr: ["Söyle geçelim", "Tekrar dinle"],
           nextState: state,
         };
@@ -438,6 +482,12 @@ export async function runGuidedTutorStep(params: {
         ? `Çok güzel, doğru! "${currentWord.translationTr}" demek.`
         : `Hiç sorun değil, anlamı "${currentWord.translationTr}". Yarın tekrar karşına çıkaracağım, böylece yerleşecek.`;
 
+      const previousResult = {
+        textUthmani: currentWord.textUthmani,
+        meaningTr: currentWord.translationTr,
+        correct: isCorrect,
+      };
+
       const targetVocabCount = state.pace === "short" ? 2 : 3;
       if (state.vocabDoneCount >= targetVocabCount) {
         return enterHifzListen(
@@ -447,7 +497,12 @@ export async function runGuidedTutorStep(params: {
         );
       }
 
-      return enterVocabularyQuiz(state, snapshot, `${feedback} Sıradaki kelimeye geçiyoruz.`);
+      return enterVocabularyQuiz(
+        state,
+        snapshot,
+        `${feedback} Sıradaki kelimeye geçiyoruz.`,
+        previousResult
+      );
     }
 
     return enterHifzListen(state, reciterId, "Şimdi Hıfz ayet çalışmasına geçelim.");
@@ -655,7 +710,8 @@ export async function runGuidedTutorStep(params: {
 function enterVocabularyQuiz(
   state: TutorSessionState,
   snapshot: DashboardStateSnapshot,
-  introTr: string
+  introTr: string,
+  previousResult?: { textUthmani: string; meaningTr: string; correct: boolean }
 ) {
   const nextVocab = getNextVocabularyQuizItem(
     snapshot,
@@ -671,12 +727,18 @@ function enterVocabularyQuiz(
   state.attemptCount = 0;
   state.askedWordLocations.push(nextVocab.card.wordLocation);
 
+  const card: Extract<TutorStageCard, { kind: "vocabulary_quiz" }> = previousResult
+    ? { ...nextVocab.card, previousResult }
+    : nextVocab.card;
+
   return {
     baseReplyTr: `${introTr} Kelimeyi dinletiyorum; Türkçe anlamı neydi?`,
     expectingLanguage: "tr" as const,
-    stageCard: nextVocab.card,
-    audioCue: nextVocab.audioCue,
-    suggestedVoiceCommandsTr: ["Tekrar dinle", "Hatırlayamadım", "Ezbere geç"],
+    stageCard: card,
+    audioCue: nextVocab.audioCue
+      ? { ...nextVocab.audioCue, playbackRate: state.playbackRate }
+      : null,
+    suggestedVoiceCommandsTr: ["Tekrar dinle", "İpucu ver", "Hatırlayamadım", "Ezbere geç"],
     nextState: state,
   };
 }
@@ -725,18 +787,31 @@ export async function orchestrateTutorTurn(params: {
       const systemPrompt = [
         "Sen 'Quran Journey' uygulamasının sabırlı, sakin ve teşvik edici Türkçe Kur'an ders çalıştırıcısısın.",
         "Kurallar:",
-        "1. Yalnızca Türkçe konuş; Arapça ayet veya kelime okuma (Arapça telaffuz daima doğrulanmış okuyucu ses kaydından çalınır).",
+        "1. Yalnızca Türkçe konuş; Arapça ayet, kelime veya kök harfi okuma (Arapça telaffuz daima doğrulanmış okuyucu ses kaydından çalınır).",
         "2. Kendi hafızandan asla ayet metni, meal veya kelime kökü uydurma; yalnızca sana verilen DOĞRULANMIŞ BAĞLAM içindeki bilgileri kullan.",
         "3. Kıraat kelime kontrolünün tecvid ve mahreç doğruluğunu tek başına kanıtlamadığını koru.",
         "4. Yanıtın sesli okunacağı için kısa, doğal ve sıcak olsun (en fazla 2-3 kısa cümle, madde işareti veya markdown kullanma).",
+        "5. Kelime testi (vocabulary) aşamasında sorulan YENİ kelimenin Türkçe anlamını veya okunuşunu asla önceden söyleme; yalnızca canonicalDraftReply içindeki değerlendirme ve yönlendirmeyi doğal Türkçeyle ifade et.",
       ].join("\n");
+
+      // Never expose unrevealed vocabulary answers to Gemini so it cannot accidentally spoil the quiz
+      const safeStageCardSummary =
+        step.stageCard?.kind === "vocabulary_quiz" && !step.stageCard.revealed
+          ? {
+              kind: step.stageCard.kind,
+              surahNameTr: step.stageCard.surahNameTr,
+              verseKey: step.stageCard.verseKey,
+              showHint: Boolean(step.stageCard.showHint),
+              previousResult: step.stageCard.previousResult ?? null,
+            }
+          : step.stageCard;
 
       const groundedContext = JSON.stringify({
         phase: step.nextState.phase,
         isOpenQuestion: Boolean(step.isOpenQuestion),
         userSaid: params.request.userText ?? params.request.recitationTranscript ?? "(oturum başlangıcı)",
         canonicalDraftReply: step.baseReplyTr,
-        stageCardSummary: step.stageCard,
+        stageCardSummary: safeStageCardSummary,
         recitationCheck: step.recitationCheck ?? null,
       });
 

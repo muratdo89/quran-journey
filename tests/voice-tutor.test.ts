@@ -9,6 +9,7 @@ import { pcm16ToWavBase64, synthesizeTurkishTeacherAudio } from "@/lib/tutor/gem
 import {
   checkVocabularyAnswerMatch,
   evaluateCanonicalRecitation,
+  getNextVocabularyQuizItem,
   resolveNavigationRequest,
 } from "@/lib/tutor/tools";
 import { createInitialTutorSessionState } from "@/lib/tutor/types";
@@ -334,6 +335,100 @@ describe("AI Voice Teacher — Canonical Grounding, Patient Coaching & Recitatio
     });
     expect(question.phase).toBe("hifz_listen");
     expect(question.replyTr.length).toBeGreaterThan(20);
+    repo.close();
+  });
+
+  it("grades Turkish vocabulary answers accurately without short-word false positives or diacritic misses", async () => {
+    // Reject short fillers / stopwords that used to pass via exp.includes(ans)
+    expect(checkVocabularyAnswerMatch("en", "Esirgeyen")).toBe(false);
+    expect(checkVocabularyAnswerMatch("an", "Rahman")).toBe(false);
+    expect(checkVocabularyAnswerMatch("ne", "Rahim")).toBe(false);
+    expect(checkVocabularyAnswerMatch("bir", "Allah'ın")).toBe(false);
+    expect(checkVocabularyAnswerMatch("evet", "değil")).toBe(false);
+
+    // Accept Turkish circumflexes, apostrophes, parentheticals, and root stems
+    expect(checkVocabularyAnswerMatch("nimet verdin", "ni'met verdin")).toBe(true);
+    expect(checkVocabularyAnswerMatch("alemlerin", "Âlemlerin")).toBe(true);
+    expect(checkVocabularyAnswerMatch("rahman", "(O) Rahman'dır")).toBe(true);
+    expect(checkVocabularyAnswerMatch("yol", "yola")).toBe(true);
+    expect(checkVocabularyAnswerMatch("rab", "Rabbi")).toBe(true);
+
+    // Deduplicate identical Arabic words across excludeLocations (1:1:3 and 1:3:1 are both ٱلرَّحْمَـٰنِ)
+    const repo = createTempRepo();
+    const snap = await repo.getDashboardSnapshot();
+    const next = getNextVocabularyQuizItem(snap, 1, ["1:1:1", "1:1:2", "1:1:3", "1:1:4", "1:2:1", "1:2:2", "1:2:3", "1:2:4"]);
+    expect(next?.card.wordLocation).not.toBe("1:3:1");
+    expect(next?.card.wordLocation).not.toBe("1:3:2");
+    repo.close();
+  });
+
+  it("handles speed, replay, hint questions, pure-Turkish 1st miss, and previousResult cleanly in vocabulary phase", async () => {
+    const repo = createTempRepo();
+    const snap = await repo.getDashboardSnapshot();
+
+    const start = await orchestrateTutorTurn({
+      request: { action: "start", skipInlineTts: true, sessionState: createInitialTutorSessionState(1) },
+      snapshot: snap,
+      repo,
+    });
+
+    const vocab1 = await orchestrateTutorTurn({
+      request: { action: "user_speech", userText: "Kelime çalışalım", skipInlineTts: true, sessionState: start.sessionState },
+      snapshot: snap,
+      repo,
+    });
+    expect(vocab1.phase).toBe("vocabulary");
+    expect(vocab1.stageCard?.kind).toBe("vocabulary_quiz");
+
+    // Speed change stays in vocabulary phase
+    const slowed = await orchestrateTutorTurn({
+      request: { action: "user_speech", userText: "Yavaş oku", skipInlineTts: true, sessionState: vocab1.sessionState },
+      snapshot: snap,
+      repo,
+    });
+    expect(slowed.phase).toBe("vocabulary");
+    expect(slowed.stageCard?.kind).toBe("vocabulary_quiz");
+    expect(slowed.audioCue?.playbackRate).toBe(0.75);
+
+    // Hint question shows visual hint without penalizing attemptCount
+    const hintTurn = await orchestrateTutorTurn({
+      request: { action: "user_speech", userText: "Hangi ayette geçiyor?", skipInlineTts: true, sessionState: slowed.sessionState },
+      snapshot: snap,
+      repo,
+    });
+    expect(hintTurn.phase).toBe("vocabulary");
+    expect(hintTurn.sessionState.attemptCount).toBe(0);
+    expect(hintTurn.stageCard?.kind === "vocabulary_quiz" && hintTurn.stageCard.showHint).toBe(true);
+
+    // "duymadım" replays without penalizing attemptCount
+    const unheard = await orchestrateTutorTurn({
+      request: { action: "user_speech", userText: "Duymadım", skipInlineTts: true, sessionState: hintTurn.sessionState },
+      snapshot: snap,
+      repo,
+    });
+    expect(unheard.sessionState.attemptCount).toBe(0);
+
+    // 1st wrong answer -> pure Turkish hint (no raw Arabic script in TTS reply)
+    const miss1 = await orchestrateTutorTurn({
+      request: { action: "user_speech", userText: "tamamen ilgisiz cevap", skipInlineTts: true, sessionState: unheard.sessionState },
+      snapshot: snap,
+      repo,
+    });
+    expect(miss1.sessionState.attemptCount).toBe(1);
+    expect(/[\u0600-\u06FF]/.test(miss1.replyTr)).toBe(false);
+
+    // Give up -> advances to next word with previousResult banner attached
+    const nextWord = await orchestrateTutorTurn({
+      request: { action: "user_speech", userText: "Hatırlayamadım", skipInlineTts: true, sessionState: miss1.sessionState },
+      snapshot: snap,
+      repo,
+    });
+    expect(nextWord.phase).toBe("vocabulary");
+    expect(nextWord.stageCard?.kind).toBe("vocabulary_quiz");
+    if (nextWord.stageCard?.kind === "vocabulary_quiz") {
+      expect(nextWord.stageCard.previousResult?.correct).toBe(false);
+      expect(nextWord.stageCard.previousResult?.meaningTr.length).toBeGreaterThan(0);
+    }
     repo.close();
   });
 });

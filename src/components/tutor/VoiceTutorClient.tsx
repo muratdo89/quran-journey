@@ -1005,6 +1005,22 @@ function StageCardView({
   if (card.kind === "vocabulary_quiz") {
     return (
       <section className="rounded-2xl border border-line bg-surface p-6 text-center space-y-3">
+        {card.previousResult && (
+          <div
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-medium",
+              card.previousResult.correct
+                ? "bg-mint text-forest"
+                : "bg-amber-50 text-amber-900 border border-amber-200"
+            )}
+          >
+            <span>{card.previousResult.correct ? "Doğru:" : "Doğrusu:"}</span>
+            <span lang="ar" dir="rtl" translate="no" className="font-arabic text-base leading-none">
+              {card.previousResult.textUthmani}
+            </span>
+            <span>→ {card.previousResult.meaningTr}</span>
+          </div>
+        )}
         <p className="text-xs font-medium text-muted">
           {card.surahNameTr} · {card.verseKey}
         </p>
@@ -1013,6 +1029,14 @@ function StageCardView({
         </p>
         {card.turkishReading && (
           <p className="text-xs text-muted">{card.turkishReading}</p>
+        )}
+        {card.showHint && card.rootArabic && !card.revealed && (
+          <p className="text-xs text-forest">
+            İpucu · Kök:{" "}
+            <span lang="ar" dir="rtl" translate="no" className="font-arabic text-base">
+              {card.rootArabic}
+            </span>
+          </p>
         )}
         {card.revealed && (
           <div className="rounded-xl bg-mint/60 px-4 py-3 text-sm font-semibold text-forest">

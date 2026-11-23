@@ -82,6 +82,12 @@ export type TutorStageCard =
       rootArabic: string | null;
       audioUrl: string | null;
       revealed: boolean;
+      showHint?: boolean;
+      previousResult?: {
+        textUthmani: string;
+        meaningTr: string;
+        correct: boolean;
+      };
     }
   | {
       kind: "verse_study";

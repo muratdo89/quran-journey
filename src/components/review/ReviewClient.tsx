@@ -50,9 +50,12 @@ export function ReviewClient({
   const [lastFeedback, setLastFeedback] = useState<string | null>(null);
 
   const dueQueue = useMemo(() => {
-    const due = prioritizeDueCards(cards);
+    const vocabCards = cards.filter(
+      (c) => c.cardType === "vocabulary" && Boolean(wordsByLocation[c.targetKey])
+    );
+    const due = prioritizeDueCards(vocabCards);
     return isRecoveryMode ? due.slice(0, 6) : due;
-  }, [cards, isRecoveryMode]);
+  }, [cards, wordsByLocation, isRecoveryMode]);
 
   const currentCard = dueQueue[0] ?? null;
   const currentWord = currentCard ? wordsByLocation[currentCard.targetKey] : undefined;
